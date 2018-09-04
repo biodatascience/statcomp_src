@@ -1,0 +1,50 @@
+---
+title: "optim"
+author: "Naim Rashid"
+date: "9/3/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+A common task in statistical computing is minimizing (or maximizing) univariate or multivariate functions.  This is typically done in the context of the maximization of likelihood functions with respect to a set of unknown parameters, conditional on the observed data.  
+
+For example, below we have and example of a simple univariate function that we wish to optimize with respect to an unknown scalar parameter $\theta$:
+
+$$f(\theta) = x^2$$
+If we plot this function, it is immediately clear that if we wish to find the value of $\theta$ that minimizes $f(\theta)$ this value would be $\hat{\theta} = \texttt{argmin}_\theta f(\theta) = 0$
+
+```{r, echo=TRUE}
+quad = function(x){
+  x^2
+}
+plot(quad, from = -2, to = 2)
+
+```
+
+Similarly, we can also obtain a similar result from maximizing the $-f(\theta)$, where $\hat{\theta} = \texttt{argmax}_\theta f(\theta)$
+
+```{r, echo=TRUE}
+quad = function(x){
+  -x^2
+}
+plot(quad, from = -2, to = 2)
+
+```
+
+However, for many cases such as result may not be as simple.  In this document we will detail some common approaches for maximizing both simple and complex functions, and the advantages and disadvantages of each.  We will start with optimization of simple univariate functions, and extend the discussion of such methods to the multivariate setting (with respect to the set of unknown parameters).  In doing so we will cover the maximization of several  types of optimization problem functions commonly found in statistics. 
+
+# Univariate Optimization
+
+## Newton Raphson
+
+Examples, 
+
+## Fisher Scoring
+
+## Quasinewton methods
+
+
