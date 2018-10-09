@@ -8,6 +8,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Prior Reading
+Givens: Chapter 1
+
+# Concurrent Reading
+Givens Chapter 2
 
 # Introduction
 A common task in statistical computing is minimizing (or maximizing) univariate or multivariate functions.  This is typically done in the context of the maximization of likelihood functions with respect to a set of unknown parameters, conditional on the observed data.  
@@ -35,13 +40,52 @@ plot(quad, from = -2, to = 2)
 
 ```
 
-However, for many cases such as result may not be as simple.  In this document we will detail some common approaches for maximizing both simple and complex functions, and the advantages and disadvantages of each.  We will start with optimization of simple univariate functions, and extend the discussion of such methods to the multivariate setting (with respect to the set of unknown parameters).  In doing so we will cover the maximization of several  types of optimization problem functions commonly found in statistics. 
+However, for many cases such a result may not be as simple to obtain.  In this document we will detail some common approaches for maximizing both simple and complex functions, and the advantages and disadvantages of each.  We will start with optimization of simple univariate functions, and extend the discussion of such methods to the multivariate setting (with respect to the set of unknown parameters).  In doing so we will cover the maximization of several  types of optimization problem functions commonly found in statistics. 
 
 # Univariate Optimization
 
-## Newton Raphson
+## Newton-Raphson and Optimization Preliminaries
 
-Examples, 
+Let us consider the numerical optimization of the following function which we seek to maximize with respect to $\theta$: $$g(x) = \frac{\log(x)}{1+x}$$.  
+
+Plotting this function, the maximum of $g(x)$ appears to be between 3 and 4.  Because there is no closed form analytical solution to maximize this problem, we must utilized numerical optimization to find $\hat{theta}$ for this function.  
+
+```{r, echo=TRUE}
+f1 = function(x){
+  log(x)/(1+x)
+}
+plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+
+```
+
+Most numerical optimization methods are iterative and rely on the concept of successive approximations to find the minimum or maximum of a function.  Such algorithms require a **starting value**, an initial guess for $\hat{\theta}$.  From this point, an algorithm will **iteratively** update} its guess for $\hat{\theta}$ based on a predefined updating formula.  Each update may be referred to an "iteration" or a "step".  Ideally, the value of $\hat{\theta} \rightarrow \theta^*$ as $t \rightarrow \infty$, where $t$ is the iteration number such that $t>0$.   That is, as the number of iterations increases, we hope that $\hat{\theta}$ will approach its true optimum $\theta^*$, or **converge** to $\theta^*$. However, $\hat{\theta}$ will never take on the value of $\theta^*$ exactly, and will only approach $\theta^*$ as $t$ increases.  As a result, we need to defined criteria or **stopping rules** indicating that the algorithm has **converged**, indicating that $\hat{\theta}$ is reasonably close to $\theta^*$ within some **tolerance**.  In some cases, the algorithm may converge to some value other than $\theta^*$, or may not converge at all.  We will discuss these situations later in this lecture. 
+
+To illustrate the application of numerical optimization to a simple algorithm, see the following plot.  In it, we choose a starting value $\hat{\theta}^{(0)}$ to initialize the algorithm.  
+
+```{r, echo=FALSE}
+# example 2
+png(file="example%03d.png", width=300, heigh=300)
+  th = 1
+  for (i in 1:10)){
+    h = ((th + 1)*(1+1/th - log(th)))/(3+4/th+1/th^2-2*log(th))
+    th = th + h
+     plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+     points(th, f1(th), pch = 19, cex = 2)
+     abline(h = 3.6)
+  }
+dev.off()
+# convert pngs to one gif using ImageMagick
+system("convert -delay 40 *.png example_2_reduced.gif")
+
+# cleaning up
+file.remove(list.files(pattern=".png"))
+```
+
+You can see that in some cases, the end result of the algorithm is the same regardless of the chosen starting point of the algorithm, however more iterations are required for $\hat{\theta} \rightarrow \theta^*$.  In other cases, you can see that the model may converge to an incorrect value, representing a **local optimum** rather than a **global optimum**, or may not converge at all.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application.  In most statistical applications, larger sample sizes can ease convergence problems, and very small sample sizes can create instability during maximization.   
+
+In this illustration we use a common maximization approach called **Newton-Raphson**, an iterative updating scheme.  Let $\theta^{(0)}$ denote the starting value for the estimate of $\theta$.  Then, we update our estimate of $\theta$ at the $t$th step of the algorithm (for $t >0$ using the following expression: $$\theta^{(t)} = \theta^{(t-1)} + h$$, where $h = \frac{f'(\theta)}{f''(\theta)}$, $f'(\theta)$ is the first derivative of $f(\theta)$ with respect to theta, and $f''(\theta)$ is the second derivative of $f(\theta)$ with respect to theta.  The derivation of this algorithm is described in Givens and Hoeting, and is based upon a 2nd order Taylor expansion around $\theta^*$ for the function in question.  Utilizing the fact that the first derivative at the maximum likelihood estimate for $\theta$ will be zero, we can rearrange terms to obtain the previous result.  
+
+Intuitively, we can notice that the values of $h$ will decrease to 0 as $\theta^{(t)} \rightarrow \theta^{*}$, as $f'(\theta^{(t)})$ will approach 0.  That is, as we approach the true value of $\theta$ ($\theta^{*}$), the increment between $\theta^{(t)}$ and $\theta^{(t+1)}$ will decrease.    
 
 ## Fisher Scoring
 
