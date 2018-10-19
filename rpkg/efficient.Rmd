@@ -30,12 +30,15 @@ like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
 Trust that someone will probably look at your code (whether for a
 method or a published analysis) and decide whether it makes sense.
 
+# Readable code
+
 **Readable code** for a high-level programming language will look
 similar across whatever language you use. 
 
-* *Visual space:* Code within a file is broken into meaningful chunks, and code
-withing a project is broken into meaningful files (this varies a bit
-from person to person). 
+* *Visual space:* Code within a file is broken into meaningful
+  vertical chunks, and code within a project is broken into meaningful
+  files (this varies a bit from person to person). Use spaces between
+  operators, e.g. `x <- 1` rather than `x<-1`.
 * *Non-repeating:* Functions are used to define operations that will
   be repeated more than once. There should almost never be any code
   that looks as if it were *copy-pasted* within a project. Variations
@@ -50,6 +53,57 @@ from person to person).
   comments. This helps others, and it will certainly help yourself in
   the future as you return to your code to make sense of what you were
   trying to do.
+* *Meaningful names:* Function and variable naming is actually quite
+  difficult. Simple and descriptive is good. If you have a function
+  that estimates weights, e.g.  `estimateWeights`. For the main
+  variables/objects (such as the ones the user provides as an
+  argument), short variable names are acceptable, especially when
+  these align with standard notation, e.g. `y`, `x`, or abbreviations,
+  `wts`. For intermediate variables/objects it is best to be more
+  descriptive, e.g. `robustEstVar` for a robust estimate of
+  variance. Some R developers use "camel-case" for functions and
+  variables (`estimateWeights`), while others use underscores
+  (`estimate_weights`) for functions or periods for variables names
+  `robust.est.var`. This is not so important, but try to be consistent
+  within a project. 
 
-**Efficient code**
+# Efficient code
 
+**Efficient code** is a bit more language specific, and here we will
+focus on efficiency in the R language. The most important factor
+below however is true also for the other high-level programming
+languages.
+
+* *Use vectorized functions:* The most important thing to recognize
+  about high-level programming languages is that they are built on top
+  of fast routines written in Fortran, C, or C++ mostly. Iteration in
+  the high-level language will always be slower than the *vectorized*
+  function which iterates in the lower-level language. Use of row- or
+  column-based operations over matrices, or matrix multiplication,
+  that avoids iterating over rows or columns is one of the keys to
+  efficient programming in R. 
+* *Allocate first:* Another pitfall for writing R code is any
+  operation which grows the memory space required for an object at
+  each iteration. You should almost never have a loop where the inside
+  of the loop has `out <- c(out, new.thing)`. Concatenation is ok, but
+  remember that it has a time cost, so you don't want to be doing it
+  often. Loops in R are not as bad as you may have heard, as long
+  as the space has been pre-allocated. Loops in R will likely be
+  slower than using a vectorized function, or a loop in C or C++, but
+  they don't need to be avoided at all cost.
+* *Avoid copying large objects:* This goes along with the above point,
+  but copying large objects takes up a lot of time in R. To the extent
+  that you can avoid making copies of a data object, you will avoid
+  unnecessary slowdowns. We will discuss this in more detail later.
+* *Go to C or C++:* You can typically gain a lot of speed by moving a
+  repetitive operation from R to C or C++. We will see how to do this
+  easily and in a way that the code is still readable in later lecture
+  notes.
+* *Memoization:* If you happen to be writing a function that will take
+  input which has repeated elements, and it is very important for this
+  function to be very fast, memoization can be a useful
+  technique. Memoization entails storing the values of expensive
+  function calls so that they don't have to be repeated. There is a
+  small overhead in saving and looking up the precomputed values, but
+  if the degree of repeated input is high, the savings of memoization
+  can be large. The *memoise* package helps with this in R.
