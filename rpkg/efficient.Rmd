@@ -107,3 +107,139 @@ languages.
   small overhead in saving and looking up the precomputed values, but
   if the degree of repeated input is high, the savings of memoization
   can be large. The *memoise* package helps with this in R.
+
+# Benchmarking R code
+
+We will make use of *microbenchmark* package to assess efficiency of
+methods here and again in the course. It is not part of the core set
+of R packages, so you will need to install it with `install.packages`.
+
+## Pre-allocation
+
+You can compare two implementations by passing them to the
+`microbenchmark` function:
+
+```{r}
+library(microbenchmark)
+slow.sqrt <- function(x) {
+  ans <- numeric(0)
+  for (i in seq_along(x)) {
+    ans <- c(ans, sqrt(x[i]))
+  }
+  ans
+}
+microbenchmark(sqrt(1:1000), slow.sqrt(1:1000))
+```
+
+This benchmark indicates that the vectorized version of the square
+root is many orders of magnitude faster than a naive
+implementation. Let's compare `slow.sqrt` with a version where we
+preallocate the vector that stores the eventual output of the function:
+
+```{r}
+pre.sqrt <- function(x) {
+  ans <- numeric(length(x))
+  for (i in seq_along(x)) {
+    ans[i] <- sqrt(x[i])
+  }
+  ans
+}
+microbenchmark(pre.sqrt(1:1000), slow.sqrt(1:1000))
+```
+
+So simply pre-allocating saves us about an order of magnitude in
+speed.
+
+## Initial attempts at C++
+
+We can also assess the speed of R's vectorized `sqrt` comparing to our
+own implementations in C++. Here we use the *Rcpp* package to define
+some inline C++ code which is then compiled and accessible as an R
+function. We will show more details on incorporating C++ code in
+future lecture notes.
+
+```{r}
+library(Rcpp)
+cppFunction(
+"NumericVector rcpp_sqrt1(NumericVector x) {
+  int n = x.size();
+  Rcpp::NumericVector y(x);
+  for (int i=0; i < n; i++) {
+    y[i] = sqrt(x[i]);
+  }
+  return y;
+}")
+cppFunction(
+"NumericVector rcpp_sqrt2(NumericVector x) {
+  return sqrt(x);
+}")
+microbenchmark(sqrt(1:1000),
+               rcpp_sqrt1(1:1000),
+               rcpp_sqrt2(1:1000))
+```
+
+Our two C++ implementations are comparable, and now only about 3 times
+slower than R's `sqrt`. 
+
+## Memoization
+
+We also show an example of how memoization can help in certain
+circumstances when there is repeated input.
+
+```{r}
+library(memoise)
+x <- sample(10, 1000, TRUE)
+slow.fn <- function(x) {
+  Sys.sleep(.001)
+  x + pi
+}
+mem.fn <- memoise(slow.fn)
+system.time(sapply(x, slow.fn))
+system.time(sapply(x, mem.fn))
+forget(mem.fn)
+```
+
+We defined an arbitrary function `slow.fn` which waits a millisecond
+before returning the input plus `pi`. We then run `slow.fn` on a
+vector of length 1000, although the values of the vector are limited
+to then numbers 1 to 10. When we instead call the memoized version of
+the function, we only incur the millisecond cost of `slow.fn` 10 times
+(for each time we need to calculate the value of `slow.fn` on the
+numbers 1 to 10). Any repeated calls to `slow.fn` on a number that
+`mem.fn` has already seen instead incur the cost of looking up the
+value of `slow.fn` in an in-memory cache.
+
+## Matrices when possible
+
+Finally, one can be using vectorized functions in R and still not
+writing the most efficient code possible, if one is not making use of
+functions which can operate on matrices, but instead working "one row
+at a time". Here we give a simple example of $A X = B$ where all three
+are matrices. If we treat this problem as a series of $A x = b$ where
+$x$ and $b$ are vectors, then we will incur a cost in speed.
+
+```{r}
+n <- 50
+m <- 100
+a <- matrix(rnorm(n*n),nrow=n)
+x <- matrix(rnorm(n*m),nrow=n)
+b <- a %*% x
+xx <- solve(a, b[,1])
+all.equal(x[,1], xx)
+```
+
+Implementing this as a function:
+
+```{r}
+slow.solve <- function(a, b) {
+  xx <- matrix(nrow=nrow(b), ncol=ncol(b))
+  for (i in seq_len(ncol(b))) {
+    xx[,i] <- solve(a, b[,i])
+  }
+  xx
+}
+x1 <- solve(a, b)
+x2 <- slow.solve(a, b)
+all.equal(x1, x2)
+microbenchmark(solve(a,b), slow.solve(a,b))
+```
