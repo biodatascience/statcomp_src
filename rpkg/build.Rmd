@@ -159,7 +159,24 @@ package tarball.
 Now if we want to share our function `add` with a collaborator, we can
 send them the file `foo_0.0.1.tar.gz`. 
 
-We can install this package using the following:
+By far the easiest way to load the package into R while you are
+developing it is to use the `load_all` function from the *devtools*
+package. This does not require the creation of the package tarball
+with the `.tar.gz` ending, but simply mimics an installation of the
+package. From within the package you can simply call `load_all()`, or 
+you can also specify the path to the package:
+
+```{r eval=FALSE} 
+load_all("/path/to/foo")
+```
+
+You also bypass having to call `library(foo)` as the package will
+already be loaded.
+
+Another way to load the package is the standard `install.packages`
+function but specifying that the package tarball is a local file, not
+a name of a package in a remote repository. This then requires an
+explicit `library(foo)` call afterward.
 
 ```{r eval=FALSE}
 install.packages("foo_0.0.1.tar.gz", repos=NULL)
