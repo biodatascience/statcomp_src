@@ -127,6 +127,12 @@ begin with a period:
 exportPattern("^[^\\.]")
 ```
 
+A complication is if we want to use functions from another package in
+our package. The way to do this is to *import* or *depend* on other
+packages. The easiest way to handle these imports and dependencies is
+through the *roxygen* documentation format, so we will hold off on
+discussing this in the next lecture note.
+
 We can build a shareable package "tarball" using the `build` function:
 
 ```{r eval=FALSE}

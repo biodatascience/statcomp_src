@@ -1,0 +1,26 @@
+---
+title: "Documenting R functions"
+author: "Michael Love"
+date: 10/25/2018
+output: html_document
+---
+
+# Types of documentation in R
+
+There are two main locations in an R package which contain
+documentation:
+
+1) help pages (sometimes called "man pages") for each function
+2) vignettes (longer form with R code chunks embedded in text)
+
+We will show in this lecture note how to generate documentation for
+both. For the function help pages, I strongly recommend to use
+*roxygen* formatting and the `document` function from the *devtools*
+package, which will be covered here. This will automatically generate
+both the `.Rd` files that go in the `man` directory, and it will
+populate the `NAMESPACE` file which specifies what is exported and
+what is imported by your package.
+
+# Writing help for functions
+
+
