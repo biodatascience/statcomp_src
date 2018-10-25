@@ -1,0 +1,188 @@
+---
+title: "Building R packages"
+author: "Michael Love"
+date: 10/25/2018
+output: html_document
+---
+
+# Why put your code into a package?
+
+There are two compelling reasons to move your code from a set of
+scripts to a package:
+
+1) Versioning
+2) Documentation
+
+During a project, you may begin to accumulate a large code base, you
+can get by organizing functions into files, and using `source`, for
+example: 
+
+```{r eval=FALSE}
+# hypothetical example:
+load("data.rda")
+source("normalize_functions.R")
+source("EM_functions.R")
+source("plot_functions.R")
+```
+
+This may be sufficient for a while, but it is not sufficient for
+sharing the code with others, either for reproducibility or for having
+others use your methods. Using `source` as above doesn't let you or
+someone else know which *version* of the functions are being used. The
+way to do this in R is to put the R scripts into a *package structure*
+which has a version attached to it. The version is simply recorded as
+a line in a text file, which we will describe in these notes.
+
+A potential user also cannot find out about the purpose of the
+functions, details about the arguments or output of the function if
+they are simply brought into R with `source`. You could provide
+comments in the R files, but these comments are not accessible from
+the command line while a potential user is about to use your
+function. Help for R functions is provided in a specifically formatted
+file (ending with `.Rd`) that goes into the `man` directory of an R
+package. I strongly recommend to not write these files by hand but
+instead use in-line documentation called *roxygen* and help functions
+from the *devtools* package to automatically create these help
+files. This will be covered in detail in another lecture note.
+
+# Minimal package skeleton
+
+The bare minimum for an R package is a directory with the following:
+
+* a `DESCRIPTION` text file, which gives information about the package
+* a `NAMESPACE` text file, which tells which functions are imported or
+  exported by the package (best written automatically, not manually)
+* a directory called `R` with the R scripts inside
+
+We can get started by using the `create` function from the *devtools*
+package. Suppose we have an R script with the following function:
+
+```{r eval=FALSE}
+add <- function(x,y,negative=FALSE) {
+  z <- x + y
+  if (negative) {
+    z <- -1 * z
+  }
+  z
+}
+```
+
+Let's say we will create an R package called *foo*. We can start with
+the following:
+
+```{r eval=FALSE}
+create("foo", rstudio=FALSE)
+```
+
+This will make a directory called `foo` in the current working
+directory:
+
+```{r}
+list.files("foo")
+```
+
+It will start with a DESCRIPTION file that looks like:
+
+```
+## Package: foo
+## Title: What the Package Does (one line, title case)
+## Version: 0.0.0.9000
+## Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+## Description: What the package does (one paragraph).
+## Depends: R (>= 3.6.0)
+## License: What license is it under?
+## Encoding: UTF-8
+## LazyData: true
+```
+
+The DESCRIPTION file has a number of fields that we need to
+populate. We may start editing this file: 
+
+```
+Package: foo
+Title: Functions for doing great things
+Version: 0.0.1
+Authors@R: person("Jane","Doe",email="jdoe@uni.edu",role=c("aut","cre"))
+Description: Contains amazing functions for doing amazing things.
+Depends: R (>= 3.6.0)
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+```
+
+There are a number of licenses that are possible and these are
+important to read about and consider before releasing code. Here is a
+list of licenses that are in use for R:
+
+<https://www.r-project.org/Licenses/>
+
+R itself is licensed under `GPL-2 | GPL-3`.
+
+If we simply move the R script above into the `R` directory, we are
+done with the bare minimum for our first R package, because the
+`NAMESPACE` file already says to export all functions that do not
+begin with a period:
+
+```
+exportPattern("^[^\\.]")
+```
+
+We can build a shareable package "tarball" using the `build` function:
+
+```{r eval=FALSE}
+build("foo")
+```
+
+This prints out the following message and returns the location of the
+package tarball.
+
+```
+'/Users/love/bin/R/bin/R' --no-site-file --no-environ --no-save --no-restore --quiet CMD build  \
+  '/Users/love/teach/statcomp/statcomp_src/rpkg/foo' --no-resave-data --no-manual 
+
+* checking for file ‘/Users/love/teach/statcomp/statcomp_src/rpkg/foo/DESCRIPTION’ ... OK
+* preparing ‘foo’:
+* checking DESCRIPTION meta-information ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+* building ‘foo_0.0.1.tar.gz’
+
+[1] "/Users/love/teach/statcomp/statcomp_src/rpkg/foo_0.0.1.tar.gz"
+```
+
+Now if we want to share our function `add` with a collaborator, we can
+send them the file `foo_0.0.1.tar.gz`. 
+
+We can install this package using the following:
+
+```{r eval=FALSE}
+install.packages("foo_0.0.1.tar.gz", repos=NULL)
+```
+
+We still haven't written any documentation, so when we try to load
+help we are told it is missing:
+
+```{r}
+library(foo)
+help(topic="add", package="foo")
+```
+
+But we can now use our function:
+
+```{r}
+add(3,4)
+add(3,4,negative=TRUE)
+```
+
+And for reproducibility sake, we can ask about the package version:
+
+```{r}
+packageVersion("foo")
+```
+
+And we can include the following at the end of scripts to include all
+package versions (and other important details):
+
+```{r}
+session_info()
+```
