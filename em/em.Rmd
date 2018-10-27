@@ -1,0 +1,110 @@
+---
+title: "em"
+author: "Naim Rashid"
+date: "10/26/2018"
+output: 
+  html_document:
+    number_sections: true
+header_includes:
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
+include-before:
+- '\newcommand{\bfm}[1]{\ensuremath{\mathbf{#1}}}'
+- '\newcommand{\bdm}[1]{\ensuremath{\boldsymbol{#1}}}'
+- '$\def \d \bfm{d}$'
+- '$\def \e \bfm{e}$'
+- '$\def \g \bfm{g}$'
+- '$\def \I \bfm{I}$'
+- '$\def \l \bfm{l}$'
+- '$\def \M \bfm{M}$'
+- '$\def \W \bfm{W}$'
+- '$\def \y \bfm{y}$'
+- '$\def \X \bfm{X}$'
+- '$\def \z \bfm{z}$'
+- '$\def \thetab \bdm{\theta}$'
+- '$\def \betab \bdm{\beta}$'
+- '$\def \pib \bdm{\pi}$'
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Reading:  GH Chapter 4, McCullough Chapter 1
+
+EM for missing data problems, but general problems can be formulated in this framework to facilitate estimation.  General purpose optimization, regarded as "workhorse" computing algorithms in statistics along with MCMC.  We will see that several of the concepts introduced in the last lecture are embedded in this approach, and in turn the modularity of the EM algorithm also facilitates relatively simple extensions to situations such variable selection via penalized likelihood and random effect models.  The relative ease of implementation is one of the benefits of its use, in addition to several of the applications 
+
+## History
+
+## Examples
+
+# Algorithm Setup
+
+## General formulation
+
+### Likelihood
+
+### Q-function
+
+### M-step
+
+### E-step
+
+### Initialization
+
+### Convergence Criteria
+
+### Computing Standard Errors of Parameter Estimates
+
+### Acceleration of Convergence
+
+# Why it works and general properties
+
+## Ascent property
+
+## Convergence Rates
+
+## Non-convergence examples
+
+# Extensions of the EM Algorithm
+
+## Expectation Condition Maximization (ECM, M-step Modification)
+
+### Why should we consider
+
+### Forumulation
+
+### Convergence Rate
+
+### Example
+
+### Multicycle ECM
+
+## (Expection Conditional Maximization Expection, E and M-step Modification)
+
+### Why should we consider
+
+### Forumulation
+
+### Convergence Rate
+
+### Example
+
+## Penalized EM
+
+### Why should we consider
+
+### Forumulation
+
+### Example
+
+## Monte Carlo EM (MCEM)
+
+
+
+
+
