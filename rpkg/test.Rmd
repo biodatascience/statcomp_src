@@ -1,0 +1,6 @@
+---
+title: "Writing package tests"
+author: "Michael Love"
+date: 10/25/2018
+output: html_document
+---

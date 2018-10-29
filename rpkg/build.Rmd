@@ -10,8 +10,8 @@ output: html_document
 There are two compelling reasons to move your code from a set of
 scripts to a package:
 
-1) Versioning
-2) Documentation
+* Versioning
+* Documentation
 
 During a project, you may begin to accumulate a large code base, you
 can get by organizing functions into files, and using `source`, for
@@ -44,6 +44,12 @@ package. I strongly recommend to not write these files by hand but
 instead use in-line documentation called *roxygen* and help functions
 from the *devtools* package to automatically create these help
 files. This will be covered in detail in another lecture note.
+
+Two additional references for building R packages are:
+
+* [R Packages](http://r-pkgs.had.co.nz/) by Hadley Wickham
+* [Writing R Extensions](https://cran.r-project.org/doc/manuals/R-exts.html)
+  the official guide from CRAN on how to create an R package
 
 # Minimal package skeleton
 
@@ -129,9 +135,11 @@ exportPattern("^[^\\.]")
 
 A complication is if we want to use functions from another package in
 our package. The way to do this is to *import* or *depend* on other
-packages. The easiest way to handle these imports and dependencies is
-through the *roxygen* documentation format, so we will hold off on
-discussing this in the next lecture note.
+packages. The easiest way to handle importing functions from another package
+is through the *roxygen* documentation format, so we will hold off on
+discussing this in the next lecture note. We have some description of
+the different kinds of package dependencies at the bottom of this
+lecture note.
 
 We can build a shareable package "tarball" using the `build` function:
 
@@ -139,8 +147,11 @@ We can build a shareable package "tarball" using the `build` function:
 build("foo")
 ```
 
-This prints out the following message and returns the location of the
-package tarball.
+Alternatively, this can be done on the command line, from one
+directory above the package directory, with `R CMD build foo`.
+
+The `build` command prints out the following message and returns the
+location of the package tarball.
 
 ```
 '/Users/love/bin/R/bin/R' --no-site-file --no-environ --no-save --no-restore --quiet CMD build  \
@@ -158,6 +169,71 @@ package tarball.
 
 Now if we want to share our function `add` with a collaborator, we can
 send them the file `foo_0.0.1.tar.gz`. 
+
+# Version numbers
+
+The most important thing about version numbers is that they are
+*free*. You should "bump" the version number any time you make a
+change that you will push out the world (e.g. anytime you push your
+changes to GitHub or other repository). Even if you are working
+entirely by yourself, it is useful to be able to pinpoint differences
+in code output based on the version string (which will appear if you
+append the session information to the output of every script or
+Rmarkdown file you run).
+
+There are three parts to most R package version numbers:
+
+`x.y.z`
+
+Roughly:
+
+* The "x" part is for major releases
+* The "y" part is for minor releases
+* The "z" part is for any change to the package
+
+In *Bioconductor*, there is some additional information and restrictions
+on these numbers. "y" is even for release versions and odd for
+development versions. They have additional information on the system
+for [Bioconductor package version numbers](http://bioconductor.org/developers/how-to/version-numbering/).
+
+The first time a package is started, you may choose `0.0.1` and then
+add 1 to the "z" digit every time you make a change to the package
+code. It would be typical to use `1.0.0` when you first "release" the
+package, which you would do yourself if you are planning to host on
+GitHub or on CRAN. If you still consider the package a working "beta",
+then you might only use `0.1.0`, until you feel it is ready for
+`1.0.0`. For Bioconductor packages, you would submit
+`0.99.z` to the Bioconductor repository, and the Bioconductor machines
+would increment to `1.0.0` on your behalf for the first release.
+There is some additional information about version numbers and
+releasing a package from [Hadley Wickham](http://r-pkgs.had.co.nz/release.html).
+
+In R, package versions are a special class and you can compare package
+versions like so: 
+
+```{r}
+packageVersion("stats")
+packageVersion("stats") >= "3.0.0"
+```
+
+If you want a R script to produce an error if the package is out of
+data you can use:
+
+```{r}
+stopifnot(packageVersion("stats") >= "3.0.0")
+```
+
+For an R package, if you need a specific version of another package,
+you should include a string in parentheses after its name in the
+Depends, Imports or Suggests field, for example:
+
+```
+Imports: foo (>= 1.2.0)
+```
+
+We will discuss these fields a bit more in the documentation notes.
+
+# Loading and sharing packages
 
 By far the easiest way to load the package into R while you are
 developing it is to use the `load_all` function from the *devtools*
@@ -190,7 +266,8 @@ library(foo)
 help(topic="add", package="foo")
 ```
 
-But we can now use our function:
+Either through using `load_all` or installing and then loading with
+`library`, we can now use our function:
 
 ```{r}
 add(3,4)
@@ -209,3 +286,52 @@ package versions (and other important details):
 ```{r}
 session_info()
 ```
+
+# Types of package dependencies
+
+There are three main types of formal package dependencies in R:
+
+* Depends
+* Imports
+* Suggests
+
+Each of these can be listed in the `DESCRIPTION` file. We will show in
+the documentation lecture note how to import specific functions from
+other packages, and how to add these packages to the `Imports:` line
+in the `DESCRIPTION` file. I recommend to import specific functions
+from other packages, rather than the entire package, but it is also
+possible to import the entire package. Note that the packages that
+you import functions from are not *attached to the search path* when
+you load your package with `library(foo)`. This means that, even if
+you import one or more functions from another package within your
+package, those functions are not available to the user unless they
+also load the package with another call to `library`.
+
+The `Suggests:` field of the `DESCRIPTION` file is for packages which
+are not absolutely required for your package to work, but which your
+package can make use of, or which are used in examples or the vignette
+of your package. I recommend to list a package under Suggests also in
+the case that you have a function which can make use of another
+package, but has a fallback implementation which does not require the
+other package. Or if there is no fallback, the function should explain
+that it cannot be run because the other package is not available. This
+testing to see if the other package is available can be performed using
+`requireNamespace("foo", quiet=TRUE)`, which will return `TRUE` if the
+package is installed and `FALSE` if not. You can then use the function
+from the other package with `::` within your package, for example:
+`cool::fancy` can be used to call the `fancy` function from the *cool*
+package.
+
+This leaves Depends to be explained. If you read Hadley Wickham's
+R Package reference and particular the section on
+[Namespace](http://r-pkgs.had.co.nz/namespace.html), you'll see that
+he does not recommend the use of Depends at all. I agree with his
+arguments laid out there and simply quote the key sentences here:
+
+> The main difference is that where Imports just loads the package,
+> Depends attaches it. There are no other differences.
+> ... Unless there is a good reason otherwise, you
+> should always list packages in Imports not Depends. That’s because a
+> good package is self-contained, and minimises changes to the global
+> environment (including the search path).
+

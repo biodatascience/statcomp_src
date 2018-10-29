@@ -1,0 +1,6 @@
+---
+title: "Debugging in R"
+author: "Michael Love"
+date: 10/25/2018
+output: html_document
+---
