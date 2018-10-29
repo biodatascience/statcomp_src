@@ -4,3 +4,164 @@ author: "Michael Love"
 date: 10/25/2018
 output: html_document
 ---
+
+# Many approaches to debug code in R
+
+There are a number of different ways to do debugging of R code, but as
+with documentation and testing, I will show here what I think is the
+simplest way to debug a complex situation. Suppose we have a function
+that is called in the middle of a larger operation and we want to
+inspect its arguments and step through what is happening. My preferred
+method for this is to insert the `browser()` command into the function
+at a relevant level, and then to run the function in the setting that
+produces the behavior I want to investigate. Note that this approach
+can also be used in general, not just for debugging, but for when
+introducing new features that may alter core components of your
+current package infrastructure. 
+
+If I want to investigate an error or behavior in a package that I do
+not maintain, I will typically obtain the latest source code for the
+package, and apply this same procedure of inserting `browser()` at
+critical points that I want to investigate. `load_all()` can be run to
+load the version of the package that contains the `browser()` call
+instead of the original package source.
+
+I will now create a series of inter-dependent functions, so that we
+can examine how different strategies of debugging look in R.
+
+```{r}
+# a high level function
+high <- function(obj) {
+  obj.sub <- subset(obj)
+  obj.sub <- analyze(obj.sub)
+  return(obj.sub)
+}
+# some subsetting operation
+subset <- function(obj) {
+  # every other element
+  idx <- seq_len(length(obj$x)/2)*2 - 1
+  list(x=obj$x[idx],
+       y=obj$y[idx],
+       foo=obj$foo)
+}
+# another sub-function
+analyze <- function(obj) {
+  if (obj$foo == "no") {
+    z <- obj$x + obj$y
+  } else if (obj$foo == "yes") {
+    z <- obj$x + obj$y + special(obj$x)
+  }
+  obj$z <- z
+  obj
+}
+# a low-level function
+special <- function(x) {
+  sum(x) + "hi"
+}
+```
+
+If we run this with `foo="yes"` we will run into some problems.
+
+```{r error=TRUE}
+obj <- list(x=1:10,
+            y=11:20,
+            foo="yes")
+high(obj)
+```
+
+We can call `traceback()` which gives the series of function calls
+that produced the latest error:
+
+```{r eval=FALSE}
+traceback()
+```
+
+This gives:
+
+```
+3: special(obj$x) at #5
+2: analyze(obj.sub) at #3
+1: high(obj)
+```
+
+My favorite strategy is to put `browser()` inside of one of the
+functions, for example, here:
+
+```{r eval=FALSE}
+special <- function(x) {
+  browser()
+  sum(x) + "hi"
+}
+```
+
+Then rerunning:
+
+```{r eval=FALSE}
+high(obj)
+```
+
+We are given a special `Browse` prompt where we can see what is in the
+environment with `ls()`, and investigate the contents:
+
+```
+Called from: special(obj$x)
+Browse[1]> 
+debug at #3: sum(x) + "hi"
+Browse[2]> ls()
+[1] "x"
+Browse[2]> x
+[1] 1 3 5 7 9
+Browse[2]> sum(x)
+[1] 25
+Browse[2]> 
+```
+
+To exit, type `Q`.
+
+Another option to debug on error is to set a global option:
+
+```{r eval=FALSE}
+options(error=recover)
+```
+
+Then when running a function that triggers an error, R will launch a
+special browser prompt, but first asks us what level of the stack of
+calls we would like to enter:
+
+```
+Error in sum(x) + "hi" (from #2) : non-numeric argument to binary operator
+Calls: high -> analyze -> special
+
+Enter a frame number, or 0 to exit   
+
+1: high(obj)
+2: #3: analyze(obj.sub)
+3: #5: special(obj$x)
+
+Selection: 3
+```
+
+Here we pick to enter frame number 3.
+
+```
+Called from: analyze(obj.sub)
+Browse[1]> ls()
+[1] "x"
+Browse[1]> x
+[1] 1 3 5 7 9
+Browse[1]> sum(x)
+[1] 25
+```
+
+When you are finished, you can return with `Q` and you can stop the
+browser prompt upon error with:
+
+```{r eval=FALSE}
+options(error=NULL)
+```
+
+Other options for debugging in R are the `debug`/`undebug` or `debugonce`
+functions. These are similar to `browser` but they step through a function
+line-by-line, and so can be tedious for large functions. However they
+do not require having the source code of the program on hand for
+editing.

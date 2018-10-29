@@ -258,6 +258,12 @@ explicit `library(foo)` call afterward.
 install.packages("foo_0.0.1.tar.gz", repos=NULL)
 ```
 
+Another easy way to share your package is to put all of the files into
+a GitHub repository. Then others can install the package on their
+machines simply with `install_github("username/foo")` using the
+*devtools* package. Again, this requires a `library(foo)` call
+afterward to load the package.
+
 We still haven't written any documentation, so when we try to load
 help we are told it is missing:
 
@@ -335,3 +341,15 @@ arguments laid out there and simply quote the key sentences here:
 > good package is self-contained, and minimises changes to the global
 > environment (including the search path).
 
+# Package checking
+
+R has a very useful, but also very picky checking software associated
+with it. It can be run with the `check` function from the *devtools*
+package, or by running `R CMD check foo_0.0.1.tar.gz` from the command
+line. Passing all of the R package checks is a good idea if you plan
+to share your code with others. In addition, there may be 
+[other checks](https://bioconductor.org/packages/devel/bioc/vignettes/BiocCheck/inst/doc/BiocCheck.html) 
+that you will need to pass if you want to submit to Bioconductor. We
+won't cover R package checking, as we only have limited time, but the
+reference on [R Packages](http://r-pkgs.had.co.nz/check.html) from
+Hadley Wickham discusses this.

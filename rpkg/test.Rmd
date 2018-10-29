@@ -4,3 +4,122 @@ author: "Michael Love"
 date: 10/25/2018
 output: html_document
 ---
+
+# Why write tests?
+
+Package tests are a simple way to make sure that the statistical
+software you have written does what you expect, both when you run it
+on typical and atypical input. I also tend to use package tests when
+implementing new features in my software packages, as a way to check
+to see that the new functionality works as I expect it.
+
+There are multiple frameworks for writing package tests, but we will
+focus on the framework that I find the most straightforward, which is
+implemented in the *testthat* package.
+
+A reference for writing tests with *testthat* can be found at the [R
+Packages](http://r-pkgs.had.co.nz/tests.html) book by Hadley Wickham.
+
+# Set up testthat for a package
+
+To begin writing tests, you can run the *devtools* function
+`use_testthat()`. This will create a directory called `tests/testthat`
+in the root of your R package directory, add *testthat* to your
+`Suggests:` line in the `DESCRIPTION` file, and create a file
+`tests/testthat.R` that will run all the tests in `tests/testthat`
+when you run R's package check. The `testthat.R` file is very simple:
+
+```
+library(testthat)
+library(foo)
+test_check("foo")
+```
+
+This file stays the same way, and we will write new `.R` files that go
+into `tests/testthat` which will implement the package tests.
+
+Suppose we have already run `use_testthat()` for our *foo* package,
+and we want to write a test for our `add` function. We can do this by
+creating a new file `tests/testthat/add.R` with the following
+structure:
+
+```
+context("add")
+test_that("add works on two vectors", {
+
+  expect_equal(add(1:5,6:10), c(7,9,11,13,15))
+
+})
+
+test_that("simple errors for bad input", {
+
+  expect_error(add())
+  expect_error(add(1:5))
+  expect_error(add(1:5,6:10,"yes"))
+
+})
+```
+
+There are many possible tests that one can write, with the workhorses
+probably being `expect_equal` and `expect_true`. We can also specify a
+numerical tolerance (absolute or relative) for equality, as shown in
+the Examples in `?expect_equal`. In order to see a list of all the
+`expect_` functions available in *testthat*, one can run the following
+command in R:
+
+```{r eval=FALSE}
+help(package="testthat", help_type="html")
+```
+
+# Messages, warnings, and errors
+
+We can also check that specific messages, warnings, or errors are
+output for given input to our function. These three levels of output
+`message` the user relevant information, provide a `warning` to the
+user about potential problems, or `stop` the function from providing
+any output.
+
+If we wanted the `add` function to warn the user about negative values
+as output (just a trivial example), we could write:
+
+```{r}
+add2 <- function(x,y,negative=FALSE) {
+  z <- x + y
+  if (negative) {
+    z <- -1 * z
+  }
+  if (any(z < 0)) {
+    warning("some output values are negative")
+  }
+  z
+}
+```
+
+We could then test this by saying we expect a specific warning. Note
+that the entire warning doesn't need to be written out, only a regular
+expression that would produce a match.
+
+```{r}
+expect_warning(add2(1:5, -11:-15), "are negative")
+```
+
+If we wanted to test for a message or error, we would use
+`expect_message` or `expect_error` with the `message` or `stop`
+function respectively.
+
+# Testing individual files or whole packages
+
+We can check all the tests for individual files with the following
+call to `test_file`: 
+
+```{r}
+load_all("foo")
+test_file("foo/tests/testthat/add.R")
+```
+
+Or we can check all of the tests for a given package with the
+following call to `test_package`:
+
+```{r eval=FALSE}
+test_package("foo")
+```
