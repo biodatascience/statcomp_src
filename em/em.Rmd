@@ -36,6 +36,29 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Reading:  GH Chapter 4, McCullough Chapter 1
 
+The EM algorith, is is general purpose optimization algorith and is widely considered as a "workhorse" computing algorithm in statistics alongside Markov Chain Monte Carlo (MCMC).  While it was originally introduced for the purpose of optimizing algorithms in missing data settings, we will see that it can also be adapted to broader problems in statistics with some reformulation of the original problem.  In such settings, the EM algorithm may offer a convenient alternative to Newton Raphson (covered in the prior lecture), where the analytical derivations of the derivative functions may be complex or difficult to evaluate.  Examples of these broader applications include random effect, mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attactive feature. 
+
+The general intuition behind the EM algorithm involves the maximization of a surrogate function (the "Q-function") in lieu of the original function/likelihood, which may be more amenable to maximiation with standard approaches such as NR or BFGS.  In this manner, the problem at hand is transformed from a missing or "incomplete" data problem to a "complete" data problem, where the missing data is assumed to be known.  That is, assuming the missing data to be known reduces the complexity of the maximization problem and often times has a much nicer form.  
+
+But how does one actually maximize such a model, when obviously there is now way to know the actual values of the missing data to arrive at the complete data model?  The answer to this reflects the simplicity of this approach, and also how individuals in other disciplines had arrived at similar algorithms (albeit without any formal justfication for its performance) prior to the seminal 1977 publication of the EM algorithm by Dempter, Laird, and Ward.  The surrogate function being maximized is actually the expectation of the complete data likelihood with respect to the "missing" or "latent" data, depending on the problem at hand, conditional on the observed data and the current estimates of the model parameters.  
+
+The EM algorithm achieves this by alternating between two steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  
+
+In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data.  In some sense, rather than "filling in" the missing data with their true values (which is not actually possible), we instead fill in the missing data with their expected values, given the observed data and current parameter estimates.  The filling in of the missing data with their conditional expectations can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
+
+In the M-step, this conditional expectation is then optimized to obtain the new estimates of the model the parameters.  Optimization methods such as those discusse in the prior lecture are now applicable in the M-step, simplifying the optimization procedure relative to before.  In this sense, the EM algorithm is modular, where one can apply existing maximization proceures to maximize the Q-function even in situations where the liklihood is quite complicated, for example necessitating the evaluation of multidimension integrals or require recusive computation.  
+
+The algorithm iterates between the E and M steps until the value of the Q-function or parameter estimates converge.  The same principles regarding choosing informative starting points and convergence critieria apply to the EM algorithm as well.  We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of setting and selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
+
+Some drawbacks of the EM algorithm include its slow convergence rate, as well as the fact that it does not provide an estimate of the covariate matrix of the MLEs of model parameters (from which we can derive quantities such as standard errors).  For the former, several approaches have been developed to assist in speeding up convergence, which will be covered later in this lecture.  For the latter, there are post-convergence methods that can be utilized to obtain this covariance matrix.  
+
+In this lecture we will first start with a brief history of the EM algorithm, and then move to the introduction of the approach, its general properties, variants of this approach, and finally some examples. 
+
+
+
+
+
+
 EM for missing data problems, but general problems can be formulated in this framework to facilitate estimation.  General purpose optimization, regarded as "workhorse" computing algorithms in statistics along with MCMC.  We will see that several of the concepts introduced in the last lecture are embedded in this approach, and in turn the modularity of the EM algorithm also facilitates relatively simple extensions to situations such variable selection via penalized likelihood and random effect models.  The relative ease of implementation is one of the benefits of its use, in addition to several of the applications 
 
 ## History
@@ -104,6 +127,27 @@ EM for missing data problems, but general problems can be formulated in this fra
 
 ## Monte Carlo EM (MCEM)
 
+### Why should we consider
+
+### Forumulation
+
+### Convergence Rate
+
+### Example
+
+## Penalized EM
+
+### Why should we consider
+
+### Forumulation
+
+### Example
+
+# Other applications
+
+## Finite Mixture Modeling
+  
+## Hidden Markov Models
 
 
 
