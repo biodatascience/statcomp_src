@@ -20,11 +20,13 @@ include-before:
 - '$\def \M \bfm{M}$'
 - '$\def \W \bfm{W}$'
 - '$\def \y \bfm{y}$'
+- '$\def \Y \bfm{Y}$'
 - '$\def \X \bfm{X}$'
 - '$\def \z \bfm{z}$'
-- '$\def \thetab \bdm{\theta}$'
 - '$\def \betab \bdm{\beta}$'
+- '$\def \Omegab \bdm{\Omega}$'
 - '$\def \pib \bdm{\pi}$'
+- '$\def \thetab \bdm{\theta}$'
 ---
 
 
@@ -52,32 +54,43 @@ The algorithm iterates between the E and M steps until the value of the Q-functi
 
 Some drawbacks of the EM algorithm include its slow convergence rate, as well as the fact that it does not provide an estimate of the covariate matrix of the MLEs of model parameters (from which we can derive quantities such as standard errors).  For the former, several approaches have been developed to assist in speeding up convergence, which will be covered later in this lecture.  For the latter, there are post-convergence methods that can be utilized to obtain this covariance matrix.  
 
-In this lecture we will first start with a brief history of the EM algorithm, and then move to the introduction of the approach, its general properties, variants of this approach, and finally some examples. 
-
-
-## History
-
-## Examples
+In this lecture we will first start with the formulation of the EM approach, its general properties, variants of this approach, and finally finish with some examples. 
 
 # Algorithm Setup
 
 ## General formulation
+Let $\Y$ be the $n$-dimesional random vector pertaining to the vector of the observed data $\y_o$. Let us assume that $\Y$ is distributed with distribtion $g(\y ; \thetab)$, where $\thetab = (\theta_1,\ldots,\theta_p)$ $\thetab$ is a $d$-dimensional vector of unknown parameters to be estimated and $\thetab \in \Omegab$, where $\Omegab$ in some $d$-dimesional space for $\thetab$.  To be clear, we are treating $\y$ here in the general sense in that it pertains to all observable data for a particular model, which may encompass both outcome and predictors in the say the regression framework.  
 
-### Likelihood
+As mentioned earlier, the EM algorithm is helpful for maximization in situations where there is missing data in $\y_o$.  In other situations, it may be helpful to reformulate a problem with no missing data into a missing data problem by introducing a latent variable that may simplify the later computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  In either case, we can denote the "incomplete data" in this setting as the observed data $\y_o$, and the "complete" or "augmented" data as as $\y_c$, where $y_c = (\y_o^T, \z^T)^T$, where $\z$ pertains to the vector of missing or unobservable data. Examples of $\z$ may pertain to the random effects in a random effects model, or set of latent states in a hidden markov model.  
+
+### Complete Data Likelihood
+
+Let us assume that the distribution for the random vector $Y_c$ pertaining to the complete data vector $\y_c$ is given by the pdf $g(\y_c ; \thetab)$.  Given this setup, we can define the *complete data log likelihood* function as $$log L_c(\theta_b) = g(\y_c; \thetab).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(y_o,\theta_b) = \int g(\y_c; \thetab)d\z $$  
 
 ### Q-function
 
-### M-step
+Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and beings at some starting value for $\theta$ which we denote as $\thetab^{(0)}$.  The objective function to be maximized over can be considered a surrogate function of the likelihood function in question called the Q-function.  This function is defined at the $k$th step as $$Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right],$$ the expection of  the complete data log likelihood with respect to the missing data $\z$, given the observed data and the current value of the parameter estimates. 
 
 ### E-step
+In the E-step we calculate  $Q(\thetab,\thetab^{(k)})$, where $Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right].$
 
-### Initialization
+
+
+### M-step
+At step $k$, the M-step requires the maximization of $Q(\thetab,\thetab^{(k)})$ with respect to $\thetab$ over the parameter space $\Omegab$.  In other words, $\thetab^{(k+1)}$ is chosen such that $Q(\thetab^{(k+1)},\thetab^{(k)}) > Q(\thetab,\thetab^{(k)}) \forall \thetab \in \Omegab$.   
 
 ### Convergence Criteria
+The E and M-steps are iterated until the change in the likelihood $L(\thetab^{(k+1)}) - L(\thetab^{(k)})$ is smaller than some tolerance. Alternative criterion based on relative change in the likelihood between iteration or in the overall change in the parameter estimates (as discussed in the previous lecture) may also be utilized here. 
+
+### General comments
+The 1977 paper on the EM algorithm demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guarunteed not to decreases with each EM iteration such that $L(\thetab^{(k+1)}) \leq L(\thetab^{(k)})$.  This is an attractive property as each iteration should improve the likelihood in some sense.  As can be seen above, the algorithm itself is quite modular, where simpler existing methods can be applied to evaluate the E and M-step.  In the E-step only simply needs to know the condition density of the missing data given the observed data.  In cases where this density is unknown or intractable, approaches such as the monte-carlo EM may be utilized to approximate the E-step using sampling-based approaches. 
 
 ### Computing Standard Errors of Parameter Estimates
 
 ### Acceleration of Convergence
+
+## Examples
+
 
 # Why it works and general properties
 
