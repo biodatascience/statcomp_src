@@ -38,67 +38,117 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Reading:  GH Chapter 4, McCullough Chapter 1
 
-The EM algorithm is a general-purpose optimization algorithm and is widely considered as a "workhorse" computing algorithm in statistics alongside Markov Chain Monte Carlo (MCMC).  While it was originally introduced for the purpose of optimizing algorithms in missing data settings, we will see that it can also be adapted to broader problems in statistics with some reformulation of the original problem.  In such settings, the EM algorithm may offer a convenient alternative to Newton Raphson (covered in the prior lecture), where the analytical derivations of the derivative functions may be complex or difficult to evaluate.  Examples of these broader applications include random effect, mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature. 
+The EM algorithm is a general-purpose optimization algorithm and is widely considered as a "workhorse" computing algorithm in statistics alongside Markov Chain Monte Carlo (MCMC).  While it was originally introduced for the purpose of optimization in the presence of missing data, we will see that it can also be adapted to broader problems in statistics with a reformulation of the original problem at hand.  In such settings, the EM algorithm may offer a convenient alternative to Newton Raphson (covered in the prior lecture), where the analytical forms of the derivatives may be complex or difficult to evaluate.  
 
-The general intuition behind the EM algorithm involves the maximization of a surrogate function (the "Q-function") in lieu of the original function/likelihood, which may be more amenable to maximization with standard approaches such as NR or BFGS.  In this manner, the problem at hand is transformed from a missing or "incomplete" data problem to a "complete" data problem, where the missing data is assumed to be known.  That is, assuming the missing data to be known reduces the complexity of the maximization problem and often times has a much nicer form.  
+Examples of these broader applications include random effects, mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature. 
 
-But how does one actually maximize such a model, when obviously there is no way to know the actual values of the missing data to arrive at the complete data model?  The answer to this reflects the simplicity of this approach, and also how individuals in other disciplines had arrived at similar algorithms (albeit without any formal justification for its performance) prior to the seminal 1977 publication of the EM algorithm by Dempster, Laird, and Ward.  The surrogate function being maximized is actually the expectation of the complete data likelihood with respect to the "missing" or "latent" data, depending on the problem at hand, conditional on the observed data and the current estimates of the model parameters.  
+## The Basic Idea
+The general intuition behind the EM algorithm involves the maximization of a surrogate function in lieu of the original function/likelihood, which may be more amenable to maximization with standard approaches such as NR or BFGS.  
 
-The EM algorithm achieves this by alternating between two steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  
+In this manner, the problem at hand is transformed from a missing or "incomplete" data problem to a "complete" data problem, where the missing data is assumed to be known.  
 
-In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data.  In some sense, rather than "filling in" the missing data with their true values (which is not actually possible), we instead fill in the missing data with their expected values, given the observed data and current parameter estimates.  The filling in of the missing data with their conditional expectations can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
+That is, assuming the missing data to be known reduces the complexity of the maximization problem and often times has a much nicer form.  
 
-In the M-step, this conditional expectation is then optimized to obtain the new estimates of the model the parameters.  Optimization methods such as those discussed in the prior lecture are now applicable in the M-step, simplifying the optimization procedure relative to before.  In this sense, the EM algorithm is modular, where one can apply existing maximization procedures to maximize the Q-function even in situations where the likelihood is quite complicated, for example necessitating the evaluation of multidimension integrals or require recursive computation.  
+But how does one actually maximize such a complete data model when obviously there is no way to know the actual values of the missing data?  The answer to this reflects the simplicity of the EM approach, and also explains how other disciplines had arrived at similar algorithms (albeit without any formal justification for its performance) prior to the seminal 1977 publication on the EM algorithm by Dempster, Laird, and Rubin (DLR).  
 
-The algorithm iterates between the E and M steps until the value of the Q-function or parameter estimates converge.  The same principles regarding choosing informative starting points and convergence criteria apply to the EM algorithm as well.  We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of setting and selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
+## Algorithm Strategy
+The surrogate function being maximized is the **expectation** of the **complete data log likelihood** with respect to the "missing" or "latent" data, conditional on the observed data and the current estimates of the model parameters.  
 
-Some drawbacks of the EM algorithm include its slow convergence rate, as well as the fact that it does not provide an estimate of the covariate matrix of the MLEs of model parameters (from which we can derive quantities such as standard errors).  For the former, several approaches have been developed to assist in speeding up convergence, which will be covered later in this lecture.  For the latter, there are post-convergence methods that can be utilized to obtain this covariance matrix.  
+The EM algorithm achieves this by alternating between two steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  We will go into detail regarding each of these steps later in this lecture.  In some sense, we "fill in" the missing values with an educated guess at that iteration (E step), and then maximize the "filled"" in complete data log likelihood using standard optimization methods (M-step). 
+
+This way the actual maximization performed does not have to deal with missing data, reducing the complexity of the optimization approach. DLR showed that the maximization of this function leads to the maximization of the likelihood, and each iteration is guarunteed to have a non-decreasing change in the likelihood. 
 
 In this lecture we will first start with the formulation of the EM approach, its general properties, variants of this approach, and finally finish with some examples. 
 
 # Algorithm Setup
 
 ## General formulation
-Let $\Y$ be the $n$-dimesional random vector pertaining to the vector of the observed data $\y_o$. Let us assume that $\Y$ is distributed with distribtion $g(\y ; \thetab)$, where $\thetab = (\theta_1,\ldots,\theta_p)$ $\thetab$ is a $d$-dimensional vector of unknown parameters to be estimated and $\thetab \in \Omegab$, where $\Omegab$ in some $d$-dimesional space for $\thetab$.  To be clear, we are treating $\y$ here in the general sense in that it pertains to all observable data for a particular model, which may encompass both outcome and predictors in the say the regression framework.  
+Let $\Y$ be the $n$-dimesional random vector pertaining to the vector of the observed data $\y_o$. Let us assume that $\Y$ is distributed with PDF $g(\y ; \thetab)$, where $\thetab = (\theta_1,\ldots,\theta_p)$ is a $d$-dimensional vector of unknown parameters to be estimated and $\thetab \in \Omegab$, $\Omegab$ being some $d$-dimesional space for $\thetab$.  
 
-As mentioned earlier, the EM algorithm is helpful for maximization in situations where there is missing data in $\y_o$.  In other situations, it may be helpful to reformulate a problem with no missing data into a missing data problem by introducing a latent variable that may simplify the later computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  In either case, we can denote the "incomplete data" in this setting as the observed data $\y_o$, and the "complete" or "augmented" data as as $\y_c$, where $y_c = (\y_o^T, \z^T)^T$, where $\z$ pertains to the vector of missing or unobservable data. Examples of $\z$ may pertain to the random effects in a random effects model, or set of latent states in a hidden markov model.  
+To be clear, we are treating $\y_o$ here in the general sense in that it pertains to all the **observed data** for a particular model.  This is exactly how it sounds like in that it pertains to the data that we can actually collect and have on hand in our problem.  An example of this may be the observed overall survival times for a subset of cancer patients in a clinical trial. 
 
-### Complete Data Likelihood
+As mentioned earlier, the EM algorithm is helpful in situations where there is missing data.  In other situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the complete data likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  
+
+In either case, we may term the observed data $\y_o$ as the "incomplete data" in this setting, and the "complete" or "augmented" data as as $\y_c$, where $y_c = (\y_o^T, \z^T)^T$, where $\z$ pertains to the vector of missing or unobservable data. 
+
+### Simple examples of "missing" data in this context
+Examples of $\z$ in the former case may pertain to the actual (unobserved) survival times of patients in the study who were censored in the clinical trial. For example, those patients who did not pass away by the end of the study or were lost to follow up. We only observe their survival time up their last followup, but do not observed how long they actually survive until they pass. However, if we wait long enough, we should be able to observe the survival times for all patients in the trial, without any censoring.  That is, the data is truly missing in that in some scenarios there is a possibility that we can observe the data. 
+
+Examples of $\z$ in the latter case may pertain to the set of class memberships in a finite mixture model, or state-membership in a hidden markov model.  Unlike the survival example, there is no possibility to observe such states in reality. Assuming that each observation in the model belongs to a single class or a single state greatly simplifies the problem and facilitates the maximization of the model.  We will give examples of these types of models in a bit.  
+
+### Defining the Complete Data Log Likelihood
 
 Let us assume that the distribution for the random vector $Y_c$ pertaining to the complete data vector $\y_c$ is given by the pdf $g(\y_c ; \thetab)$.  Given this setup, we can define the *complete data log likelihood* function as $$log L_c(\theta_b) = g(\y_c; \thetab).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(y_o,\theta_b) = \int g(\y_c; \thetab)d\z $$  
 
-### Q-function
+### Q-function and Initialization
 
-Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and beings at some starting value for $\theta$ which we denote as $\thetab^{(0)}$.  The objective function to be maximized over can be considered a surrogate function of the likelihood function in question called the Q-function.  This function is defined at the $k$th step as $$Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right],$$ the expection of  the complete data log likelihood with respect to the missing data $\z$, given the observed data and the current value of the parameter estimates. 
+The objective function to be maximized over can be considered a surrogate function of the likelihood,  termed the "Q-function".  This function is defined at the $k$th step as $$Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right],$$ the expection of  the complete data log likelihood with respect to the missing data $\z$, given the observed data and the current value of the parameter estimates. 
+
+Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and begins at some starting value for $\theta$ which we denote as $\thetab^{(0)}$.  Better starting values may result in faster convergence, as well as higher chance of converging to the global maximum as opposed to a local one.  We then proceed to the E-step in the next section. 
+
+**Alternatively**, in some cases it may make sense to start with an initial value of the missing data, and then proceed to the M-step.  We will give an example of this situation later in the finite mixture model example. 
 
 ### E-step
-In the E-step we calculate  $Q(\thetab,\thetab^{(k)})$, where $Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right].$
+In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values, given the observed data and current parameter estimates.  The filling in of the missing data with their conditional expectations can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
 
+Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, conditional on the observed data and current parameter estimates.  
 
+In the E-step at iteration $k$, we calculate  $Q(\thetab,\thetab^{(k)})$, where $Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right].$  Therefore, after starting at an initial value $\thetab^{(0)}$, we can proceed to the E-step and begin the algorithm.  
 
 ### M-step
-At step $k$, the M-step requires the maximization of $Q(\thetab,\thetab^{(k)})$ with respect to $\thetab$ over the parameter space $\Omegab$.  In other words, $\thetab^{(k+1)}$ is chosen such that $Q(\thetab^{(k+1)},\thetab^{(k)}) > Q(\thetab,\thetab^{(k)}) \forall \thetab \in \Omegab$.   
+At step $k$, the M-step  maximizes the Q-function $Q(\thetab,\thetab^{(k)})$ with respect to $\thetab$ over the parameter space $\Omegab$.  In other words, $\thetab^{(k+1)}$ is chosen such that $Q(\thetab^{(k+1)},\thetab^{(k)}) > Q(\thetab,\thetab^{(k)}) \forall \thetab \in \Omegab$.
+
+Optimization methods such as those discussed in the prior lecture are now applicable in the M-step, simplifying the optimization procedure relative to before.  In this sense, the EM algorithm is modular, where one can apply existing maximization procedures to maximize the Q-function even in situations where the likelihood is quite complicated, for example necessitating the evaluation of multidimensional integrals or require recursive computation.  
 
 ### Convergence Criteria
-The E and M-steps are iterated until the change in the likelihood $L(\thetab^{(k+1)}) - L(\thetab^{(k)})$ is smaller than some tolerance. Alternative criterion based on relative change in the likelihood between iteration or in the overall change in the parameter estimates (as discussed in the previous lecture) may also be utilized here. 
+The algorithm iterates between the E and M steps until the value of the Q-function or parameter estimates converge.  The same principles regarding choosing informative starting points and convergence criteria apply to the EM algorithm as well.  We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of setting and selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
 
 ### General comments
 The 1977 paper on the EM algorithm demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guarunteed not to decreases with each EM iteration such that $L(\thetab^{(k+1)}) \leq L(\thetab^{(k)})$.  This is an attractive property as each iteration should improve the likelihood in some sense.  As can be seen above, the algorithm itself is quite modular, where simpler existing methods can be applied to evaluate the E and M-step.  In the E-step only simply needs to know the condition density of the missing data given the observed data.  In cases where this density is unknown or intractable, approaches such as the monte-carlo EM may be utilized to approximate the E-step using sampling-based approaches. 
 
-### Computing Standard Errors of Parameter Estimates
+## Examples (TO DO)
+So we introduced a fair bit of notation here, and to really illustrate how this approach works lets start with two simple examples. 
 
-### Acceleration of Convergence
+In the first example, we show a case where we reformulate a problem by introducing a latent variable that allows for the maximization via EM and simplifies the problem.  
 
-## Examples
+In the second example, we illustrate an application of EM to a missing data scenario that is naturally seen in survival analysis.  
 
 
-# Why it works and general properties
 
-## Ascent property
+## Pros and Cons of EM
+* Pros
+    + Numerically stable, each iteration increases likelihood
+    + Reliable global convergence, depending on starting point
+    + Easy to implement, modular
+    + Avoids direct evaluation of likelihood and derivatives of likelihood
+    + In general memory efficient (does not need to store information matrix or its inverse)
+    + M-step can be maximized with standard packages or simplified using extensions (ECM, etc) if needed
+* Cons
+    + No direct way to obtain covariance matrix of parameter estimates as can be done with NR (strategies to do this later)
+    + Slow convergence, especially when there is a lot of missing information
+    + Does not guarantee convergence to the global maximia if multiple maxima are present, but this is the case for other approaches as well. 
+    + In some cases the E-step may be difficult to evaluate or intractable (for example when the evaluation of multidimensional integrals are needed).  The MCEM algorithm that uses Monte Carlo sampling to approximate the E-step is one way around this. 
+
+
+# General Properties of the EM Algorithm
+
+In this section we will not focus on the proofs behind the results shown but instead highlight some of their results and their implications on the properties of the EM.  
+
+## Monotone Increase of the Likelihood
+
+In the initial DLR paper on the EM, it was demonstrated that $$L(\thetab^{(k+1)}) \geq  L(\thetab^{(k)})$$ for each iteration $k \geq 0$, demonstrating that the likelihood at each iteration of the EM does not decrease. Therefore, for some bounded sequence of likelihood values ${L(\thetab^{(k+1)})}$, we know that the likelihood at each iteration converges to the 
+
 
 ## Convergence Rates
 
 ## Non-convergence examples
+
+## Computing Standard Errors of Parameter Estimates
+For the NR algorithm, the hessian matrix is estimated with each update of the algorithm, and one nice byproduct of this is that standard errors can be directly computed for the parameter estimates after convergence using the hessian.  For methods such as BFGS where no hessian is computed, its approximation (often used during maximization) can similarly be utilized for standard error computation.  That is, the covariance matrix of the parameter estimates can be determined with relative ease. 
+
+For the EM algorithm, due to the surrogate function being used and the modularity of the approach, we do not have a ready made hessian matrix as in the previous methods.  As a result, quantities such as standard errors are harder to obtain.  However, several approaches exist to obtain such estimates post-convergence.  
+
+### Acceleration of Convergence
 
 # Extensions of the EM Algorithm
 
