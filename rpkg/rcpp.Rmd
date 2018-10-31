@@ -5,6 +5,85 @@ date: 10/25/2018
 output: html_document
 ---
 
+# Calling languages from R: nothing new here
+
+Calling languages like C and C++ from R can be a very powerful
+framework, and you'll see that many successful R packages will use C
+or C++ (or Fortran) to run the most computationally intensive part of
+the method. R then provides a useful interface, and a way to make nice
+plots and summaries of the results, or to link to other datasets. R is
+also useful for reading in a variety of data, as we will see in a
+series of notes about working with large data.
+
+R being the glue tying together fast low-level routines is actually
+how most of R works. Note for example the `.f` and `.c` files in the 
+[R source directory](https://svn.r-project.org/R/trunk/src/library/stats/src/).
+This R-as-glue framework goes back to the design proposal for the
+original language S, as conceived by one of its creators John
+Chambers in the 1970s:
+
+<img width="500" src="s_diagram.png">
+
+[Slide from John Chambers' useR 2006 talk](https://www.r-project.org/conferences/useR-2006/Slides/Chambers.pdf)
+
+# Introduction to compilation errors
+
+In this lecture note, we are going to focus on adding C++ code to an R
+package. We already showed a small example in the efficient code
+lecture note about using the `cppFunction` in *Rcpp* to write some
+inline C++ code. This is not the approach that you should take however
+if you want to include C++ code in an R package. Instead you will put
+your C++ code into one or more files with a `.cpp` ending, which go
+into the `src` directory of your R package.
+
+We will not teach C++ itself in this class, but just show some simple
+examples and let you continue on your own in your research. 
+There are numerous resources online for learning C++,
+but you can also stick closely to the operations defined in the *Rcpp*
+and *RcppArmadillo* guides and implement many statistical routines
+with experimentation and use of Google and Internet forums.
+It is perfectly normal that you will encounter compilations errors if
+you are new to writing C++ code, and as you learn how to work with new
+packages and new C++ libraries. As you encounter errors, look for
+examples of well written R packages using Rcpp, read the 
+[Rcpp vignettes](https://cran.r-project.org/web/packages/Rcpp/index.html),
+and use Google to find relevant threads. In
+fact, the compilation errors will sometimes point you straightaway to
+the problems in your code. Other times it will take some more
+investigation, but this is all totally normal. For students more
+familiar with writing R code, typically the errors involve working
+with a
+[static typed language](https://en.wikipedia.org/wiki/Type_system#Type_checking).
+
+Why C++? You can also combine R with C or with Fortran. We choose C++
+because there is an R package Rcpp which *greatly* simplifies the
+interface between R and a fast language. It is even possible to
+perform vectorized operations in C++ as described in the 
+[Rcpp-sugar vignette](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-sugar.pdf).
+In addition there are sister packages like *RcppArmadillo*
+providing access to the fast and elegant linear algebra library
+[Armadillo](http://arma.sourceforge.net/), which leverage the Rcpp interface.
+By elegant, I mean that the C++ code is still quite "high-level" in
+that it is easily readable as linear algebra. I find this very
+compelling as statistical software is both a useful product to
+scientists who may want to use the statistical method, and *the source
+code should be readable as a research product itself*, so that other
+statisticians can be inspired by it to create related methods.
+
+As background, here are some of the first few lines from 
+[the introductory vignette to Rcpp](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-introduction.pdf):
+
+> Since the beginning, and as we argue below, “by design”, the R
+> system has always provided an application programming interface
+> (API) suitable for extending R with code written in C or Fortran.
+> Being implemented chiefly in R and C (with a generous sprinkling of
+> Fortran for well-established numerical subroutines), R has always
+> been extensible via a C interface. ...
+> And with the introduction of the Rcpp package (Eddelbuettel and
+> François, 2011; Eddelbuettel, 2013; Eddelbuettel et al., 2018a),
+> and its later refinements, this process of extending R has become
+> considerably easier yet also more robust.
+
 # Hello world example
 
 Install Rcpp
@@ -13,12 +92,6 @@ Install Rcpp
 Imports: Rcpp (>= 0.11.0)
 LinkingTo: Rcpp
 ```
-
-<http://www.rcpp.org/>
-
-<http://dirk.eddelbuettel.com/code/rcpp.html>
-
-<http://dirk.eddelbuettel.com/code/rcpp.armadillo.html>
 
 `load_all`
 
