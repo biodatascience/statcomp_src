@@ -129,7 +129,7 @@ Imports: Rcpp (>= 0.11.0)
 LinkingTo: Rcpp
 ```
 
-Finally, we can try out our function by running the `load_all()`
+We can try out our function by running the `load_all()`
 function from *devtools*. This will trigger a call to the
 `compileAttributes` function in *Rcpp*, but since we've already
 introduced `load_all`, we won't worry about `compileAttributes`. The
@@ -197,7 +197,7 @@ we wrote. The R function is called `rcpp_hello_world`, and you can see
 that it is calling the wrapper function in C++,
 `_foo_rcpp_hello_world`. 
 
-Finally, I typically do not export the R wrapper functions such as
+I typically do not export the R wrapper functions such as
 `rcpp_hello_world`, but instead put these functions inside of other R
 functions. This makes sense, because the wrapper function defined
 above is auto-generated and incredibly minimal. It makes sense to
@@ -225,11 +225,19 @@ name. As we added *roxygen* code blocks, we need to then run
 
 Finally we can run our example function:
 
-```{r eval=FALSE}
+```{r echo=FALSE}
+load_all("foo")
+```
+
+```{r}
 rcpp.hello.world()
 ```
 
-# An example that returns an Rcpp type
+# Another Rcpp example
+
+While the example above took no input and returned a list, we can also
+show an example where we take a numeric vector as input and return a
+numeric vector:
 
 ```
 // [[Rcpp::export]]
@@ -240,6 +248,8 @@ NumericVector add_one_sqrt(NumericVector x) {
 }
 ```
 
+We then add an R wrapper function:
+
 ```{r eval=FALSE}
 #' @export
 add.one.sqrt <- function(x) {
@@ -247,11 +257,41 @@ add.one.sqrt <- function(x) {
 }
 ```
 
-```{r eval=FALSE}
-add.one.sqrt(1:10)
+We then repeat the steps above to load our package, which are to run
+`document()` so that the `add.one.sqrt` function is exported and the
+`src/RcppExports.cpp` and `R/RcppExports.R` files are updated
+(`document()` triggers these compilation steps as well as
+`load_all()`). Then we can load the package with `load_all()`.
+
+```{r}
+add.one.sqrt(1:5)
 ```
 
+For more details on all of the C++ functions that can be used in
+*Rcpp* one should check the 
+[vignettes](https://cran.r-project.org/web/packages/Rcpp/index.html).
+There is typically a lot of practice and debugging when taking a bit
+of working code in R and translating to C++, so be persistent.
+
 # RcppArmadillo example
+
+Finally, as we mentioned in the introduction to this lecture note,
+there are other libraries that make *Rcpp* a compelling interface,
+including the [Armadillo](http://arma.sourceforge.net/) linear algebra
+library for C++. In the *Armadillo* documentation, a table presents 
+[common matrix operations](http://arma.sourceforge.net/docs.html#syntax) in
+Matlab and the corresponding code in *Armadillo*.
+
+*Armadillo* can be run within the *Rcpp* framework using an additional
+R package *RcppArmadillo*. The objects are represented differently in
+comparison to *Rcpp*. Below the objects typed with `arma::` prefix are 
+*Armadillo* classes of objects. *RcppArmadillo* has a different set of 
+[vignettes](https://cran.r-project.org/web/packages/RcppArmadillo/index.html) and
+you should read the introduction vignette to become acquainted with
+the interface. This example is derived from the 
+[fastLm.cpp](http://dirk.eddelbuettel.com/code/rcpp.armadillo.html) example
+from *RcppArmadillo* and uses the `const arma::mat&` typing in order
+to avoid making an extra copy of the matrices `X` and `Y`.
 
 ```
 #include <RcppArmadillo.h>
@@ -267,12 +307,15 @@ arma::mat matrix_mult(const arma::mat& X, const arma::mat& Y) {
 }
 ```
 
-We need to add this to the DESCRIPTION:
+We need to update our `DESCRIPTION` file to include *RcppArmadillo* in
+both Imports and LinkingTo fields:
 
 ```
 Imports: Rcpp (>= 0.11.0), RcppArmadillo
 LinkingTo: Rcpp, RcppArmadillo
 ```
+
+And we write and mark for export our wrapper function:
 
 ```{r eval=FALSE}
 #' @export
@@ -281,9 +324,12 @@ matrix.mult <- function(X,Y) {
 }
 ```
 
-document and load_all
+Then running `document()` and `load_all()` we can try out our new
+function: 
 
-```{r eval=FALSE}
-matrix.mult(matrix(1:12,ncol=4), matrix(13:24,nrow=4))
+```{r}
+m1 <- matrix(1:12,ncol=4)
+m2 <- matrix(13:24,nrow=4)
+matrix.mult(m1, m2)
 ```
 
