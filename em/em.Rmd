@@ -76,6 +76,9 @@ Examples of $\z$ in the former case may pertain to the actual (unobserved) survi
 
 Examples of $\z$ in the latter case may pertain to the set of class memberships in a finite mixture model, or state-membership in a hidden markov model.  Unlike the survival example, there is no possibility to observe such states in reality. Assuming that each observation in the model belongs to a single class or a single state greatly simplifies the problem and facilitates the maximization of the model.  We will give examples of these types of models in a bit.  
 
+### Difficulty of applying prior methods to such examples
+
+
 ### Defining the Complete Data Log Likelihood
 
 Let us assume that the distribution for the random vector $Y_c$ pertaining to the complete data vector $\y_c$ is given by the pdf $g(\y_c ; \thetab)$.  Given this setup, we can define the *complete data log likelihood* function as $$log L_c(\theta_b) = g(\y_c; \thetab).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(y_o,\theta_b) = \int g(\y_c; \thetab)d\z $$  
@@ -91,7 +94,11 @@ Similar to the algorithms introduced in the prior lecture, the EM algorithm is i
 ### E-step
 In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values, given the observed data and current parameter estimates.  The filling in of the missing data with their conditional expectations can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
 
-Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, conditional on the observed data and current parameter estimates.  
+Now, in many examples this analogy of "filling in" the missing data with their conditional expection may hold, however in a more general sense we are computing the conditional expectation of the complete data log likelihood with respect to the missing data, given the observed data at the current parameter estimates. 
+
+For example, if say the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appeared, $E[Q^2| \y, \thetab] \neq E[q, \y, \thetab]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expection for $q^2$ and fill the value in for that particular terms.  
+
+Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, conditional on the observed data and current parameter estimates.  If complex functions of the missing data are present in the CDLL this can complicate the evaluation of this integral, and hence E-step.  Luckily, in most cases this integral (and thus expectation), can reduce to simple forms.  We will show examples of both common simple cases and more complex ones, and how one can address the latter cases with extensions of the EM algorithm later in this lecture.
 
 In the E-step at iteration $k$, we calculate  $Q(\thetab,\thetab^{(k)})$, where $Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right].$  Therefore, after starting at an initial value $\thetab^{(0)}$, we can proceed to the E-step and begin the algorithm.  
 
@@ -136,19 +143,32 @@ In this section we will not focus on the proofs behind the results shown but ins
 
 ## Monotone Increase of the Likelihood
 
-In the initial DLR paper on the EM, it was demonstrated that $$L(\thetab^{(k+1)}) \geq  L(\thetab^{(k)})$$ for each iteration $k \geq 0$, demonstrating that the likelihood at each iteration of the EM does not decrease. Therefore, for some bounded sequence of likelihood values ${L(\thetab^{(k+1)})}$, we know that the likelihood at each iteration converges to the 
+In the initial DLR paper on the EM, it was demonstrated that $$L(\thetab^{(k+1)}) \geq  L(\thetab^{(k)})$$ for each iteration $k \geq 0$, demonstrating that the likelihood at each iteration of the EM does not decrease. Therefore, for some bounded sequence of likelihood values ${L(\thetab^{(k+1)})}$, we know that the likelihood at each iteration converges to some likelihood value $L^*$, which may or may be either a local or global maximum (see prior discussion).
 
+The "self-consistency" property comes from this result, where we can show that if the MLE $\hat{\thetab}$ is the global maximizer for the likelihood, this implies that it is also the global maximizer for the Q-function (the surrogate for the likelihood).  In order words, if $\hat{\thetab}$ is the global maximizer for $L(\thetab)$, then this implies that $$Q(\hat{\thetab},\hat{\thetab}) \geq Q(\thetab,\hat{\thetab})$$ and that $\hat{\thetab}$ is the solution to the equation $$\frac{d}{d\thetab} Q(\thetab\hat{\thetab})\|_{\thetab = \hat{\thetab}} = 0.$$  The latter statement translates to that the optimal value for $\thetab$ for the likelihood is also the optimal value for the Q-function.
 
-## Convergence Rates
+In a more general sense, $\thetab^{(k+1)}$ is chosen to maximize $Q(\thetab,\thetab^{(k)})$ at iteration $k$ rather than globally.  Using similar reasoning for the prior result, we can show that this results in a sequence of estimates across iterations satisfying $L(\thetab^{(k+1)}) \leq L(\thetab^{(k)})$, and therefore the likelihood will not decrease as the algorithm progresses. 
 
-## Non-convergence examples
+Under certain conditions, such as if the likelihood function is unimodal in $\thetab$ (one global maximum with no local maximums), then any sequence ${\thetab^{(k)}}$ will converge to the unique MLE of $\thetab$, $\thetab^*$.  In cases where the parameter space is not unrestricted and may be constrained, such covergence may not be guarunteed but depends on the specific scenario. 
+
+## Convergence Rates THIS NEEDS TO BE UPDATED
+Using similar arguments at the last lecture, we can use a Taylor Series Expansion of $\thetab^{(k)}$ around $\thetab^{(k)}$.  We can show that around $\thetab^*$, the rate of convergence of the EM is approximately linear, however the exact rate depends on the problem at hand.  
+
+Theoretically, the rate of convergence can be determined from the eigen,alues of the Jacobian Matrix at $\theta^*$, where the component with the largest eignevalues (indicating the slowest rate) determines the overall rate of convergence. 
 
 ## Computing Standard Errors of Parameter Estimates
 For the NR algorithm, the hessian matrix is estimated with each update of the algorithm, and one nice byproduct of this is that standard errors can be directly computed for the parameter estimates after convergence using the hessian.  For methods such as BFGS where no hessian is computed, its approximation (often used during maximization) can similarly be utilized for standard error computation.  That is, the covariance matrix of the parameter estimates can be determined with relative ease. 
 
 For the EM algorithm, due to the surrogate function being used and the modularity of the approach, we do not have a ready made hessian matrix as in the previous methods.  As a result, quantities such as standard errors are harder to obtain.  However, several approaches exist to obtain such estimates post-convergence.  
 
-### Acceleration of Convergence
+Methods for direct evaluation of the covariance matrix have been developed, but in some cases may be tedious to derive and implement.  Such approaches require one to derive the second derivatives of the likelihood in question, which may have been one of the reasons why the EM was chosen in the first place to avoid doing.  After convergence of the EM algorithm, the MLE is utilized to calculate the observed information matrix from these forms, which is then inverted to obtain the standard errors. We will not go into too much detail on this topic, but further information on this approach in given in McCullough Section 4.2.2, and an approximation for the i.i.d. case is given in Section 4.3, and for non-i.i.d data in 4.5.  Several specific algorithms for implementing these direct calculation approaches are given in McCullough Section 4.7
+
+A very general and popular approach that can be applied to all models is the bootstrap.  There are multiple versions of this approach, however one approach commonly used is the parametric bootstap.  Essentially, one first fits the model to the data to obtain $\hat{\thetab}$, and then simulates generates $B$ bootstrap datasets of size $n$ from the fitted model.    For each of the $B$ datasets, we refit the model and save the parameter estimates.  Then, for the purpose of covariance matrix estimation for the model parameters, we simply calculate the covariance of the parameter estimates from each of the $B$ fitted models. 
+
+An alternative version is the nonparametric bootstrap, where instead of simulating $B$ bootstrap samples from the fitted model, we instead resample with replacement from the original dataset to get out $B$ bootstrap datasets.  Then, similar to the parameteric approach, we fit our model on each of the $B$ bootstrap datasets, and then calculate the covariate matrix of the parameter estimates across the cases. The nonparametric version may be preferred in cases where we have "true missing" data, as indicated prior in the lecture, for example in cases where we have censoring in our dataset.  In such cases it is difficult to know and simulate the mechanism and factors driving the missingness in the data, and resampling the original data is one robust way to avoid have to make assumptions on that when trying to simluate the data from a fitted model. 
+
+
+### Acceleration of Convergence  WE CAN DROP THIS
 
 # Extensions of the EM Algorithm
 
@@ -174,7 +194,7 @@ For the EM algorithm, due to the surrogate function being used and the modularit
 
 ### Example
 
-## Penalized EM
+## ECME
 
 ### Why should we consider
 
