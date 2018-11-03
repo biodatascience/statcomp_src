@@ -328,3 +328,28 @@ importing at least one function from the *gtools* package:
 Imports: gtools
 ```
 
+# Vignettes
+
+
+```
+---
+title: "A great title for a vignette"
+date: "`r format(Sys.Date(), '%m/%d/%Y')`"
+author: "Jane Doe, John Doe"
+output: rmarkdown::html_document
+abstract: |
+  Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+  lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{A great title for a vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+```
+
+Add *knitr* and *rmarkdown* to Suggests...
+
+```
+VignetteBuilder: knitr, rmarkdown
+```
