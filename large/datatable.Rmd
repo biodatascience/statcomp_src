@@ -1,0 +1,80 @@
+---
+title: "Reading with data.table"
+author: "Michael Love"
+date: 11/5/2018
+output: html_document
+---
+
+In this first lecture note on dealing with large datasets in R, we
+will introduce a specialized package for manipulating large tables of
+data, called *data.table*. For some background material, see the
+following links:
+
+* [data.table website](https://github.com/Rdatatable/data.table/wiki)
+* [data.table CRAN page](https://cran.r-project.org/web/packages/data.table/)
+
+To motivate why we start with *data.table*, I refer to the following
+sections of the book, 
+[Efficient R Programming](https://csgillespie.github.io/efficientR), 
+by Colin Gillespie and Robin Lovelace which was mentioned earlier in
+the course:
+
+* [Efficient input/output: plain text formats](https://csgillespie.github.io/efficientR/input-output.html#fread)
+* [Efficient data carpentry: Data processing with data.table](https://csgillespie.github.io/efficientR/data-carpentry.html#data-processing-with-data.table)
+
+We will also discuss data input and data processing in two parts
+below.
+
+# Reading data with data.table
+
+One of the initial hurdles for working with large datasets is simply
+reading in the data. *data.table* has a fast implementation `fread`
+for *fast read*. Start by reading the help for `fread`:
+
+```{r, eval=FALSE}
+?fread
+```
+
+Note that it has a number of arguments, some of which are not the same
+as base R's `read.table`, e.g. `stringsAsFactors=FALSE` and
+`sep="auto"`. A natural comparison is `fread` vs the `read_csv` and
+`read_tsv` functions in the *readr* package. In the link above, these
+are compared and they state that for large files, e.g. > 100Mb, the
+`fread` and `read_csv` functions are about equal, and 5x faster than
+base R's `read.csv`.
+
+Let's compare *fread* and *read.csv* on a large file we will work with
+throughout the course. This is a file with 124,700 rows (including a
+column header) and 1731 columns. We can see that just on the first
+25,000 rows, `fread` is about 5x faster than *read.csv*.
+
+```{r cache=TRUE}
+library(data.table)
+n <- 25000
+system.time({
+  scores <- fread("Scorecard.csv", nrows=n)
+})
+system.time({
+  scores2 <- read.csv("Scorecard.csv", nrows=n)
+})
+```
+
+The output is a bit different as well:
+
+```{r}
+class(scores)
+class(scores2)
+```
+
+# Data manipulation with data.table
+
+Some syntax is shared with *data.frame* but there are also additional
+operations that are specially designed for speed and for reduced
+keystrokes. Here, `NUMBRANCH` is a column of the *data.table* and so
+we can pull out certain rows by invoking the column name without
+having to write `scores$NUMBRANCH`:
+
+```{r}
+z <- scores[NUMBRANCH > 25]
+nrow(z)
+```
