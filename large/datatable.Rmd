@@ -1,5 +1,5 @@
 ---
-title: "Reading with data.table"
+title: "Working with data.table"
 author: "Michael Love"
 date: 11/5/2018
 output: html_document

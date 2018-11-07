@@ -1,0 +1,119 @@
+---
+title: "Working with RSQLite"
+author: "Michael Love"
+date: 11/7/2018
+output: html_document
+---
+
+In the previous lecture note, we introduced the *data.table* package
+and showed how it can be used to read in large datasets into R (so
+storing the dataset in memory), and then how specialized functions
+allow for fast subsetting and grouping/summarization operations.  This
+works fairly well for many tasks on large tabular data until we hit
+the limit in terms of the size of dataset that can be read into
+memory. After we hit this memory limit, we can turn instead to on-disk
+storage of tables of data, and a convenient format for this is
+*SQLite*. A critical design point of *SQLite* (from
+the [Wikipedia](https://en.wikipedia.org/wiki/SQLite) page): 
+
+>  SQLite stores the entire database (definitions, tables, indices,
+>  and the data itself) as a single cross-platform file on a host
+>  machine.  It implements this simple design by locking the entire
+>  database file during writing. SQLite read operations can be
+>  multitasked, though writes can only be performed sequentially. 
+
+We will jump right in to trying out a connection to a *SQLite*
+database. We use the *RSQLite* package which provides an interface to
+the *SQLite* library, and the *DBI* package which provides a generic
+interface from R to various database backends. The following example
+is derived from the example code in `?SQLite`, which has additional
+information on working with *RSQLite*.
+
+The following will connect to a database `myDB.sqlite` and if it does
+not exist, it will create the file:
+
+```{r}
+library(RSQLite)
+library(DBI)
+con <- dbConnect(SQLite(), "myDB.sqlite")
+con
+```
+
+If we wanted to try out the *RQLite* package without writing a file to
+disk we could have also used `":memory:"` instead of writing a
+filename, which creates an in-memory database.
+
+Let's write a table from R to the database. Typically you would most
+likely just be *reading* very large databases from *SQLite* rather
+than writing tables, but we do so as an example anyway:
+
+```{r}
+data(mtcars)
+dbWriteTable(con, "cars", mtcars)
+dbListTables(con)
+```
+
+We can then pull rows of data from the table using standard SQL-style
+queries. If you've never performed SQL queries before, it's pretty
+easy to learn by example, and [w3schools](https://www.w3schools.com/sql/)
+has a reference for learning or reviewing if you haven't seen this in
+a while.
+
+The following pulls all rows from the `cars` table:
+
+```{r}
+rows <- dbGetQuery(con, "SELECT * FROM cars")
+head(rows)
+nrow(rows)
+```
+
+We can also select subsets of the data easily:
+
+```{r}
+rows <- dbGetQuery(con, "SELECT * FROM cars WHERE cyl=6")
+head(rows)
+nrow(rows)
+```
+
+However, the whole motivation in this lecture note was that we
+potentially have more data than can fit in memory, and so we can also
+fetch data from the table in *chunks*. Here we formulate a query `rs`,
+and then fetch 10 rows at a time with `dbFetch`:
+
+```{r}
+rs <- dbSendQuery(con, "SELECT * FROM cars")
+d1 <- dbFetch(rs, n=10)
+dbHasCompleted(rs)
+```
+
+We can continue to fetch batches of 10 (or any number), or we can
+extract all remaining data by specifying -1:
+
+```{r}
+d2 <- dbFetch(rs, n=-1)
+dbHasCompleted(rs)
+dbClearResult(rs)
+```
+
+Finally, we close the connection when we are finished working with the
+database:
+
+```{r}
+dbDisconnect(con)
+```
+
+This short lecture note was to give a brief overview to the use of
+*RSQLite* as an interface to *SQLite* on-disk databases. These are
+very powerful ways to work with large data when the datasets no longer
+fit into memory, or generally as a way to share datasets as a single
+file and in a format that is incredibly widely used and well
+tested. We do not teach SQL queries in this class, as these are fairly
+easy to learn on your own through reading over example queries or
+trying them out on example datasets as shown here.
+
+```{r echo=FALSE}
+# this hidden chunk to make the example work from the top...
+con <- dbConnect(SQLite(), "myDB.sqlite")
+dbRemoveTable(con, "cars")
+dbDisconnect(con)
+```
