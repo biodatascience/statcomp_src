@@ -86,23 +86,36 @@ h5ls(h5file)
 ```
 
 Finally, we show some examples of writing data to the *HDF5*
-container: 
+container, with `h5write`. Row and column names of matrices or arrays
+in general will not be stored, however the column names of *compound*
+data types (such as *data.frame*) will be stored:
 
 ```{r}
-A = matrix(1:10,nr=5,nc=2)
-h5write(A, "myhdf5file.h5","foo/A")
-B = array(seq(0.1,2.0,by=0.1),dim=c(5,2,2))
-attr(B, "scale") <- "liter"
-h5write(B, "myhdf5file.h5","foo/B")
-C = matrix(paste(LETTERS[1:10],LETTERS[11:20], collapse=""),
-  nr=2,nc=5)
-h5write(C, "myhdf5file.h5","foo/foobaa/C")
-df = data.frame(1L:5L,seq(0,1,length.out=5),
-  c("ab","cde","fghi","a","s"), stringsAsFactors=FALSE)
-h5write(df, "myhdf5file.h5","df")
-h5ls("myhdf5file.h5")
-D = h5read("myhdf5file.h5","foo/A")
-E = h5read("myhdf5file.h5","foo/B")
-F = h5read("myhdf5file.h5","foo/foobaa/C")
-G = h5read("myhdf5file.h5","df")
+x <- matrix(rnorm(1e4),nrow=100)
+h5write(x, h5file, "A/x")
+y <- matrix(letters, nrow=13)
+h5write(y, h5file,"A/C/y")
+df <- data.frame(a=1L:5L,
+                 b=seq(0,1,length.out=5),
+                 c=letters[1:5],
+                 stringsAsFactors=FALSE)
+h5write(df, h5file, "B/df")
+h5ls(h5file)
+```
+
+We can read out these objects using `h5read`. Note that the column
+names of the *data.frame* have been preserved:
+
+```{r}
+xx <- h5read(h5file, "A/x")
+xx[1:3,1:3]
+yy <- h5read(h5file, "A/C/y")
+head(yy)
+df2 <- h5read(h5file, "B/df")
+head(df2)
+```
+
+```{r echo=FALSE}
+# this hidden chunk to make the example work from the top...
+system("rm myDB.h5")
 ```
