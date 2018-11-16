@@ -20,6 +20,8 @@ sparse. We will focus in this lecture note on the classes in the
 fitting regularized linear or generalized linear models to sparse
 feature matrices.
 
+# Representing sparse matrices
+
 Let's dive right into representing sparse matrices. Here we have a
 large-ish matrix wherein the non-zero elements make up only ~5% of the
 total:
@@ -47,7 +49,7 @@ sparse matrix.
 
 ```{r}
 library(Matrix)
-mm <- as(m, "sparseMatrix")
+mm <- Matrix(m, sparse=TRUE)
 mm[1:5,1:5]
 sum(mm)
 print(object.size(mm), units="Mb")
@@ -55,11 +57,16 @@ as.numeric(object.size(m)/object.size(mm))
 ```
 
 The sparse version takes up less than 1/6 of the space of the *dense*
-version. Note that this construction doesn't make any sense: we would
-never want to first build the memory-intensive dense version of the matrix
-and then convert down to the sparse version. Instead, we would use the
-`sparseMatrix` function to build the matrix by specifying only the
-non-zero elements, and where they occur.
+version. 
+
+# How we actually construct sparse matrices
+
+This coercion above, of a dense matrix into a sparse one doesn't make
+any sense: we would never want to first build the memory-intensive
+dense version of the matrix and then convert down to the sparse
+version. Instead, we would use the `sparseMatrix` function to build
+the matrix by specifying only the non-zero elements, and where they
+occur.
 
 First look up the help page for `sparseMatrix`:
 
@@ -90,12 +97,96 @@ default, but instead it would be `ngCMatrix`. Let's do a
 microbenchmark to see the degree of difference. For this example,
 column indexing is about twice as fast.
 
-```{r}
+```{r warning=FALSE}
 library(microbenchmark)
-n <- 1e6
-nn <- 1e3
-s <- sparseMatrix(i=sample(n,nn),
-                  j=sample(n,nn),
+n <- 1e3
+nn <- 1e5
+s <- sparseMatrix(i=sample(n,nn,TRUE),
+                  j=sample(n,nn,TRUE),
                   dims=list(n,n))
 microbenchmark(sum(s[,10]),sum(s[10,]))
+```
+
+# Manipulating sparse matrices
+
+We can do many operations to sparse matrices using specialized
+functions which are different than the ones defined for regular
+matrices. These are described in `?dgCMatrix-class`, but some of the
+important ones are `%*%`, `crossprod`, `tcrossprod`, `solve`, `qr`,
+`lu`. Using these operations will preserve the sparsity of the object
+(so keeping us under our memory budger), and will perform much faster
+than coercion to dense would, if the matrices have a high degree of
+sparsity. 
+
+Note that some operations destroy the sparsity, such as adding 1, and
+therefore must be avoided (in the case where the dense matrix would
+not fit in memory):
+
+```{r}
+s[1:10,1:10] + 1
+```
+
+Other operations maintain the sparsity:
+
+```{r}
+s[1:10,1:10] * 2
+```
+
+We can also plot an `image`, which avoids creating the dense
+matrix: 
+
+```{r}
+image(s[1:100,1:100])
+```
+
+# Use of sparse matrices in glmnet
+
+A common use case of sparse matrices is in prediction of a target,
+let's call `y`, using a high-dimensional, sparse matrix of features
+`x`. We are often in situation that there are more features in `x`
+than there are observations (rows of `x` and length of `y`). In this
+case it may make sense to first try linear modeling of `y` on `x`,
+and to use some combination of L1 and L2 regularization to stabilize
+the regression. The *glmnet* package allows one to fit elastic net
+models for such a problem, where the `x` matrix can be sparse, and it
+builds off of the sparse matrices defined in the *Matrix*
+package. Read over the help file for the main function:
+
+```{r echo=FALSE}
+library(glmnet)
+```
+
+```{r eval=FALSE}
+library(glmnet)
+?glmnet
+```
+
+We can mock up some simulated data to show the kinds of models that
+can be fit using `glmnet`. Here we simulate 50 columns of `x` with a
+coefficient of `1` and the rest of the columns of `x` are not used in
+constructing `y`.
+
+```{r}
+n <- 1e3
+nn <- 1e5
+x <- sparseMatrix(i=sample(n,nn,TRUE),
+                  j=sample(n,nn,TRUE),
+                  dims=list(n,n))
+beta <- rep(c(1,0),c(50,950))
+y <- x %*% beta + rnorm(n,0,.25)
+```
+
+Running `glmnet` gives us our regularization path. Here we set
+`alpha=1` which corresponds to only the L1 penalty (lasso). Plotting
+the regularization path reveals a range of `lambda` where the 50
+coefficients have been correctly identified (non-zero coefficients)
+while the rest of the coefficients have been shrunk to 0.
+
+Notably, for this lecture note, we never had to convert `x` into its
+dense form, thereby allowing much higher dimensions than would be
+possibly if `glmnet` only took dense matrices as input.
+
+```{r}
+fit <- glmnet(x, y, family="gaussian", alpha=1)
+plot(fit)
 ```
