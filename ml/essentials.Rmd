@@ -1,0 +1,17 @@
+---
+title: "Machine learning essentials"
+author: "Michael Love"
+date: 11/16/2018
+output: html_document
+---
+
+```{r}
+library(caret)
+m <- 1e3
+n <- 1e2
+x <- matrix(rnorm(m*n),ncol=n,dimnames=list(seq_len(m),seq_len(n)))
+y <- rnorm(m)
+fit <- train(x, y, method="lm", trControl=trainControl(method="none"))
+plot(y, predict(fit))
+```
+
