@@ -5,12 +5,48 @@ date: 11/16/2018
 output: html_document
 ---
 
+The last module of this course will be a survey of Machine Learning
+at a PhD level, including machine learning essentials, and
+introduction to support vector machines (SVM), random forests (RF),
+gradient boosting machines (GBM) and neural networks (NN). Here we
+begin with some conceptual and procedural frameworks that are
+essential for conducting analysis or research with machine learning
+tools. The most important considerations, which span across a variety
+of tools, are:
+
+* how models are trained / "fit"
+    - feature selection
+    - parameter tuning
+    - iterative fitting (data splitting)
+* how models are evaluated
+    - training vs test set evaluation
+
+We will spend most of the lecture note on discussing variuos
+frameworks for how models are fit. We will first briefly cover some of
+the metrics used for evaluation of predictive models. After fitting a
+model, we can use it to predict the value of the same data used for
+fitting the model, the *training set*, or on new data, the *test
+set*. In either case we can evaluate the prediction with various
+metrics. For continuous data, three common evaluation metrics are: 
+
+* root mean squared error
+* predictive $R^2$ (multiple definitions)
+* mean absolute error
+
+For categorical data, there are also various evaluation metrics. If
+the outcome is binary, it is common to consider sensitivity,
+specificity, and precision. Two generic methods though are:
+
+* accuracy - percentage of correctly classified
+* [Cohen's kappa](https://en.wikipedia.org/wiki/Cohen%27s_kappa) -
+  accuracy scaled by what is expected by random chance
+
 ```{r}
 library(caret)
-m <- 2000 # observations
-n <- 1000 # features
-x <- matrix(rnorm(m*n),ncol=n,dimnames=list(seq_len(m),seq_len(n)))
-y <- rnorm(m)
+n <- 2000 # observations
+p <- 1000 # features
+x <- matrix(rnorm(n*p),ncol=p,dimnames=list(seq_len(n),seq_len(p)))
+y <- rnorm(n)
 fit <- train(x, y, method="lm", trControl=trainControl(method="none"))
 fit$results
 plot(y, predict(fit))
@@ -46,3 +82,4 @@ fit$results
 getR2(fit$pred)
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
+
