@@ -7,11 +7,42 @@ output: html_document
 
 ```{r}
 library(caret)
-m <- 1e3
-n <- 1e2
+m <- 2000 # observations
+n <- 1000 # features
 x <- matrix(rnorm(m*n),ncol=n,dimnames=list(seq_len(m),seq_len(n)))
 y <- rnorm(m)
 fit <- train(x, y, method="lm", trControl=trainControl(method="none"))
+fit$results
 plot(y, predict(fit))
+cor(y, predict(fit))
 ```
 
+```{r}
+trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
+fit <- train(x, y, method="lm", trControl=trCtl)
+fit$results
+head(fit$pred)
+getR2 <- function(pred) {
+  r2s <- sapply(1:5, function(i) {
+    idx <- pred[,"Resample"] == paste0("Fold",i)
+    cor(pred[idx,2], pred[idx,1])^2
+  })
+  mean(r2s)
+}
+getR2(fit$pred)
+```
+
+```{r}
+library(ggplot2)
+ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
+```
+
+```{r}
+cors <- cor(x, y)[,1]
+q <- quantile(abs(cors), .8)
+x.filt <- x[,abs(cors) > q]
+fit <- train(x.filt, y, method="lm", trControl=trCtl)
+fit$results
+getR2(fit$pred)
+ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
+```
