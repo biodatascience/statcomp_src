@@ -1,0 +1,35 @@
+---
+title: "constrained"
+author: "Naim Rashid"
+date: "12/5/2018"
+output: 
+  html_document:
+    number_sections: true
+header_includes:
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
+include-before:
+- '\newcommand{\bfm}[1]{\ensuremath{\mathbf{#1}}}'
+- '\newcommand{\bdm}[1]{\ensuremath{\boldsymbol{#1}}}'
+- '$\def \d \bfm{d}$'
+- '$\def \e \bfm{e}$'
+- '$\def \g \bfm{g}$'
+- '$\def \I \bfm{I}$'
+- '$\def \l \bfm{l}$'
+- '$\def \M \bfm{M}$'
+- '$\def \W \bfm{W}$'
+- '$\def \y \bfm{y}$'
+- '$\def \Y \bfm{Y}$'
+- '$\def \X \bfm{X}$'
+- '$\def \z \bfm{z}$'
+- '$\def \betab \bdm{\beta}$'
+- '$\def \Omegab \bdm{\Omega}$'
+- '$\def \pib \bdm{\pi}$'
+- '$\def \thetab \bdm{\theta}$'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
