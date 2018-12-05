@@ -1,0 +1,217 @@
+---
+title: "Working with data.table"
+author: "Michael Love"
+date: 11/5/2018
+output: html_document
+---
+
+In this first lecture note on dealing with large datasets in R, we
+will introduce a specialized package for manipulating large tables of
+data, called *data.table*. For some background material, see the
+following links. The first link has useful speed comparisons with
+other packages as well as a table of basic operations, some of which
+we will cover in this lecture note, but others which go beyond what we
+cover here.
+
+* [data.table website](https://github.com/Rdatatable/data.table/wiki)
+* [data.table CRAN page](https://cran.r-project.org/web/packages/data.table/)
+
+To motivate why we start with *data.table*, I refer to the following
+sections of the book, 
+[Efficient R Programming](https://csgillespie.github.io/efficientR), 
+by Colin Gillespie and Robin Lovelace which was mentioned earlier in
+the course:
+
+* [Efficient input/output: plain text formats](https://csgillespie.github.io/efficientR/input-output.html#fread)
+* [Efficient data carpentry: Data processing with data.table](https://csgillespie.github.io/efficientR/data-carpentry.html#data-processing-with-data.table)
+
+We will also discuss data input and data processing below.
+
+# Reading large data from plain text
+
+One of the initial hurdles for working with large datasets is simply
+reading in the data. *data.table* has a fast implementation `fread`
+for *fast read*. Start by reading the help for `fread`:
+
+```{r, eval=FALSE}
+?fread
+```
+
+Note that it has a number of arguments, some of which are not the same
+as base R's `read.table`, e.g. `stringsAsFactors=FALSE` and
+`sep="auto"`. A natural comparison is `fread` vs the `read_csv` and
+`read_tsv` functions in the *readr* package. In the first 
+*Efficient R Programming* link above, these
+are compared and they state that for large files, e.g. > 100Mb, the
+`fread` and `read_csv` functions are about equal, and 5x faster than
+base R's `read.csv`.
+
+Let's compare *fread* and *read.csv* on a large file we will work with
+throughout the course, the *College Scorecard* dataset.
+
+# Reading in College Scorecard dataset
+
+Briefly, the 
+[College Scorecard](https://collegescorecard.ed.gov/data/) dataset is
+compiled by the Department of Education and has the following
+descriptive paragraph from their website:
+
+> The College Scorecard project is designed to increase transparency, putting the power in the hands of
+> students and families to compare how well individual postsecondary institutions are preparing their
+> students to be successful. This project provides data to help students and families compare college costs
+> and outcomes as they weigh the tradeoffs of different colleges, accounting for their own needs and
+> educational goals.
+> These data are provided through federal reporting from institutions, data on federal financial aid, and
+> tax information. These data provide insights into the performance of institutions that receive federal
+> financial aid dollars, and the outcomes of the students of those institutions
+
+We will discuss this dataset in more detail later, when we begin to
+model and find associations in the data, but for now just consider it
+as a large dataset (1.3 Gb uncompressed) in a comma-separated value
+format. 
+
+We have downloaded the dataset from the website, and now have a file
+`Scorecard.csv` on our machine. This is a file with 124,700 rows
+(including a column header) and 1731 columns. To demonstrate the speed
+of `fread`, we will try just reading a subset of the full dataset.
+We can see that just on the first 25,000 rows, `fread` is about 5x
+faster than *read.csv*:
+
+```{r cache=TRUE}
+library(data.table)
+n <- 25000
+system.time({
+  scores <- fread("Scorecard.csv", nrows=n)
+})
+system.time({
+  scores2 <- read.csv("Scorecard.csv", nrows=n)
+})
+```
+
+The output is a bit different as well:
+
+```{r}
+class(scores)
+class(scores2)
+```
+
+# Data manipulation with data.table
+
+Some syntax is shared with *data.frame* but there are also additional
+operations that are specially designed for speed and for reduced
+keystrokes. Here, `NUMBRANCH` is a column of the *data.table* and so
+we can pull out certain rows by invoking the column name without
+having to write `scores$NUMBRANCH`. This gives the scores which have
+more than 25 branches:
+
+```{r}
+z <- scores[NUMBRANCH > 25]
+nrow(z)
+```
+
+A preview to later, we could have also gotten this number with some
+special *data.table* code, where `.N` gives us the number of rows:
+
+```{r}
+scores[NUMBRANCH > 25, .N]
+```
+
+We can also pull out rows by matching on a string:
+
+```{r}
+scores[INSTNM == "UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL",1:20]
+```
+
+We can also specify a column to be a *key* for the *data.table*. This
+allows very fast subsetting based on the column you specify:
+
+```{r}
+setkey(scores, Id)
+scores[23230,1:20]
+```
+
+It happens that the *Id* column of this dataset is an integer, but we
+could also have made a string into the key: 
+
+```{r}
+setkey(scores, CITY)
+scores["CHAPEL HILL",1:20]
+```
+
+As you can see the key does not have to be unique (unlike row names in 
+R which must be unique). Subsetting with a key column using
+*data.table* is much faster than subsetting via other methods. The 
+[Data processing with data.table](https://csgillespie.github.io/efficientR/data-carpentry.html#data-processing-with-data.table)
+chapter of the *Efficient R Programming* book shows that subsetting a
+*data.table* by key is more than 60x faster than base R *data.frame*
+and more than 40x faster than using *dplyr*.
+The *data.table* 
+[website](https://github.com/Rdatatable/data.table/wiki)
+also has updated speed comparisons of 
+*data.table* to *pandas* and *dplyr*, and included *Spark* and
+*pydatatable*, so you can get a sense of how different operations may
+differ across these packages. But the main takeaway should be that
+*data.table* is fast and if you have large datasets, you shouldn't be
+using *data.frame* and base R functions for subsetting or grouping and
+summarization.
+
+We can put functions inside of the square brackets. Here a trivial
+example, to calculate the mean of the tuition per FTE (full-time
+equivalent) student:
+
+```{r}
+scores[,mean(TUITFTE,na.rm=TRUE)]
+```
+
+To make this a little easier to read, let's define our own functions:
+
+```{r}
+mean2 <- function(x) mean(x, na.rm=TRUE)
+q25 <- function(x) quantile(x, .25, na.rm=TRUE)
+q50 <- function(x) quantile(x, .50, na.rm=TRUE)
+q75 <- function(x) quantile(x, .75, na.rm=TRUE)
+```
+
+Now again. This example is trivial as we could just as well computed
+the function after having extracted the column:
+
+```{r}
+scores[,mean2(TUITFTE)]
+mean2(scores$TUITFTE)
+```
+
+The power of putting the function inside the square brackets is that
+it can be combined easily with subsetting and grouping operations. For
+example:
+
+```{r}
+scores[CONTROL=="Public",mean2(TUITFTE)]
+```
+
+Or with a grouping operation:
+
+```{r}
+scores[,mean2(TUITFTE),by=CONTROL]
+```
+
+We can also compute multiple functions of various columns, e.g. mean
+and standard deviation at the same time. We use the `.()` operator
+which is synonymous with `list()`.
+
+```{r}
+scores[,.(median=q50(TUITFTE),q25=q25(TUITFTE),q75=q75(TUITFTE)),by=CONTROL]
+```
+
+```{r}
+library(ggplot2)
+dat <- scores[,.(median=q50(TUITFTE),q25=q25(TUITFTE),q75=q75(TUITFTE)),by=CONTROL]
+ggplot(dat, aes(CONTROL, median, ymin=q25, ymax=q75)) + geom_pointrange() +
+  xlab("category") + ylab("TUITION / FTE") + ylim(0,12000)
+```
+
+Again, there are other complex functionality that can be performed
+with *data.table*, which can be looked over at
+the
+[data.table website](https://github.com/Rdatatable/data.table/wiki),
+but the operations above cover some of the most common use cases for
+reading, subsetting and computing on a large tabular dataset.

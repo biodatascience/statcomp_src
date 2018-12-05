@@ -328,3 +328,139 @@ importing at least one function from the *gtools* package:
 Imports: gtools
 ```
 
+# How to add a package vignette
+
+We mentioned at the beginning that there are two types of
+documentation for R package, the help/man pages which we have showed
+how to build with *roxygen*, and the package vignettes, which are
+longer form discursive examples of using the functions in the package,
+and perhaps also including some of the motivation or theory behind the
+methods in the package.
+
+Adding vignettes to a package is very simple, technically much simpler
+than writing the function help pages, but it takes a lot of time to
+hone the message of a vignette. First we will show the technical
+aspects of adding a vignette. 
+
+I recommend to use Rmarkdown (`.Rmd`) as the format of the vignette,
+although the Sweave format (.`Rnw`) is also possible (Sweave predates
+Rmd, producing PDF output). Rmarkdown can produce both HTML and PDF
+output, but typically it is used to produce HTML output. My reasoning
+for preferring Rmarkdown/HTML is that it allows the documentation to
+be easily viewed and scrolled through on computers, laptops and
+phones, whereas PDF is optimal for printing. I don't think many users
+are printing vignettes for statistical software packages, but are
+instead probably often reading the documentation and vignettes
+*on-demand* while they are also in a separate window perhaps working
+on their own particular dataset and analysis. This is just my opinion,
+but I've heard from users that they appreciate HTML vignettes, which
+are just as easy to create as PDF vignettes.
+
+We don't teach Rmarkdown in this class explicitly, as the class
+teaching computing at a high level and builds on other classes which
+leverage Rmarkdown. It is a very easy format to learn if you haven't
+written it yet (as you know, these lecture notes are written in
+Rmarkdown). A guide to writing Rmarkdown can be
+found [here](https://rmarkdown.rstudio.com/lesson-15.html), or by
+Googling "Rmarkdown cheat sheet".
+
+There can be multiple vignettes for a package, but it's probably most
+common that a package would have one vignette. The vignettes are then
+files with `.Rmd` endings in the `vignettes` directory of the package.
+
+The preamble to a software vignette can look like the following (not
+all aspects here are necessary, but I find this preamble useful):
+
+```
+---
+title: "A great title for a vignette"
+date: "`r format(Sys.Date(), '%m/%d/%Y')`"
+author: "Jane Doe, John Doe"
+output: rmarkdown::html_document
+abstract: |
+  Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+  lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{A great title for a vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+```
+
+In order to have the package recognize and compile this vignette, we
+also need to do two things: (1) add *knitr* and *rmarkdown* to the
+Suggests field in `DESCRIPTION` and (2) add the following new field to
+the `DESCRIPTION`:
+
+```
+VignetteBuilder: knitr, rmarkdown
+```
+
+That concludes the technical aspects of adding an Rmarkdown vignette
+to a package, but I'll add a few notes on *what* in my opinion should
+go in a package vignette, as I've written a number of these now and
+they have evolved over time to cover what users need to know.
+
+# What to put in a package vignette
+
+Here are some bulleted thoughts on writing a good package vignette:
+
+* Use sections (and sub-sections) to demarcate meaningful steps in the
+  process, e.g. "Preprocessing", "Quality control", "Main analysis",
+  "Plotting results", "Diagnostics", etc. You can specify `toc: true`
+  (and `toc_float: true`) in the **output** section of the preamble in
+  order to add a Table of Contents (and make it floating, that is,
+  unfold/fold and follow as the user scrolls down). See the Rmarkdown
+  cheat sheet for instructions on adding options to the preamble.
+* Most of the code chunks should be evaluated, it's ok to add a few 
+  `eval=FALSE` code chunks for demonstration, but vignettes where none
+  of the code chunks are evaluated are not as helpful in my opinion,
+  as the output that a user gets when running the code may differ from
+  what happens in the non-evaluated code chunks, which may even
+  generate errors if they are out-of-date!
+* A Frequently Asked Questions (FAQ) section at the end can be useful
+  to put together answers to common questions you expect (or compile)
+  from users. 
+* I like to put Acknowledgments and References sections, the first to
+  list people who helped in writing the software, and the second to
+  list relevant literature. See the preamble above for how to add a
+  BibTex file (and see Rmarkdown cheat sheet for how to add references
+  to an Rmarkdown file). 
+  
+# Vignette datasets  
+
+This is one of the trickiest parts to writing a good package
+vignette. You want the vignette to demonstrate a typical analysis,
+however a typical analysis will use files from an arbitrary location
+on a user's machine or cluster. However, the package vignette is
+built whenever the package is built, and so it cannot point to a
+missing dataset, or else this would generate an error. Relying on a
+URL for downloading the dataset is therefore a bad idea. Therefore
+packages will typically put the example dataset (which may itself be
+smaller than an normal-sized dataset) into the `inst/extdata` or
+`data` directory of the package itself or another associated data
+package (the former for non-R data objects, the latter for `.rda`
+files). If the example dataset is more than 1 Mb, I'd suggest to put
+it into a separate data package, as the software packages should not
+be inflated by unnecessary data objects. Then in the vignette, you
+could use the following code to find the dataset:
+  
+```{r eval=FALSE}
+dir <- system.file("extdata", package="fooData")
+file <- file.path(dir, "example.xyz")
+```
+  
+...for an arbitrary file, or for an `.rda` file named `example.rda`:
+  
+```{r eval=FALSE}
+library(fooData)
+data(example)
+```
+
+Obviously, these lines of code are not what a user would do when they
+are running your software on their files. Their data will not reside
+in an R package, but instead it will be at some location on their
+machine or cluster. And so before these types of code chunks, I will
+typically write a sentence that these code chunks are specifically for
+the vignette, and do not represent typical workflow code.

@@ -1,0 +1,121 @@
+---
+title: "Working with rhdf5"
+author: "Michael Love"
+date: 11/7/2018
+output: html_document
+---
+
+In previous lectures, we have discussed reading in large data tables,
+and working with large databases via *SQLite*. Here, we discuss a
+middle way, using the popular *HDF5* format. The motivation for using
+an *HDF5* data container is that, like *SQLite* we have a common
+format for representing a complex set of tables that can be shared
+simply be sharing a file, but unlike *SQLite* we are typically
+interested in reading in entire tables into memory, so that we can
+then analyze them. *HDF5* is typically smaller on disk, as well as
+faster for writing or reading to or from disk, compared to *SQLite*. 
+
+First some information from the *HDF5* group, on 
+[Why HDF5?](https://support.hdfgroup.org/HDF5/faq/whyhdf5.html)
+
+> An HDF5 data container is a standardized, highly-customizable data
+> receptacle designed for portability. Unless your definition of
+> 'container' is extremely broad, file systems are not commonly
+> considered containers. 
+>
+> File systems aren't portable: For example, you might be able to
+> mount an NTFS file system on an AIX machine, but the integers or
+> floating point numbers written on an Intel processor will turn out
+> to be garbage when read on a IBM Power processor. 
+>
+> HDF5 achieves portability by separating its "cargo" (data) from its
+> environment (file system, processor architecture, etc.) and by
+> encoding it in a self-describing file format. The HDF5 library
+> serves the dual purpose of being a parser/encoder of this format and
+> an API for user-level objects (datasets, groups, attributes, etc.). 
+>
+> ...
+>
+> The data stored in HDF5 datasets is shaped and it is typed. Datasets
+> have (logically) the shape of multi-dimensional rectilinear
+> arrays. All elements in a given dataset are of the same type, and
+> HDF5 has one of the most extensive type systems and one that is
+> user-extendable.
+
+# The rhdf5 package
+
+As we are focusing on how to interface with various large data formats
+in R, we now introduce the *rhdf5* package. Unlike some of the other
+packages we have shown, this package is maintained on the Bioconductor
+repository and so has a special installation. 
+
+```{r eval=FALSE}
+install.packages("BiocManager") # can be skipped after 1st time
+BiocManager::install("rhdf5")
+```
+
+Now we can load the package. Much of the following introduction to
+*rhdf5* is modified from the package vignette.
+
+```{r}
+library(rhdf5)
+```
+
+Typically, we may already have an *HDF5* data container that we want
+to work with, but as in the *SQLite* lecture note, we will show how to
+create a new one first.
+
+```{r}
+h5file <- "myDB.h5"
+h5createFile(h5file)
+```
+
+*HDF5* containers have a hierarchy built around *groups* which act and
+look a bit like directories:
+
+```{r}
+h5createGroup(h5file, "A")
+h5createGroup(h5file, "B")
+h5createGroup(h5file, "A/C")
+```
+
+We can list the groups:
+
+```{r}
+h5ls(h5file)
+```
+
+Finally, we show some examples of writing data to the *HDF5*
+container, with `h5write`. Row and column names of matrices or arrays
+in general will not be stored, however the column names of *compound*
+data types (such as *data.frame*) will be stored:
+
+```{r}
+x <- matrix(rnorm(1e4),nrow=100)
+h5write(x, h5file, "A/x")
+y <- matrix(letters, nrow=13)
+h5write(y, h5file,"A/C/y")
+df <- data.frame(a=1L:5L,
+                 b=seq(0,1,length.out=5),
+                 c=letters[1:5],
+                 stringsAsFactors=FALSE)
+h5write(df, h5file, "B/df")
+h5ls(h5file)
+```
+
+We can read out these objects using `h5read`. Note that the column
+names of the *data.frame* have been preserved:
+
+```{r}
+xx <- h5read(h5file, "A/x")
+xx[1:3,1:3]
+yy <- h5read(h5file, "A/C/y")
+head(yy)
+df2 <- h5read(h5file, "B/df")
+head(df2)
+```
+
+```{r echo=FALSE}
+# this hidden chunk to make the example work from the top...
+system("rm myDB.h5")
+```
