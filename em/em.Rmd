@@ -38,25 +38,33 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Reading:  GH Chapter 4, McCullough Chapter 1
 
-The EM algorithm is a general-purpose optimization algorithm and is widely considered as a "workhorse" computing algorithm in statistics alongside Markov Chain Monte Carlo (MCMC).  While it was originally introduced for the purpose of optimization in the presence of missing data, we will see that it can also be adapted to broader problems in statistics with a reformulation of the original problem at hand.  In such settings, the EM algorithm may offer a convenient alternative to Newton Raphson (covered in the prior lecture), where the analytical forms of the derivatives may be complex or difficult to evaluate.  
+The EM algorithm is a general-purpose optimization algorithm widely considered as a "workhorse" computing algorithm in statistics.  While it was originally introduced for the purpose of optimization in the presence of missing data, we will see that it can also be adapted to broader problems in statistics with a reformulation of the original problem at hand.  In such settings, the EM algorithm may offer a convenient alternative to the methods introduced in the previous lecture where the analytical forms of the derivatives may be complex or difficult to evaluate.  
 
-Examples of these broader applications include random effects, mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature. 
+Examples of these broader applications include random effects, finite mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature. 
+
+## Example:  Finite Mixture Models
+
+### Newton Raphson
+
+### BFGS
+
+### Nelder-Mead
 
 ## The Basic Idea
-The general intuition behind the EM algorithm involves the maximization of a surrogate function in lieu of the original function/likelihood, which may be more amenable to maximization with standard approaches such as NR or BFGS.  
+As we can see from the previous example that applying methods such as NR to maximize the finite likelihood can be somewhat tedious, due to the form of the derivatives.  The general intuition behind the EM algorithm involves the maximization of a surrogate function in lieu of the original function/likelihood, which may be more amenable to maximization with standard approaches such as NR or BFGS.  
 
 In this manner, the problem at hand is transformed from a missing or "incomplete" data problem to a "complete" data problem, where the missing data is assumed to be known.  
 
-That is, assuming the missing data to be known reduces the complexity of the maximization problem and often times has a much nicer form.  
+That is, assuming the missing data to be known reduces the complexity of the maximization problem and often times has a much nicer form.  In cases where there is no actual "missing" data in the original likelihood (like in the finite mixure model example), we may introduce some missing data to make it amenable to maximize via EM.  
 
-But how does one actually maximize such a complete data model when obviously there is no way to know the actual values of the missing data?  The answer to this reflects the simplicity of the EM approach, and also explains how other disciplines had arrived at similar algorithms (albeit without any formal justification for its performance) prior to the seminal 1977 publication on the EM algorithm by Dempster, Laird, and Rubin (DLR).  
+But how does one actually maximize such a complete data model when obviously there is no way to know the actual values of the missing data?  The answer to this reflects the simplicity of the EM algorithm, and also explains how other disciplines had arrived at similar algorithms (albeit without any formal justification for its performance) prior to the seminal 1977 publication on the EM algorithm by Dempster, Laird, and Rubin (DLR).  
 
 ## Algorithm Strategy
-The surrogate function being maximized is the **expectation** of the **complete data log likelihood** with respect to the "missing" or "latent" data, conditional on the observed data and the current estimates of the model parameters.  
+The surrogate function being maximized is the **expectation** of the **complete data log likelihood** with respect to the "missing" or "latent" data, conditional on the observed data and the current estimates of the model parameters.  This function is often simpler in form than the original log likelihood, and is more amenable to maximization.  We will go into more detail on the CDLL in the next section. 
 
-The EM algorithm achieves this by alternating between two steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  We will go into detail regarding each of these steps later in this lecture.  In some sense, we "fill in" the missing values with an educated guess at that iteration (E step), and then maximize the "filled"" in complete data log likelihood using standard optimization methods (M-step). 
+The EM algorithm alternates between two main steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  In a very general sense, during EM we "fill in" the missing data with an educated guess  (E step), and then maximize the complete data log likelihood with the missing data "filled in" using standard optimization methods (M-step). We iterate between the E and M steps until model convergence.  
 
-This way the actual maximization performed does not have to deal with missing data, reducing the complexity of the optimization approach. DLR showed that the maximization of this function leads to the maximization of the likelihood, and each iteration is guarunteed to have a non-decreasing change in the likelihood. 
+This way, we do not directly deal with missing data in the M-step, facilitating the application of existing maximization routines in the M-step. DLR showed that the maximization of this function leads to the maximization of the likelihood, and each iteration is guarunteed to have a non-decreasing change in the likelihood. 
 
 In this lecture we will first start with the formulation of the EM approach, its general properties, variants of this approach, and finally finish with some examples. 
 
@@ -65,18 +73,21 @@ In this lecture we will first start with the formulation of the EM approach, its
 ## General formulation
 Let $\Y$ be the $n$-dimesional random vector pertaining to the vector of the observed data $\y_o$. Let us assume that $\Y$ is distributed with PDF $g(\y ; \thetab)$, where $\thetab = (\theta_1,\ldots,\theta_p)$ is a $d$-dimensional vector of unknown parameters to be estimated and $\thetab \in \Omegab$, $\Omegab$ being some $d$-dimesional space for $\thetab$.  
 
-To be clear, we are treating $\y_o$ here in the general sense in that it pertains to all the **observed data** for a particular model.  This is exactly how it sounds like in that it pertains to the data that we can actually collect and have on hand in our problem.  An example of this may be the observed overall survival times for a subset of cancer patients in a clinical trial. 
+To be clear, we are treating $\y_o$ here in the general sense in that it pertains to all the **observed data** for a particular model.  This is exactly how it sounds like, in that it pertains to the data that we can actually collect and have on hand in our problem.  An example of this may be the observed overall survival times for a subset of cancer patients in a clinical trial. 
 
-As mentioned earlier, the EM algorithm is helpful in situations where there is missing data.  In other situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the complete data likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  
+As mentioned earlier, the EM algorithm is helpful in situations where there is missing data.  In other situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  
 
 In either case, we may term the observed data $\y_o$ as the "incomplete data" in this setting, and the "complete" or "augmented" data as as $\y_c$, where $y_c = (\y_o^T, \z^T)^T$, where $\z$ pertains to the vector of missing or unobservable data. 
 
 ### Simple examples of "missing" data in this context
-Examples of $\z$ in the former case may pertain to the actual (unobserved) survival times of patients in the study who were censored in the clinical trial. For example, those patients who did not pass away by the end of the study or were lost to follow up. We only observe their survival time up their last followup, but do not observed how long they actually survive until they pass. However, if we wait long enough, we should be able to observe the survival times for all patients in the trial, without any censoring.  That is, the data is truly missing in that in some scenarios there is a possibility that we can observe the data. 
+Examples of $\z$ in the former case may pertain to the actual (unobserved) survival times of patients in the study who were censored in the clinical trial. For example, those patients who did not pass away by the end of the study or were lost to follow up. We only observe their survival time up their last followup ($y_o$). 
 
-Examples of $\z$ in the latter case may pertain to the set of class memberships in a finite mixture model, or state-membership in a hidden markov model.  Unlike the survival example, there is no possibility to observe such states in reality. Assuming that each observation in the model belongs to a single class or a single state greatly simplifies the problem and facilitates the maximization of the model.  We will give examples of these types of models in a bit.  
+However, if we wait long enough, we should be able to observe the survival times for all patients in the trial, without any censoring.  Or, if we were able to track down those patients that were lost to followup, we could observe how long they actually had survived. Here, the data is truly missing in that in some scenarios there is a possibility that we can observe the data. 
 
-### Difficulty of applying prior methods to such examples
+Examples of $\z$ in the latter case may pertain to the set of class memberships in a finite mixture model, or state-membership in a hidden markov model.  Unlike the survival example, there is no possibility to observe such states in reality. 
+
+Assuming that each observation in the model belongs to a single class or a single state greatly simplifies the problem and facilitates the maximization of the model.  We will give examples of these types of models in a bit.  
+
 
 
 ### Defining the Complete Data Log Likelihood
@@ -89,16 +100,18 @@ The objective function to be maximized over can be considered a surrogate functi
 
 Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and begins at some starting value for $\theta$ which we denote as $\thetab^{(0)}$.  Better starting values may result in faster convergence, as well as higher chance of converging to the global maximum as opposed to a local one.  We then proceed to the E-step in the next section. 
 
-**Alternatively**, in some cases it may make sense to start with an initial value of the missing data, and then proceed to the M-step.  We will give an example of this situation later in the finite mixture model example. 
+**Alternatively**, in some cases it may make sense to start with an initial value of the E-step, and then proceed to the M-step.  We will give an example of this situation later in the finite mixture model example. 
 
 ### E-step
-In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values, given the observed data and current parameter estimates.  The filling in of the missing data with their conditional expectations can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
+In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values at that step, given the observed data and current parameter estimates from the M-step.  This approach can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
 
 Now, in many examples this analogy of "filling in" the missing data with their conditional expection may hold, however in a more general sense we are computing the conditional expectation of the complete data log likelihood with respect to the missing data, given the observed data at the current parameter estimates. 
 
-For example, if say the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appeared, $E[Q^2| \y, \thetab] \neq E[q, \y, \thetab]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expection for $q^2$ and fill the value in for that particular terms.  
+For example, if say the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appeared, $E[Q^2| \y, \thetab] \neq E[q, \y, \thetab]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expection for $q^2$ and fill the value in for that particular terms. 
 
-Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, conditional on the observed data and current parameter estimates.  If complex functions of the missing data are present in the CDLL this can complicate the evaluation of this integral, and hence E-step.  Luckily, in most cases this integral (and thus expectation), can reduce to simple forms.  We will show examples of both common simple cases and more complex ones, and how one can address the latter cases with extensions of the EM algorithm later in this lecture.
+Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, conditional on the observed data and current parameter estimates.  
+
+If complex functions of the missing data are present in the CDLL this can complicate the evaluation of this integral, and hence E-step.  Luckily, in most cases this integral (and thus expectation), can reduce to simple forms.  We will show examples of both common simple cases and more complex ones, and how one can address the latter cases with extensions of the EM algorithm later in this lecture.
 
 In the E-step at iteration $k$, we calculate  $Q(\thetab,\thetab^{(k)})$, where $Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right].$  Therefore, after starting at an initial value $\thetab^{(0)}$, we can proceed to the E-step and begin the algorithm.  
 
@@ -120,7 +133,16 @@ In the first example, we show a case where we reformulate a problem by introduci
 
 In the second example, we illustrate an application of EM to a missing data scenario that is naturally seen in survival analysis.  
 
+In each case, we will break down the application of the EM algorithm using the same structure introduced above:
 
+*    Define the log likelihood (observed data log likelihood)
+*    Define the Complete Data Log Likelihood 
+*    Derive the Q-function
+*    Compute the E-step
+*    Compute the M-step
+*    Define intialization and convergence criteria
+
+### EM application to the Finite Mixture Model Example
 
 ## Pros and Cons of EM
 * Pros
@@ -167,58 +189,84 @@ A very general and popular approach that can be applied to all models is the boo
 
 An alternative version is the nonparametric bootstrap, where instead of simulating $B$ bootstrap samples from the fitted model, we instead resample with replacement from the original dataset to get out $B$ bootstrap datasets.  Then, similar to the parameteric approach, we fit our model on each of the $B$ bootstrap datasets, and then calculate the covariate matrix of the parameter estimates across the cases. The nonparametric version may be preferred in cases where we have "true missing" data, as indicated prior in the lecture, for example in cases where we have censoring in our dataset.  In such cases it is difficult to know and simulate the mechanism and factors driving the missingness in the data, and resampling the original data is one robust way to avoid have to make assumptions on that when trying to simluate the data from a fitted model. 
 
-
-### Acceleration of Convergence  WE CAN DROP THIS
+### Example of bootstrap evaluation of standard error for estimated parameters
 
 # Extensions of the EM Algorithm
+Since the initial DLR paper, several extensions of the EM algorithm have been published.  Each approach address potential issues and shortcomings of the EM algorithm in certain settings and aim to speed up its application or get around intractable numerical problems.  As we will see, these modifications may occur in the M-step, where the maximization procedure can be simplified through various approaches, or in the E-step, where the conditional expectation may be difficult or impossible to evaluate analytically. 
 
 ## Expectation Condition Maximization (ECM, M-step Modification)
 
-### Why should we consider
 
-### Formulation
-
-### Convergence Rate
-
-### Example
-
-### Multicycle ECM
-
-## (Expectation Conditional Maximization Expectation, E and M-step Modification)
 
 ### Why should we consider
 
-### Formulation
+In some cases the M-step may be computationally complex or difficult to evaluate.  For example in cases when many parameters exist, or when the off-the-shelf maximization routine for the M-step is computationally intense of difficult to implement.  
 
-### Convergence Rate
+One solution to this problem is that instead of maximizing all of the model parameters simultanously, we instead maximize each parameter, or groups or parameters, in sequence, condition on the prior values in the M-step.  In contrast to the regular EM algorithm, we call this approach Expection Conditional Maximization (ECM), as in the M step is now a series of sequential updates in terms of the parameters.  These maximizations may require iterative approaches, such as those discussed in the previous lecture, or have closed forms. 
 
-### Example
-
-## ECME
-
-### Why should we consider
+We will see that in many cases this approach may result in more iterations of the EM algorithm, but less overall runtime, as the amount of time spent on each M-step is less. Other benefits include greater stability in maximizing over a simpler parameter space in each CM step.  
 
 ### Formulation
+Let us now consider that we replace the original M-step with $S$ CM steps.  As we mentioned before, this may pertain to the maximization of $S$ individual parameters or $S$ groups of parameters.  
 
-### Example
+Then, let us define $\thetab^{(k+s/S)}$ as the value of $\thetab$ on the $s$th step of the M-step. Then, at each CM step $s$, we maximize $Q(\thetab,\thetab^{(k+(s-1)/S)})$ defined as the Q-function at the $k$th step following the $(s-1)$th conditional maximization step  with respect to $\thetab$.  
+### Speed of Convergence
+It has been shown that the ECM reduces to a simple CM step in the absence of missing data.  Prior work has shown that if a CM approach is expected to converge in the absence of missing data in a model, then we should expect similar convergence for an ECM approach 
+
+It has been shown that the total speed of convergence is simply $$s_{ECM} = s_{EM}s_{CM},$$ reflecting the product of the speed of the convergence of the regular EM and the CM step of the function in question in absence of missing data.  Then, it makes sense that $s_{EM}s_{CM} < s_{ECM} < s_{EM}$, where the speed on convergence of the ECM is slower than the EM (in terms of the number of iterations), as the Q-function is being improved conditionally only bit by bit in the M-step of the ECM.  However, given that the each CM in the M-step is much faster than the standard M-step in the EM algorithm, the total time it takes for all $S$ CM steps to complete may be much faster.  
+
+Therefore, while the ECM may **take more iterations to converge than EM**, the faster and simper CM steps may result in **lower overall run time**, as the M-step will be faster to execture in each iteration. This is reflective of the main reason why one would pursue such an approach over standard EM when the M-step is complicated.  
+
+## Multicycle ECM 
+
+This variant is an extension of the ECM algorithm above, except that we perform an E-step update after each CM step.  It can be shown that the ECM retains similar properties as the ECM algorithm in terms of convergence and the ascent property after each EM iteration.  However, in some cases we may see a larger increase in the likelihood per EM iteration due to the Q function being updated more often.  However, this may not always be the case and in some cases the algorithm may converge more slowly than the ECM.
+
+In general, this approach is best applied when the E-step computation is very quick and simple, as the additional computational burdern of multiple E-step evaluations per EM iterations will be relatively low. 
+
+
+## Example
 
 ## Monte Carlo EM (MCEM)
 
 ### Why should we consider
+In some cases, the E-step may be analytially or computationally intractable.  For example, the expectation does not have a clear closed form (unlike the examples given prior), or hard to evaluate (for example involving multidimensional intergrals).
+
+To mitigate this, we replace the expectation in the E-step with an approximation using a "Monte Carlo" E-step, yielding the term MCEM or Monte Carlo EM.  
+
 
 ### Formulation
 
-### Convergence Rate
+In a general sense, the modification over the standard EM approach is largely in the E-step, where we approximate the expecation using monte carlo sample-based approaches.  The M-step then maximizes the CDLL with the missing data filled in with these $M$ drawn samples, weighting each filled-in case by $1/M$.  In other words, we are essentially maximizing the M-step as in the regular EM case, except we are averaging over each drawn sample.  This will become clear in the setup below.  
+
+We can rewrite the expectation of the Q-function as an integral, where the integrand can be factored into two parts: $$ Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right] = \int g(\y_c; \thetab)d\z = \int f(\y_o; \thetab^{(k)}, z) + f(z ; \thetab^{(k)}, y_o) d\z .$$
+
+That is, the conditional expection of the CDLL can be factored into the form above, where the first part is the pdf of the observed data given the missing data and current parameter estimates. The second part pertains to the posterior distribution of the missing data given the observed data and current parameter estimates.  
+
+As one can imagine, this intergral may be difficult to evaluate analytically, especially in cases where $g(\y_c; \thetab)$ does not simplify to some known distribution (and thus would have an known closed form for the integral).  In addition, if the dimension of $z$ is large, it may be difficult to evaluate multiple integrals, expecially if no closed forms for evaluating the integrals exist.  
+
+One way to avoid this is issue is to approximate the integral by using numerical integration.  There are multiple approaches to do this, and we cover these approaches in a later lecture.  One flexible approach is to use monte-carlo integration, where if we can say draw $M$ samples from $f(z ; \thetab^{(k)} , y_o)$ $z^{1}\ldots z^{M}$, then it can be shown that $\int f(\y_o; \thetab^{(k)}, z)f(z ; \thetab^{(k)}, y_o) d\z = \frac{1}{M}\sum_{m = 1}^{M}f(\y_o; \thetab^{(k)}, z^{m})$.  That is, we approximate the integral by drawing many samples from the posterior distribution of the missing data at step $k$, and then average over $f(\y_o; \thetab^{(k)}, z^{m})$, filling in the missing data with each draw (weighted by $1/M$).  
+
+Therefore, in the E-step, we can approximate the Q-function using the approach above.  In application, the majority of the effort in the E-step is drawing samples from $f(z ; \thetab^{(k)} , y_o$, which also may not have a good closed form itself.  If we do not know what the form of this conditional distribution is, how exactly can we draw samples from it?  We cover several of these approaches in our lecture on Numerical Integration and MCMC.  For now, you just need to know that we can sample from this posterior in each step of the MCEM algorithm. 
+
+One thing that is clear in this case is that the larger the value of $M$ is, the greater accuracy we will have in evaluating this expectation.  Therein lies one of the weaknesses of this approach - many samples may need to be drawn, which increases the computational burden of this approach.  The procedure for obtaining samples from this distribution through monte carlo approaches may also be computationally expensive as well (rejection sampling, metropolis-hastings, etc).  
+In addition, a large number of samples may also be needed for convergence.  Given that the E-step is being approximated, and that this approximation is based upon draws of random (or approximately random in some cases) samples, the Likelihood, Q-function, or model parameters may vary randomly about some value for smaller values of $M$ even if the model has truly converged.  Increasing M descreases the monte carlo error of these values, and the random variability decreases as well, increases your chances of convergence.  Some authors have put forward approaches for estimating this monte-carlo error at each step to determine by how much we may need to increase $M$ by at each step of the MCEM algorithm to facilitate eventual convergence.  Others simply increase $M$ by a predictable amount each step.  In either case, we would like to use a smaller $M$ a the beginning of the MCEM algorithm and a larger $M$ closer to convergence to ensure the model convergences.
+
+Various convergence criteria as defined earlier can be used, but given the random variability in the parameter estimates, likelihood, or Q-function in this case, oftentime one may simply terminate the algorithm if the convergence criteria has been met say three times in a row so that it is likely not due to random chance. 
+
 
 ### Example
+To illustrate this application, we use an example from fitting Generalized Linear Mixed Models (GLMMs).  Without loss of generality, let us assume that we are assuming our response $\y$ is binary, and we wish to model the response with some set of predictors $\X$, where the effect of some of these predictions may vary across subjects.  Let us assume here that $\X$ is an $n \times 4$ matrix, pertaining to an intercept and three predictors whose effects we assume to vary randomly across subjects.  Therefore, we can utilize the random effects logistic regression model to fit such a model.
 
-## Penalized EM
+## Rejection-controlled EM
+
+### Formulation
 
 ### Why should we consider
 
-### Formulation
+## Other Versions
 
-### Example
+* ECME
+* Alternating ECM   
 
 # Other applications
 
