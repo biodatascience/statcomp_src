@@ -45,7 +45,7 @@ From here, we will segway into penalized likelhood estimation and show that in c
 
 As a side note, there is a rich literature on Linear and Quadratic Programming topics stemming back many decades, however we will only cover a small portion of this topic related to the upcoming topic of Support Vector Machines (SVMs) in Module 3 of this course.  We will also cover topics that are relevant to previously discussed statistical estimation problems and penalized likelihood estimations.  The discussion on variable selection via penalized likelihood will connect with the material presented in the chapter 4 of Bios 761.
 
-# Unconstrained optimization using Linear/Quadratic programming
+# Unconstrained Optimization
 
 The term "unconstrained"  in Unconstrained Optimization relates to the parameters in the function that are being optimized over.  That is, no bounds or limits are being placed on the parameters or functions of the parameters when trying to minimize the objective function of interest.   
 
@@ -57,12 +57,14 @@ Recall that we do not explicitly make any assumptions regarding $\epsilonb$ when
 
 Alternatively, we may use unconstrained quadratic programming to obtain the minimizer of the RSS.  
 
-Let us write the general for of an Unconstrained Quadratic Programming problem as the following:
+Let us write the general form of an Unconstrained Quadratic Programming problem as the following:
 
+Minimize $||Ax - b||_2^2$ = \x'\A'\Ax - 2\b'\A\x + \b'\b$ over $\x$
 
+For the current regression example, $\A = \X$, $\x = \betab$, and $\b = y$.  Note that $||Ax - b||_2^2 = ||b - Ax||_2^2$ and that we do not put any explicit bounds on $\x$.  With no surprise, we can derive the minimizer of this objective function in a manner very similar to our minimizer for the RSS.  That is, we have an analytic solution to this problem $\hat{x} = (\A'\A)^{-1}\A'\b$.  If we assume that $\A$ is full rank, then this implies that this solution (as in the regression case) is unique. 
 
+Generally speaking, we can use the methods for lecture 1 to perform optimization in this setting.  So why bother introduce this notation?  We do this to set up the unconstrained setting in the next section, where such objective functions are no longer convex. In general, we rarely see many unconstrained versions of Linear Programming problems as the objective function is linear, and therefore does not have a natural minimum without constraints as in the quadratic case.  That is, optimization in the quadratic case may be convex and therefore may naturally have a unique solution in the absence of constraints, but this is not the case with the linear objective function.  We will show examples of linear programming later in this lecture. 
 
+# Constrained Quadratic Optimization (Quadratic Programming)
 
-
-
-We will start with an int
+Now lets move to the case where 
