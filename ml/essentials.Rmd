@@ -8,11 +8,10 @@ output: html_document
 The last module of this course will be a survey of Machine Learning
 at a PhD level, including machine learning essentials, and
 introduction to support vector machines (SVM), random forests (RF),
-gradient boosting machines (GBM) and neural networks (NN). Here we
-begin with some conceptual and procedural frameworks that are
-essential for conducting analysis or research with machine learning
-tools. The most important considerations, which span across a variety
-of tools, are:
+and neural networks (NN). Here we begin with some conceptual and
+procedural frameworks that are essential for conducting analysis or
+research with machine learning tools. The most important
+considerations, which span across a variety of tools, are:
 
 * how models are trained / "fit"
     - feature selection
