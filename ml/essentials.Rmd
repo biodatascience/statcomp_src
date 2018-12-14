@@ -5,13 +5,13 @@ date: 11/16/2018
 output: html_document
 ---
 
-The last module of this course will be a survey of Machine Learning
-at a PhD level, including machine learning essentials, and
-introduction to support vector machines (SVM), random forests (RF),
-and neural networks (NN). Here we begin with some conceptual and
-procedural frameworks that are essential for conducting analysis or
-research with machine learning tools. The most important
-considerations, which span across a variety of tools, are:
+The last module of this course will be an overview of Machine Learning
+(ML), including machine learning essentials, and introduction to
+support vector machines (SVM), random forests (RF), and neural
+networks (NN). Here we begin with some conceptual and procedural
+frameworks that are essential for conducting analysis or research with
+machine learning tools. The most important considerations, which span
+across a variety of tools, are:
 
 * how models are trained / "fit"
     - feature selection
@@ -20,17 +20,34 @@ considerations, which span across a variety of tools, are:
 * how models are evaluated
     - training vs test set evaluation
 
-We will spend most of the lecture note on discussing variuos
+We will spend most of the lecture note on discussing various
 frameworks for how models are fit. We will first briefly cover some of
-the metrics used for evaluation of predictive models. After fitting a
-model, we can use it to predict the value of the same data used for
-fitting the model, the *training set*, or on new data, the *test
-set*. In either case we can evaluate the prediction with various
-metrics. For continuous data, three common evaluation metrics are: 
+the metrics used for evaluation of predictive models. 
+
+# Metrics for evaluation of models
+
+After fitting a model, we can use it to predict the value of the same
+data used for fitting the model, the *training set*, or on new data,
+the *test set*. As statisticians, you should now be familiar with the
+idea that the performance on the model on the training set will
+exaggerate the models performance on new data, due to
+*overfitting*. While some methods are more prone to overfitting than
+others, it is an unavoidable property of model training, which we will
+discuss more in this note. In either case we can evaluate the
+prediction with various metrics. For continuous data, three common
+evaluation metrics are:
 
 * root mean squared error
 * predictive $R^2$ (multiple definitions)
 * mean absolute error
+
+Two common definitions for predictive $R^2$ are the squared Pearson
+correlation of the true values with the predicted values (which cannot
+be negative) and 1 - sum of squared residuals / total sum of
+squares (which can be negative). If a predictive $R^2$ using the
+second metric is negative, it means the prediction was worse than just
+guessing the mean value, which could indicate a bug or that the model
+has a lot of variance.
 
 For categorical data, there are also various evaluation metrics. If
 the outcome is binary, it is common to consider sensitivity,
@@ -40,7 +57,66 @@ specificity, and precision. Two generic methods though are:
 * [Cohen's kappa](https://en.wikipedia.org/wiki/Cohen%27s_kappa) -
   accuracy scaled by what is expected by random chance
 
-```{r}
+Cohen's kappa will be 1 for perfect classification, 0 for no better
+than random guessing and negative values as well, meaning the
+prediction is somehow worse than random guessing.
+
+# Using caret for training and evaluating models
+
+In the machine learning notes, we will leverage an R package called
+*caret* which provides a unified interface to many R implementations
+of machine learning algorithms. *caret* stands for Classification And
+REgression Training, meaning that the package can be used for
+predicting categorical (classification) or continuous data
+(regression). While there may be reasons to use the individual
+packages themselves, *caret* essentially gives complete control of
+many functions in separate R packages, while wrapping them up in a
+consistent way so that users are less likely to make mistakes, and
+code is easier to read.
+
+**Importantly**: there are also a number of packages which are native
+to languages other than R, such as the [Keras](https://keras.io/) deep
+learning Python library for high-level construction of neural
+networks. While there is limited support for constructing Keras models
+via *caret*, it would make sense to instead use Keras in Python rather
+than the *caret* package. And as you go deeper into research in
+machine learning, and development of new methods, you will likely
+switch to C or C++ for the algorithm itself. In this last module of
+the course, we will not cover developing new machine learning methods,
+but instead show how the methods work (sometimes using R code to give
+a sense of the calculations being performed) and show how many
+algorithms can be fit within R using *caret*.
+
+Within *caret* there are numerous functions for splitting data, and for
+evaluating and comparing models. The author of the *caret* package,
+Max Kuhn, has an
+[online book for how to use caret](https://topepo.github.io/caret/index.html),
+which is a useful reference for looking up, for example, 
+[a list of all the machine learning algorithms available](https://topepo.github.io/caret/available-models.html).
+
+Here's a very simple example of using *caret* to run a linear
+model. Instead of using the `lm` function, we provide the predictor
+variables (sometimes called features) `x` and the outcome (or target)
+`y` to a function called `train` and specify `method="lm"`. We can
+also pass additional arguments using the `trainControl` function which
+is provided to the `trControl` argument. `lm` is a kind of funny
+example, because it doesn't have any *tuning parameters* whereas most
+of the other methods will have some number of parameters that control
+behavior of the model, for example limits or penalizations for model
+complexity. *caret* actually lists a trivial parameter
+(`intercept=TRUE` or `FALSE`) for `lm`.
+
+We will create some random Normally distributed data to demonstrate
+the basic concept of overfitting. We can see that despite there being
+no relationship between the outcome and the predictors (`y` consists
+simply of 2000 random Normal data points), we can obtain a strong
+correlation between the predicted values. This is one of the main
+concerns of machine learning methods: to find a way to combine
+information in the predictors that will *generalize* to new data,
+while not getting "tricked" into finding spurious patterns or
+associations.
+
+```{r cache=TRUE}
 library(caret)
 n <- 2000 # observations
 p <- 1000 # features
@@ -52,11 +128,51 @@ plot(y, predict(fit))
 cor(y, predict(fit))
 ```
 
-```{r}
+Note the very high correlation, from having (1) many features and (2)
+not so many more observations than features, relatively.
+
+Above, `fit$results` provides no output because we specified in
+`trainControl` that we will not use a resampling method to evaluate
+performance. We can instead specify to use *cross-validation*, with 5
+folds, and to save the predicted values. 
+
+```{r cache=TRUE}
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 fit <- train(x, y, method="lm", trControl=trCtl)
+```
+
+In case you have not yet seen cross-validation, the procedure is to
+split the data into *k* roughly equally sized folds, and to then train
+*k* different models. Each of the *k* models are different because
+the input data to each model leaves out one of the folds. Each model
+is therefore trained on roughly $n - \frac{n}{k}$ data points. The *k*
+models can meanwhile be assessed by predicting the values of the
+held-out data points. There are many other methods for evaluation via
+resampling, which can be found in the help page for `?trainControl`
+under `method`.
+
+While we had a very high correlation when we fit a linear model to the
+entire training set, here we see that the predictive $R^2$ on the held
+out data in the cross-validation (CV) was nearly 0, indicating that
+the high correlation above was due to overfitting.
+
+```{r cache=TRUE}
 fit$results
 head(fit$pred)
+```
+
+The `fit` object has a number of elements, which can be examined by
+looking at `names(fit)`. The `fit$pred` element is a data.frame with a
+column for the observed value of the outcome and a column for the
+predicted value. Note that the observations are ordered by fold, not
+by the original order in the dataset.
+
+By default, *caret* uses the squared-correlation definition of $R^2$
+which we confirm by manually calculating the value (there would be no
+reason to do this, except to convince oneself of what value is being
+presented in the table above).
+
+```{r cache=TRUE}
 getR2 <- function(pred) {
   r2s <- sapply(1:5, function(i) {
     idx <- pred[,"Resample"] == paste0("Fold",i)
@@ -67,18 +183,53 @@ getR2 <- function(pred) {
 getR2(fit$pred)
 ```
 
-```{r}
+We can also plot the predicted values over the observed values, and
+color by the fold, showing that the linear model fit to the $n -
+\frac{n}{k}$ data points had no predictive power for the held out data
+points. 
+
+```{r cache=TRUE}
 library(ggplot2)
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
 
-```{r}
+# Feature selection must occur within the loop
+
+Many of the methods in `caret` have built in *feature selection*
+properties, meaning that they pick out useful features and do not use
+features which are not helpful for predicting the outcome. This is in
+some sense wrapped up in the functions, although there are ways to
+control and extract the features that are selected. Before we proceed,
+I want to show one example of how things can go very wrong in machine
+learning, if feature selection occurs outside of the cross-validation
+or resampling loop that is used for parameter tuning and
+evaluation. One can be mislead into thinking that the predictions are
+much better than they actually are.
+
+Below we assess the correlation of all of the 1000 features with the
+outcome `y`. We then look at the 80% quantile of the absolute value of
+the correlations and chose the 20% of features with correlation above
+this value to form a new set of predictors `x.filt`. Because the
+feature selection occurred outside of the cross-validation loop, we
+can expect to find exaggerated performance, even though the
+performance is assessed in a "held-out" set (the held-out set was not
+held out for assessing the correlations).
+
+```{r cache=TRUE}
 cors <- cor(x, y)[,1]
 q <- quantile(abs(cors), .8)
 x.filt <- x[,abs(cors) > q]
 fit <- train(x.filt, y, method="lm", trControl=trCtl)
 fit$results
-getR2(fit$pred)
+```
+
+Note that we get a small-to-moderate $R^2$ (not so high, but clearly
+above 0), and the plot of predictions over the true, held-out data
+points looks decent, although we know from construction that the
+predictors have no relationship to the outcome, and therefore offer no
+utility in prediction:
+
+```{r cache=TRUE}
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
 
