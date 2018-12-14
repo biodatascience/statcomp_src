@@ -1,0 +1,86 @@
+---
+title: "Random forests"
+author: "Michael Love"
+date: 12/14/2018
+output: html_document
+---
+
+Download the
+[APS Failure at Scania Trucks Data Set](https://archive.ics.uci.edu/ml/datasets/APS+Failure+at+Scania+Trucks) from
+the
+[UC Irvine Machine Learning Repository](https://archive.ics.uci.edu/ml/index.php)
+
+The dataset description is:
+
+> The datasets' positive class consists of component failures for a
+> specific component of the APS system. The negative class consists of
+> trucks with failures for components not related to the APS.
+>
+> The dataset consists of data collected from heavy Scania 
+> trucks in everyday usage. The system in focus is the 
+> Air Pressure system (APS) which generates pressurised 
+> air that are utilized in various functions in a truck, 
+> such as braking and gear changes. The datasets' 
+> positive class consists of component failures 
+> for a specific component of the APS system. 
+> The negative class consists of trucks with failures 
+> for components not related to the APS. The data consists 
+> of a subset of all available data, selected by experts. 
+
+The dataset has additional information associated with it. It is
+mentioned that a false positive (cost 1) has a cost of 10, while a
+false negative (cost 2) has a cost of 500. So false negatives are 50x
+more costly as false positives.
+
+> In this case Cost 1 refers to the cost that an unnessecary 
+> check needs to be done by an mechanic at an workshop, while 
+> Cost 2 refer to the cost of missing a faulty truck, 
+> which may cause a breakdown. 
+
+There is an imbalance in the dataset, such that there are 59x more
+negative observations than positive observations:
+
+> The training set contains 60000 examples in total in which 
+> 59000 belong to the negative class and 1000 positive class. 
+> The test set contains 16000 examples. 
+
+There are 171 attributes
+
+> The attribute names of the data have been anonymized for 
+> proprietary reasons. It consists of both single numerical 
+> counters and histograms consisting of bins with different 
+> conditions. 
+> ...
+> The attributes are as follows: class, then 
+> anonymized operational data. The operational data have 
+> an identifier and a bin id, like 'Identifier_Bin'. 
+> In total there are 171 attributes, of which 7 are 
+> histogram variabels. Missing values are denoted by 'na'.
+
+We also remove a troublesome line from the file using `grep`:
+
+```
+grep -v 8584297742 aps_failure_training_set.csv > clean.csv
+```
+
+```{r eval=FALSE}
+library(readr)
+x <- read_csv("~/Downloads/clean.csv", skip=20, na="na")
+table(x$class)
+table(sapply(x[,-1], class))
+summary(sapply(x[,-1], function(x) sum(is.na(x))))
+with(x, boxplot(aa_000 ~ class))
+with(x, boxplot(ab_000 ~ class))
+idx <- c(which(x$class == "pos"),
+         sample(which(x$class == "neg"), 1000))
+x2 <- x[idx,]
+table(x2$class)
+with(x2, boxplot(aa_000 ~ class))
+by(x2$aa_000, x2$class, quantile, .5)
+by(x2$aa_000, x2$class, quantile, .9)
+(tab <- table(obs=x2$class, pred=x2$aa_000 > 75000))
+tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
+(tab <- table(obs=x2$class, pred=x2$aa_000 > 120000))
+tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
+```
+
