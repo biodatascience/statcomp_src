@@ -1,0 +1,46 @@
+---
+title: "Neural networks"
+author: "Michael Love"
+date: 12/15/2018
+output: html_document
+---
+
+* <http://varianceexplained.org/r/digit-eda/>
+* <https://pjreddie.com/media/files/mnist_train.csv>
+
+```{r}
+library(readr)
+mnist_raw <- read_csv("~/Downloads/mnist_train.csv", col_names=FALSE)
+dim(mnist_raw)
+mnist_raw[1:5,1:5]
+library(tidyr)
+library(dplyr)
+pixels_gathered <- mnist_raw %>%
+  head(10000) %>%
+  rename(label = X1) %>%
+  mutate(instance = row_number()) %>%
+  gather(pixel, value, -label, -instance) %>%
+  tidyr::extract(pixel, "pixel", "(\\d+)", convert = TRUE) %>%
+  mutate(pixel = pixel - 2,
+         x = pixel %% 28,
+         y = 28 - pixel %/% 28)
+library(ggplot2)
+sub <- pixels_gathered %>% filter(instance <= 12)
+ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
+  facet_wrap(~ instance + label)
+```
+
+```{r}
+library(caret)
+x <- as.data.frame(mnist_raw[1:4000,-1])
+y <- factor(mnist_raw$X1[1:4000])
+idx <- y %in% c("3","5","8")
+x <- x[idx,]
+y <- droplevels(y[idx])
+table(y)
+tg <- data.frame(k=c(3,5,7,9))
+trCtl <- trainControl(method="cv", number=5)
+fit <- train(x, y, method="knn", trControl=trCtl, tuneGrid=tg)
+plot(fit)
+fit$results
+```
