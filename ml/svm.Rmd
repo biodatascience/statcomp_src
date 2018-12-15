@@ -1,0 +1,32 @@
+---
+title: "Support vector machines"
+author: "Michael Love"
+date: 12/15/2018
+output: html_document
+---
+
+```{r}
+n <- 100
+x1 <- c(rnorm(n),rnorm(n,5))
+x2 <- c(rnorm(n),rnorm(n,5))
+x1 <- scale(x1)
+x2 <- scale(x2)
+y <- factor(rep(1:2,each=n))
+dat <- data.frame(y,x1,x2)
+library(ggplot2)
+ggplot(dat, aes(x1,x2,col=y)) + geom_point()
+x <- data.frame(x1,x2)
+```
+
+```{r}
+library(e1071)
+fit <- svm(x, y, kernel="linear")
+sv <- as.data.frame(fit$SV)
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_point(data=sv, col="black", size=5, shape=21)
+fit <- svm(x, y, kernel="radial")
+sv <- as.data.frame(fit$SV)
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_point(data=sv, col="black", size=5, shape=21)
+```
+
