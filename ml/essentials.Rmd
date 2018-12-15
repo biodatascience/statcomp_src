@@ -165,7 +165,18 @@ The `fit` object has a number of elements, which can be examined by
 looking at `names(fit)`. The `fit$pred` element is a data.frame with a
 column for the observed value of the outcome and a column for the
 predicted value. Note that the observations are ordered by fold, not
-by the original order in the dataset.
+by the original order in the dataset. 
+
+What goes into the `fit$pred` table? If we had one or more tuning
+parameters, there would be multiple copies of predicted values, e.g.
+for each point in the tuning grid. We could pull out predictions in
+that case by specifying the value(s) of the tuning parameter(s). Here,
+as we did not have a tuning parameter, we only have a single copy of
+each observation in the `fit$pred` table. Additionally, depending on
+the resampling `method` specified in `trainControl`, we could have
+multiple values per observation, per point in the tuning grid. For
+`"boot"` and `"repeatedcv"` for example, an observation will appear
+more than once.
 
 By default, *caret* uses the squared-correlation definition of $R^2$
 which we confirm by manually calculating the value (there would be no

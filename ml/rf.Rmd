@@ -65,22 +65,86 @@ grep -v 8584297742 aps_failure_training_set.csv > clean.csv
 
 ```{r eval=FALSE}
 library(readr)
-x <- read_csv("~/Downloads/clean.csv", skip=20, na="na")
-table(x$class)
-table(sapply(x[,-1], class))
-summary(sapply(x[,-1], function(x) sum(is.na(x))))
-with(x, boxplot(aa_000 ~ class))
-with(x, boxplot(ab_000 ~ class))
-idx <- c(which(x$class == "pos"),
-         sample(which(x$class == "neg"), 1000))
-x2 <- x[idx,]
-table(x2$class)
-with(x2, boxplot(aa_000 ~ class))
-by(x2$aa_000, x2$class, quantile, .5)
-by(x2$aa_000, x2$class, quantile, .9)
-(tab <- table(obs=x2$class, pred=x2$aa_000 > 75000))
+dat <- read_csv("~/Downloads/clean.csv", skip=20, na="na")
+table(dat$class)
+table(sapply(dat[,-1], class))
+summary(sapply(dat[,-1], function(dat) sum(is.na(dat))))
+with(dat, boxplot(aa_000 ~ class))
+with(dat, boxplot(ab_000 ~ class))
+iddat <- c(which(dat$class == "pos"),
+         sample(which(dat$class == "neg"), 1000))
+dat2 <- dat[iddat,]
+table(dat2$class)
+with(dat2, boxplot(aa_000 ~ class))
+by(dat2$aa_000, dat2$class, quantile, .5)
+by(dat2$aa_000, dat2$class, quantile, .9)
+(tab <- table(obs=dat2$class, pred=dat2$aa_000 > 75000))
 tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
-(tab <- table(obs=x2$class, pred=x2$aa_000 > 120000))
+(tab <- table(obs=dat2$class, pred=dat2$aa_000 > 120000))
 tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
 ```
 
+```{r}
+library(caret)
+x <- as.data.frame(dat2[,2:20])
+y <- dat2$class
+x[is.na(x)] <- 0 # instead impute
+trCtl <- trainControl(savePredictions=TRUE)
+fit <- train(x, y, method="rf", trControl=trCtl)
+table(fit$pred$mtry)
+tab <- table(fit$pred$rowIndex[fit$pred$mtry==2])
+head(tab,10)
+barplot(table(tab))
+# tg <- data.frame(mtry=c(5,10,15))
+# fit <- train(x, y, method="rf", tuneGrid=tg)
+fit$results
+plot(fit)
+fit$finalModel$importance
+```
+
+```{r}
+library(rpart)
+fit <- rpart(class ~ aa_000 + ag_004 + ag_005 + ah_000, data=dat2)
+printcp(fit)
+plotcp(fit)
+summary(fit)
+plot(fit); text(fit, use.n=TRUE, all=TRUE, cex=.8)
+fit$cptable
+(cp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"])
+pfit <- prune(fit, cp=cp)
+plot(pfit); text(pfit, use.n=TRUE, all=TRUE, cex=.8)
+```
+
+```{r}
+library(rpart)
+dat <- data.frame(x=runif(1000))
+dat$y <- sin(2 * pi * dat$x)
+with(dat, plot(x,y))
+fit <- rpart(y ~ x, data=dat, method="anova", cp=.001)
+printcp(fit)
+plotcp(fit)
+pred <- predict(fit, dat)
+with(dat, plot(x,y))
+points(dat$x, pred, col="red")
+```
+
+```{r}
+dat <- data.frame(x=runif(200))
+dat$y <- sin(2 * pi * dat$x)
+trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
+tg <- data.frame(mtry=1)
+fit <- train(dat["x"], dat$y, method="rf", trControl=trCtl, tuneGrid=tg)
+with(dat, plot(x,y))
+pred <- fit$pred[order(fit$pred$rowIndex),]
+points(dat$x, pred$pred, col="red")
+```
+
+```{r}
+trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
+fit <- train(dat["x"], dat$y, method="knn", trControl=trCtl)
+plot(fit)
+with(dat, plot(x,y))
+pred <- fit$pred[fit$pred$k == 5,]
+pred <- pred[order(pred$rowIndex),]
+points(dat$x, pred$pred, col="red")
+```
