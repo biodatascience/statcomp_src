@@ -32,15 +32,20 @@ ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
 
 ```{r}
 library(caret)
-x <- as.data.frame(mnist_raw[1:4000,-1])
-y <- factor(mnist_raw$X1[1:4000])
+dat <- as.data.frame(mnist_raw[1:10000,-1])
+y <- factor(mnist_raw$X1[1:10000])
 idx <- y %in% c("3","5","8")
-x <- x[idx,]
+dat <- dat[idx,]
 y <- droplevels(y[idx])
+pc <- prcomp(dat)
+plot(pc$sdev[1:20]^2/sum(pc$sdev^2))
+x <- pc$x[,1:7]
+boxplot(x[,1] ~ y)
+ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 table(y)
-tg <- data.frame(k=c(3,5,7,9))
-trCtl <- trainControl(method="cv", number=5)
-fit <- train(x, y, method="knn", trControl=trCtl, tuneGrid=tg)
+tg <- data.frame(k=c(5,9,13,17,21,31))
+fit <- train(x, y, method="knn", tuneGrid=tg)
 plot(fit)
 fit$results
+# show prediction confusion matrix
 ```

@@ -76,16 +76,17 @@ code is easier to read.
 
 **Importantly**: there are also a number of packages which are native
 to languages other than R, such as the [Keras](https://keras.io/) deep
-learning Python library for high-level construction of neural
-networks. While there is limited support for constructing Keras models
-via *caret*, it would make sense to instead use Keras in Python rather
-than the *caret* package. And as you go deeper into research in
-machine learning, and development of new methods, you will likely
-switch to C or C++ for the algorithm itself. In this last module of
-the course, we will not cover developing new machine learning methods,
-but instead show how the methods work (sometimes using R code to give
-a sense of the calculations being performed) and show how many
-algorithms can be fit within R using *caret*.
+learning library in Python for construction of neural networks. While
+there is limited support for constructing Keras models via *caret*, it
+would make sense to instead use Keras in Python or using the R *keras*
+package rather than the *caret* package for building certain
+models. And as you go deeper into research in machine learning, and
+development of new methods, you will likely switch to C or C++ for the
+algorithm itself. In this last module of the course, we will not cover
+developing new machine learning methods, but instead show how the
+methods work (sometimes using R code to give a sense of the
+calculations being performed) and show how many algorithms can be fit
+within R using *caret*.
 
 Within *caret* there are numerous functions for splitting data, and for
 evaluating and comparing models. The author of the *caret* package,
@@ -137,6 +138,7 @@ performance. We can instead specify to use *cross-validation*, with 5
 folds, and to save the predicted values. 
 
 ```{r cache=TRUE}
+# mention cv is not best here
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 fit <- train(x, y, method="lm", trControl=trCtl)
 ```
