@@ -98,7 +98,8 @@ barplot(table(tab))
 # tg <- data.frame(mtry=c(5,10,15))
 # fit <- train(x, y, method="rf", tuneGrid=tg)
 fit$results
-plot(fit)
+library(ggplot2)
+ggplot(fit)
 fit$finalModel$importance
 ```
 
@@ -108,11 +109,11 @@ fit <- rpart(class ~ aa_000 + ag_004 + ag_005 + ah_000, data=dat2)
 printcp(fit)
 plotcp(fit)
 summary(fit)
-plot(fit); text(fit, use.n=TRUE, all=TRUE, cex=.8)
+ggplot(fit); text(fit, use.n=TRUE, all=TRUE, cex=.8)
 fit$cptable
 (cp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"])
 pfit <- prune(fit, cp=cp)
-plot(pfit); text(pfit, use.n=TRUE, all=TRUE, cex=.8)
+ggplot(pfit); text(pfit, use.n=TRUE, all=TRUE, cex=.8)
 ```
 
 ```{r}
@@ -142,7 +143,7 @@ points(dat$x, pred$pred, col="red")
 ```{r}
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 fit <- train(dat["x"], dat$y, method="knn", trControl=trCtl)
-plot(fit)
+ggplot(fit)
 with(dat, plot(x,y))
 pred <- fit$pred[fit$pred$k == 5,]
 pred <- pred[order(pred$rowIndex),]

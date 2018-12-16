@@ -32,7 +32,7 @@ ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
 
 ```{r}
 library(caret)
-dat <- as.data.frame(mnist_raw[1:10000,-1])
+dat <- as.data.frame(mnist_raw[1:10000,-1])/255
 y <- factor(mnist_raw$X1[1:10000])
 idx <- y %in% c("3","5","8")
 dat <- dat[idx,]
@@ -43,9 +43,58 @@ x <- pc$x[,1:7]
 boxplot(x[,1] ~ y)
 ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 table(y)
-tg <- data.frame(k=c(5,9,13,17,21,31))
+tg <- data.frame(k=c(5,9,13,17,21,25))
 fit <- train(x, y, method="knn", tuneGrid=tg)
-plot(fit)
+ggplot(fit)
 fit$results
 # show prediction confusion matrix
+```
+
+```{r}
+dat <- as.data.frame(mnist_raw[1:10000,-1])/255
+y <- factor(mnist_raw$X1[1:10000])
+pc <- prcomp(dat)
+plot(pc$sdev[1:20]^2/sum(pc$sdev^2))
+x <- pc$x[,1:10]
+boxplot(x[,1] ~ y)
+ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
+tg <- data.frame(k=c(5,9,13,17,21,25))
+trCtl <- trainControl(savePredictions=TRUE)
+fit <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
+ggplot(fit)
+fit$results
+plotWithSD <- function(fit, a=2) {
+  min <- with(fit$results, min(Kappa - (a+2)*KappaSD))
+  max <- with(fit$results, max(Kappa + (a+2)*KappaSD))
+  ggplot(fit$results, aes(k, Kappa, ymax=Kappa + a*KappaSD, ymin=Kappa - a*KappaSD)) +
+    geom_ribbon(fill="black", alpha=.1) +
+    geom_point(color="blue") + geom_line(color="blue") +
+    ylim(min,max)
+}
+plotWithSD(fit)
+tab <- table(obs=fit$pred$obs, pred=fit$pred$pred)
+prop <- tab/sum(tab)
+round(prop,3)*1000
+diag(prop) <- NA
+image(prop, xaxt="n", yaxt="n",
+      xlab="obs", ylab="pred",
+      col=colorRampPalette(c("white","blue"))(50))
+for (i in 1:2) axis(i, 0:9/9, 0:9)
+abline(0,1,col="red")
+```
+
+```{r}
+library(matrixStats)
+dat <- as.data.frame(mnist_raw[,-1])/255
+y <- factor(mnist_raw$X1)
+pc <- prcomp(dat)
+plot(pc$sdev[1:20]^2/sum(pc$sdev^2))
+x <- pc$x[,1:20]
+trCtl <- trainControl(savePredictions=TRUE)
+system.time({
+  fit <- train(x, y, method="mlp", trControl=trCtl)
+})
+fit$results
+ggplot(fit, metric="Kappa")
+(tab <- table(obs=fit$pred$obs, pred=fit$pred$pred))
 ```
