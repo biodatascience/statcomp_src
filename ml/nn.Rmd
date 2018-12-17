@@ -10,7 +10,7 @@ output: html_document
 
 ```{r}
 library(readr)
-mnist_raw <- read_csv("~/Downloads/mnist_train.csv", col_names=FALSE)
+mnist_raw <- read_csv("mnist_train.csv", col_names=FALSE)
 dim(mnist_raw)
 mnist_raw[1:5,1:5]
 library(tidyr)
@@ -27,7 +27,8 @@ pixels_gathered <- mnist_raw %>%
 library(ggplot2)
 sub <- pixels_gathered %>% filter(instance <= 12)
 ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
-  facet_wrap(~ instance + label)
+  facet_wrap(~ instance + label, labeller=label_both) +
+  scale_fill_gradient(low="white", high="black")
 ```
 
 ```{r}
@@ -44,54 +45,76 @@ boxplot(x[,1] ~ y)
 ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 table(y)
 tg <- data.frame(k=c(5,9,13,17,21,25))
-fit <- train(x, y, method="knn", tuneGrid=tg)
-ggplot(fit)
+trCtl <- trainControl(savePredictions=TRUE)
+fit <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
+ggplot(fit, metric="Kappa")
 fit$results
-# show prediction confusion matrix
+tab <- table(obs=fit$pred$obs, pred=fit$pred$pred)
+prop <- tab/rowSums(tab)
+round(prop, 3) * 100 # percent
+```
+
+```{r}
+plotWithSD <- function(fit, a=2, param="k") {
+  min <- with(fit$results, min(Kappa - (a+2)*KappaSD))
+  max <- with(fit$results, max(Kappa + (a+2)*KappaSD))
+  fit$results$ymax <- with(fit$results, Kappa + a*KappaSD)
+  fit$results$ymin <- with(fit$results, Kappa - a*KappaSD)
+  ggplot(fit$results, aes_string(param, "Kappa", ymax="ymax", ymin="ymin")) +
+    geom_ribbon(fill="black", alpha=.1) +
+    geom_point(color="blue") + geom_line(color="blue") +
+    ylim(min,max)
+}
+plotWithSD(fit)
 ```
 
 ```{r}
 dat <- as.data.frame(mnist_raw[1:10000,-1])/255
 y <- factor(mnist_raw$X1[1:10000])
 pc <- prcomp(dat)
-plot(pc$sdev[1:20]^2/sum(pc$sdev^2))
 x <- pc$x[,1:10]
 boxplot(x[,1] ~ y)
 ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 tg <- data.frame(k=c(5,9,13,17,21,25))
 trCtl <- trainControl(savePredictions=TRUE)
-fit <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
-ggplot(fit)
-fit$results
-plotWithSD <- function(fit, a=2) {
-  min <- with(fit$results, min(Kappa - (a+2)*KappaSD))
-  max <- with(fit$results, max(Kappa + (a+2)*KappaSD))
-  ggplot(fit$results, aes(k, Kappa, ymax=Kappa + a*KappaSD, ymin=Kappa - a*KappaSD)) +
-    geom_ribbon(fill="black", alpha=.1) +
-    geom_point(color="blue") + geom_line(color="blue") +
-    ylim(min,max)
-}
-plotWithSD(fit)
-tab <- table(obs=fit$pred$obs, pred=fit$pred$pred)
-prop <- tab/sum(tab)
-round(prop,3)*1000
+fit.knn <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
+fit.knn$results # 89%
+plotWithSD(fit.knn)
+```
+
+```{r}
+tab <- table(obs=fit.knn$pred$obs, pred=fit.knn$pred$pred)
+prop <- tab/rowSums(tab)
+round(prop,3)*100 # percent
 diag(prop) <- NA
 image(prop, xaxt="n", yaxt="n",
       xlab="obs", ylab="pred",
       col=colorRampPalette(c("white","blue"))(50))
 for (i in 1:2) axis(i, 0:9/9, 0:9)
 abline(0,1,col="red")
+lbl <- 100*round(head(sort(prop,decreasing=TRUE),3),3)
+text(c(4,3,9)/9, c(9,8,4)/9, labels=lbl, cex=.9, col="white")
 ```
 
 ```{r}
 x <- pc$x[,1:50]
 trCtl <- trainControl(savePredictions=TRUE)
-tg <- data.frame(size=c(5,6,7))
-# 300 s
+tg <- data.frame(size=c(7,8,9))
+# 450 s
 system.time({
   fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg)
 })
-fit$results
+fit$results # 87% Kappa
 ggplot(fit, metric="Kappa")
 (tab <- table(obs=fit$pred$obs, pred=fit$pred$pred))
+```
+
+```{r}
+x <- pc$x[,1:20]
+# 400 seconds
+system.time({
+  fit <- train(x, y, method="svmRadial", trControl=trCtl)
+})
+plotWithSD(fit, param="C")
+fit$results # 4k data, 20 PCs, 93.3% Kappa
 ```
