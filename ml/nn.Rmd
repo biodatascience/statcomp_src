@@ -84,15 +84,12 @@ abline(0,1,col="red")
 ```
 
 ```{r}
-library(matrixStats)
-dat <- as.data.frame(mnist_raw[,-1])/255
-y <- factor(mnist_raw$X1)
-pc <- prcomp(dat)
-plot(pc$sdev[1:20]^2/sum(pc$sdev^2))
-x <- pc$x[,1:20]
+x <- pc$x[,1:50]
 trCtl <- trainControl(savePredictions=TRUE)
+tg <- data.frame(size=c(5,6,7))
+# 300 s
 system.time({
-  fit <- train(x, y, method="mlp", trControl=trCtl)
+  fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg)
 })
 fit$results
 ggplot(fit, metric="Kappa")
