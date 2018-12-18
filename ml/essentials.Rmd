@@ -69,10 +69,10 @@ of machine learning algorithms. *caret* stands for Classification And
 REgression Training, meaning that the package can be used for
 predicting categorical (classification) or continuous data
 (regression). While there may be reasons to use the individual
-packages themselves, *caret* essentially gives complete control of
-many functions in separate R packages, while wrapping them up in a
-consistent way so that users are less likely to make mistakes, and
-code is easier to read.
+packages themselves, *caret* gives us control of many functions in
+separate R packages (the degree of control varies across package),
+while wrapping them up in a consistent way so that users are less
+likely to make mistakes, and code is easier to read.
 
 **Importantly**: there are also a number of packages which are native
 to languages other than R, such as the [Keras](https://keras.io/) deep
@@ -95,17 +95,17 @@ Max Kuhn, has an
 which is a useful reference for looking up, for example, 
 [a list of all the machine learning algorithms available](https://topepo.github.io/caret/available-models.html).
 
-Here's a very simple example of using *caret* to run a linear
-model. Instead of using the `lm` function, we provide the predictor
-variables (sometimes called features) `x` and the outcome (or target)
-`y` to a function called `train` and specify `method="lm"`. We can
-also pass additional arguments using the `trainControl` function which
-is provided to the `trControl` argument. `lm` is a kind of funny
-example, because it doesn't have any *tuning parameters* whereas most
-of the other methods will have some number of parameters that control
-behavior of the model, for example limits or penalizations for model
-complexity. *caret* actually lists a trivial parameter
-(`intercept=TRUE` or `FALSE`) for `lm`.
+Let's start with a very simple example of using *caret* to run a
+linear model. Instead of using the `lm` function, we provide the
+predictor variables (sometimes called features) `x` and the outcome
+(or target) `y` to a function called `train` and specify
+`method="lm"`. We can also pass additional arguments using the
+`trainControl` function which is provided to the `trControl`
+argument. `lm` is a kind of funny example, because it doesn't have any
+*tuning parameters* whereas most of the other methods will have some
+number of parameters that control behavior of the model, for example
+limits or penalizations for model complexity. *caret* actually lists a
+trivial parameter (`intercept=TRUE` or `FALSE`) for `lm`.
 
 We will create some random Normally distributed data to demonstrate
 the basic concept of overfitting. We can see that despite there being
@@ -135,10 +135,12 @@ not so many more observations than features, relatively.
 Above, `fit$results` provides no output because we specified in
 `trainControl` that we will not use a resampling method to evaluate
 performance. We can instead specify to use *cross-validation*, with 5
-folds, and to save the predicted values. 
+folds, and to save the predicted values. The default method for
+resampling in *caret* is bootstrap sampling, where samples may appear
+more than once in each split due to replacement, and therefore there
+are out-of-boot samples that can be used for prediction. 
 
 ```{r cache=TRUE}
-# mention cv is not best here
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 fit <- train(x, y, method="lm", trControl=trCtl)
 ```
@@ -149,9 +151,13 @@ split the data into *k* roughly equally sized folds, and to then train
 the input data to each model leaves out one of the folds. Each model
 is therefore trained on roughly $n - \frac{n}{k}$ data points. The *k*
 models can meanwhile be assessed by predicting the values of the
-held-out data points. There are many other methods for evaluation via
-resampling, which can be found in the help page for `?trainControl`
-under `method`.
+held-out data points. We use cross-validation in this example, but
+note that other methods which involve repeated resampling help to
+produce accuracy metrics with smaller standard errors.
+
+There are many other methods for evaluation via resampling, which can
+be found in the help page for `?trainControl` under `method`. We will
+also cover some of the most popular methods below.
 
 While we had a very high correlation when we fit a linear model to the
 entire training set, here we see that the predictive $R^2$ on the held
@@ -177,8 +183,8 @@ as we did not have a tuning parameter, we only have a single copy of
 each observation in the `fit$pred` table. Additionally, depending on
 the resampling `method` specified in `trainControl`, we could have
 multiple values per observation, per point in the tuning grid. For
-`"boot"` and `"repeatedcv"` for example, an observation will appear
-more than once.
+`"boot"` and `"repeatedcv"` for example, an observation can appear
+more than once in `fit$pred`.
 
 By default, *caret* uses the squared-correlation definition of $R^2$
 which we confirm by manually calculating the value (there would be no
@@ -206,7 +212,7 @@ library(ggplot2)
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
 
-# Feature selection must occur within the loop
+# Feature selection using the outcome must occur within the loop
 
 Many of the methods in `caret` have built in *feature selection*
 properties, meaning that they pick out useful features and do not use
@@ -245,4 +251,45 @@ utility in prediction:
 ```{r cache=TRUE}
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
+
+To repeat, many of the methods we will use will perform their own
+feature selection using the outcome variable, but it will occur
+*within the loop*. In some cases, we will perform feature selection
+before running `train`, however we will not use the outcome variable
+in these cases; we can, for example, remove features that have 0
+variance, or perform dimension reduction and retain the top *N*
+principal components.
+
+# Parameter tuning
+
+A convenient feature of *caret* is that it helps us to tune parameters
+within the `train` function. For demonstration purposes, we will load
+the `iris` dataset and show how `train` performs tuning for a
+classification problem, here classifying the label of two species
+based on the four numeric features. 
+
+```{r}
+summary(iris)
+idx <- 51:150
+x <- cbind(iris[idx,1:4], matrix(rnorm(100*100),ncol=100))
+x <- scale(x)
+y <- droplevels(iris$Species[idx])
+table(y)
+```
+
+```{r}
+tg <- expand.grid(NumVars=c(4,10,20),lambda=c(0,1,10,100))
+head(tg)
+trCtl <- trainControl(method="boot", number=50)
+fit <- train(x, y, method="sparseLDA", tuneGrid=tg, trControl=trCtl)
+ggplot(fit, metric="Kappa") + ylim(0.7,1)
+```
+
+# Data splitting methods
+
+# Training vs test set evaluation
+
+# Bagging and boosting
+
+# Complexity of a classifier
 
