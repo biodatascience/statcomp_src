@@ -110,17 +110,21 @@ trivial parameter (`intercept=TRUE` or `FALSE`) for `lm`.
 We will create some random Normally distributed data to demonstrate
 the basic concept of overfitting. We can see that despite there being
 no relationship between the outcome and the predictors (`y` consists
-simply of 2000 random Normal data points), we can obtain a strong
+simply of 1,000 random Normal data points), we can obtain a strong
 correlation between the predicted values. This is one of the main
 concerns of machine learning methods: to find a way to combine
 information in the predictors that will *generalize* to new data,
 while not getting "tricked" into finding spurious patterns or
 associations.
 
-```{r cache=TRUE}
+```{r include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+```{r}
 library(caret)
-n <- 2000 # observations
-p <- 1000 # features
+n <- 1000 # observations
+p <- 500 # features
 x <- matrix(rnorm(n*p),ncol=p,dimnames=list(seq_len(n),seq_len(p)))
 y <- rnorm(n)
 fit <- train(x, y, method="lm", trControl=trainControl(method="none"))
@@ -140,7 +144,7 @@ resampling in *caret* is bootstrap sampling, where samples may appear
 more than once in each split due to replacement, and therefore there
 are out-of-boot samples that can be used for prediction. 
 
-```{r cache=TRUE}
+```{r}
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 fit <- train(x, y, method="lm", trControl=trCtl)
 ```
@@ -156,15 +160,14 @@ note that other methods which involve repeated resampling help to
 produce accuracy metrics with smaller standard errors.
 
 There are many other methods for evaluation via resampling, which can
-be found in the help page for `?trainControl` under `method`. We will
-also cover some of the most popular methods below.
+be found in the help page for `?trainControl` under `method`.
 
 While we had a very high correlation when we fit a linear model to the
 entire training set, here we see that the predictive $R^2$ on the held
 out data in the cross-validation (CV) was nearly 0, indicating that
 the high correlation above was due to overfitting.
 
-```{r cache=TRUE}
+```{r}
 fit$results
 head(fit$pred)
 ```
@@ -191,7 +194,7 @@ which we confirm by manually calculating the value (there would be no
 reason to do this, except to convince oneself of what value is being
 presented in the table above).
 
-```{r cache=TRUE}
+```{r}
 getR2 <- function(pred) {
   r2s <- sapply(1:5, function(i) {
     idx <- pred[,"Resample"] == paste0("Fold",i)
@@ -207,12 +210,12 @@ color by the fold, showing that the linear model fit to the $n -
 \frac{n}{k}$ data points had no predictive power for the held out data
 points. 
 
-```{r cache=TRUE}
+```{r}
 library(ggplot2)
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
 
-# Feature selection using the outcome must occur within the loop
+# Feature selection using outcome must be in the loop
 
 Many of the methods in `caret` have built in *feature selection*
 properties, meaning that they pick out useful features and do not use
@@ -225,7 +228,7 @@ or resampling loop that is used for parameter tuning and
 evaluation. One can be mislead into thinking that the predictions are
 much better than they actually are.
 
-Below we assess the correlation of all of the 1000 features with the
+Below we assess the correlation of all of the features with the
 outcome `y`. We then look at the 80% quantile of the absolute value of
 the correlations and chose the 20% of features with correlation above
 this value to form a new set of predictors `x.filt`. Because the
@@ -234,7 +237,7 @@ can expect to find exaggerated performance, even though the
 performance is assessed in a "held-out" set (the held-out set was not
 held out for assessing the correlations).
 
-```{r cache=TRUE}
+```{r}
 cors <- cor(x, y)[,1]
 q <- quantile(abs(cors), .8)
 x.filt <- x[,abs(cors) > q]
@@ -248,7 +251,7 @@ points looks decent, although we know from construction that the
 predictors have no relationship to the outcome, and therefore offer no
 utility in prediction:
 
-```{r cache=TRUE}
+```{r}
 ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 ```
 
@@ -266,7 +269,10 @@ A convenient feature of *caret* is that it helps us to tune parameters
 within the `train` function. For demonstration purposes, we will load
 the `iris` dataset and show how `train` performs tuning for a
 classification problem, here classifying the label of two species
-based on the four numeric features. 
+based on the four numeric features. We add an additional set of 100
+non-informative predictors to demonstrate the benefit of
+regularization using the elastic net implementation in the *glmnet*
+package.
 
 ```{r}
 summary(iris)
@@ -277,19 +283,561 @@ y <- droplevels(iris$Species[idx])
 table(y)
 ```
 
+We build a grid of lambda (the regularization parameter) and alpha
+(the mixing parameter, where alpha=1 corresponds to lasso or L1
+regularization, and alpha=0 corresponds to ridge or L2
+regularization). 
+
 ```{r}
-tg <- expand.grid(NumVars=c(4,10,20),lambda=c(0,1,10,100))
-head(tg)
-trCtl <- trainControl(method="boot", number=50)
-fit <- train(x, y, method="sparseLDA", tuneGrid=tg, trControl=trCtl)
-ggplot(fit, metric="Kappa") + ylim(0.7,1)
+tg <- expand.grid(lambda=c(.01,.05,.1,.25,.5,.75), alpha=c(.1,.25,.5,.75,1))
+head(tg,8)
 ```
 
-# Data splitting methods
+It is simple then to have `train` handle the running of models over a
+grid of parameters. Note that if we had not set `tuneGrid`, a default
+grid would be used. 
+
+```{r}
+fit <- train(x, y, method="glmnet", tuneGrid=tg)
+ggplot(fit, metric="Kappa") + ylim(0,1)
+```
+
+We can ask for the best set of tuning parameters (simply the set the
+gave the best performance as defined by `metric`, where a custom
+performance metric could be provided).
+
+```{r}
+fit$bestTune
+fit$results[rownames(fit$bestTune),]
+```
+
+Note that other schemes for choosing the best set of tuning parameters
+exist other than choosing the maximum performance. These are discussed
+in the 
+[choosing the final model](https://topepo.github.io/caret/model-training-and-tuning.html#choosing-the-final-model)
+section of the *caret* online book. For example, Breiman et al (1984)
+suggests to pick the simplest model which is within one standard error
+of the optimal performance (where standard errors are estimated using
+resampling, as is available based on the resampling `method` we
+choose). The reason that `train` by default chooses the best
+performing model is likely explained by this quote from the book:
+
+> The main issue with [rules such as within-one-standard-error] is
+> related to ordering the models from simplest to complex. In some
+> cases, this is easy (e.g. simple trees, partial least squares), but
+> in cases such as this model, the ordering of models is subjective.
 
 # Training vs test set evaluation
 
+So far we have discussed using either cross-validation or the
+out-of-boot samples for evaluation of model performance. This is
+useful, and helps as we saw earlier to avoid thinking we have a much
+higher predictive performance than we actually do. However, because we
+look at many models, and then choose the best performing one, it is
+standard to use a wholly separate *test set* in order to evaluate the
+final model. The test set can be specified at the beginning, making
+sure to balance the labels equally across the split. More
+complex
+[data splitting](https://topepo.github.io/caret/data-splitting.html) 
+procedures are also available. Typically, between 20%-30% of the
+dataset might be held-out for testing.
+
+The full training and testing setup would then involve, creating a
+training set index:
+
+```{r}
+train.idx <- createDataPartition(y, p=.75, list=FALSE)
+# just demonstrating that the labels are balanced:
+table(seq_len(100) %in% train.idx, y)
+```
+
+Splitting the data:
+
+```{r}
+train.x <- x[train.idx,]
+train.y <- y[train.idx]
+test.x <- x[-train.idx,]
+test.y <- y[-train.idx]
+```
+
+Fitting the model and finding the best out-of-boot performing model: 
+
+```{r}
+fit <- train(train.x, train.y, method="glmnet", tuneGrid=tg)
+fit$results[rownames(fit$bestTune),]
+```
+
+Assessing performance on the test set:
+
+```{r}
+pred <- predict(fit, newdata=test.x)
+table(pred, test.y)
+```
+
+We can use a *caret* function to provide numerous metrics, including
+accuracy and Cohen's kappa:
+
+```{r}
+confusionMatrix(data=pred, reference=test.y)
+```
+
+Or for less readout:
+
+```{r}
+postResample(pred=pred, obs=test.y)
+```
+
 # Bagging and boosting
+
+*Bagging* and *boosting* are two important topics that come up across
+a number of machine learning methods, and so I want to introduce them
+during this introductory lecture note. *Bagging* is short for
+*bootstrap aggregating*, wherein the potentially high variance of a
+simple learning algorithm (or "learner") is mitigated by training it
+multiple times across bootstrap samples of the dataset. In addition,
+bagging may involve random sampling of the predictors as well, such
+that the different models are less correlated than they would be if
+they all used the same predictors. Bagging was proposed by Leo Breiman
+in a
+[technical report](https://www.stat.berkeley.edu/~breiman/bagging.pdf)
+in 1994, which was subsequently published in 
+[Machine Learning](https://doi.org/10.1007/BF00058655). The final
+bagged model is an average over the simple models learned on the
+bootstrap samples (either outputting the average prediction for
+regression, or using a majority-rule vote for classification). Bagging
+is very often used with *decision trees* which will be covered in more
+detail in a subsequent lecture note. It is a natural question, why is
+bagging not used with other simple models, like linear regression.  A
+1998 paper by Skurichinaa and Duina,
+[Bagging for linear classifiers](https://doi.org/10.1016/S0031-3203(97)00110-6),
+looks into this question, showing that linear classifiers are in the
+class of stable classifiers that don't benefit from bagging. Breiman
+makes this point in his initial paper, that bagging is mostly useful
+for unstable classifiers.
+
+*Boosting* is somewhat similar to bagging, in that a final
+meta-learner is constructed which should perform better than each
+individual learner. However, instead of the simple learners being
+different according to the bootstrap sample of the observations, in
+boosting, a series of learners are constructed. The series is
+constructed so that (after the first round), the weights for
+mis-classified samples from the previous round are up-weighted. At a
+given round, the previous round's classifier and a new simple learner
+are added together, with a coefficient on the new simple learner
+chosen to minimize the error in the training set. We will show in
+practice how this procedure leads to improved predictions. 
+
+## Contrived example of bagging
+
+We can implement bagging in simple R code, and then show how it can be
+performed with the *caret* library. We will create a very
+unstable learner for our demonstration, to highlight the benefit of
+bagging. As we said above, typically bagging is used in combination
+with a decision tree as the learner. Suppose our data looks as
+follows: 
+
+```{r}
+makeData <- function(n) {
+  sd <- .5
+  x1 <- c(rnorm(.5*n,-.5,sd),rnorm(.5*n,.5,sd))
+  x2 <- c(rnorm(.5*n,-.5,sd),rnorm(.5*n,.5,sd))
+  idx <- sample(n, .05*n)
+  x1[idx] <- -5 * x1[idx]
+  y <- factor(rep(c(1,2),n*c(.5,.5)))
+  data.frame(x1,x2,y)
+}
+set.seed(1)
+dat <- makeData(100)
+y <- dat$y
+x <- dat[c("x1","x2")]
+ggplot(dat, aes(x1,x2,col=y)) + geom_point()
+```
+
+We can see that we have a group of observations that are outlying to
+some degree. We will create a very unstable learner (just for
+demonstration) which puts a 10x weight on the left- and right-most
+observations, and then performs LDA.
+
+```{r}
+library(MASS)
+learner <- function(x,y) {
+  idx <- c(which.max(x[,1]), which.min(x[,1]))
+  wt <- 10
+  x <- rbind(x, do.call(rbind, lapply(seq_len(wt), function(i) x[idx,])))
+  y <- c(y, rep(y[idx],wt))
+  lda(x, y)
+}
+```
+
+We can run it on our training data and plot the decision boundary. We
+can see that the up-weighting of the extreme points leads to a poor
+boundary for the majority of the points.
+
+```{r}
+l <- learner(x,y)
+s <- seq(from=-5,to=5,length.out=200)
+s.wide <- seq(from=-7,to=7,length.out=200)
+grid <- expand.grid(x1=s.wide,x2=s)
+grid.dat <- data.frame(y=predict(l, grid)$class, grid)
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_raster(data=grid.dat, aes(x1,x2,fill=y),alpha=.2,show.legend=FALSE)
+```
+
+Now we write a simple function to predict the classes of the training
+points: 
+
+```{r}
+learnerPred <- function(x,l) {
+  predict(l, newdata=x)$class
+}
+table(pred=learnerPred(x,l), obs=y)
+```
+
+A bagging version of the learner involves bootstrap resampling of the
+dataset. In some of the bootstrap samples, the most extreme points in
+the dataset will not be included, and so some of the learners will
+hopefully provide a better decision boundary for the majority of the
+samples. Again, remember, our learner is contrived in a way to make it
+very unstable, but you can imagine how individual data points might
+lead an unstable learner to overfit the training data.
+
+```{r}
+B <- 400
+reps <- lapply(seq_len(B), function(i) {
+  boot <- sample(nrow(x), nrow(x), replace=TRUE)
+  learner(x[boot,], y[boot])
+})
+```
+
+Our "bagged" predictions simply involve running each of the *B* LDA
+models and then using majority rules to vote for the final class. Note
+that we do a bit better even on the training data.
+
+```{r}
+bagged <- sapply(seq_len(B), function(i) {
+  learnerPred(x, reps[[i]])
+})
+bag.pred <- ifelse(rowSums(bagged == "2") > B/2, "2", "1")
+table(pred=bag.pred, obs=y)
+```
+
+Now for some test data, we create 2,000 new observations. It's very
+clear that the single learner is doing poorly here:
+
+```{r}
+dat.test <- makeData(2000)
+s.wide <- seq(from=-10,to=10,length.out=200)
+grid <- expand.grid(x1=s.wide,x2=s)
+grid.dat <- data.frame(y=predict(l, grid)$class, grid)
+ggplot(dat.test, aes(x1,x2,col=y)) + geom_point() +
+  geom_raster(data=grid.dat, aes(x1,x2,fill=y),alpha=.2,show.legend=FALSE)
+```
+
+We can sum up the errors:
+
+```{r}
+y.test <- dat.test$y
+x.test <- dat.test[,c("x1","x2")]
+(tab <- table(pred=learnerPred(x.test,l), obs=y.test))
+tab[1,2] + tab[2,1]
+```
+
+Now we can show that the bagging version of our unstable learner does
+in fact do better: 
+
+```{r}
+bagged <- sapply(seq_len(B), function(i) {
+  learnerPred(x.test, reps[[i]])
+})
+bag.pred <- ifelse(rowSums(bagged == "2") > B/2, "2", "1")
+(tab <- table(pred=bag.pred, obs=y.test))
+tab[1,2] + tab[2,1]
+```
+
+## Example of bagging trees
+
+In our example above, we contrived a very unstable learner, which
+up-weighted outliers, and then wrote out simple R code to show what
+happens inside of a bagging method. However, we can easily access 
+[bagging](https://topepo.github.io/caret/train-models-by-tag.html#bagging)
+models via *caret*, including Random Forests, which we will cover in a
+subsequent lecture note. This hides away the bootstrapping and
+majority voting code, and there are a number of bagging methods, as
+well as a general purpose `bag` interface within *caret*.
+
+Below we use a bagging version of decision trees, which gets close to a
+Random Forest, but doesn't involve sub-sampling of the features (here
+we only have two features anyway). If you think of individual decision
+trees as dividing the predictor space into blocks where a certain
+class will be predicted (for classification, or a level value for
+regression), then by averaging over many trees, complex decision
+boundaries can be learned. Here we show how a bagging version of
+decision trees can be applied:
+
+```{r}
+fit <- train(x, y, method="treebag")
+fit$results
+pred <- predict(fit, x.test)
+tab <- table(pred, obs=y.test)
+tab[1,2] + tab[2,1]
+```
+
+Note that our bagging method *treebag* outperforms simple LDA:
+
+```{r}
+fit <- train(x, y, method="lda")
+fit$results
+pred <- predict(fit, x.test)
+tab <- table(pred, obs=y.test)
+tab[1,2] + tab[2,1]
+```
+
+## Example of boosting
+
+As we have limited time in the course, we do not cover boosting in
+depth, but only provide a demonstration of its use. As described
+above, boosting involves iteratively re-fitting a learner, typically a
+tree, wherein the previous learners in the series are summed up and a
+new learner is added with additional focus on observations in the
+training set that we mis-classified in the previous round. As with
+bagging, this can lead to complex behavior and complex decision
+boundaries from a series of simple learners.
+
+A very powerful boosting method is GBM, for 
+[Gradient Boosting Machine](https://en.wikipedia.org/wiki/Gradient_boosting) 
+(link to Wikipedia).
+It can be easily called within *caret* by specifying
+`method="gbm"`. Another popular boosting method is 
+[AdaBoost](https://en.wikipedia.org/wiki/AdaBoost) 
+(link to Wikipedia),
+which can be called with *caret* via `method="adaboost"`.
+
+Here we apply GBM to our simple dataset for demonstration of how 
+the learned surface may look. Typically we would use GBM on more
+complex datasets with more than two dimensions, but also notice that
+it outperforms the other methods on the test data:
+
+```{r}
+fit <- train(x, y, method="gbm", verbose=FALSE)
+fit$results
+pred <- predict(fit, x.test)
+tab <- table(pred, obs=y.test)
+tab[1,2] + tab[2,1]
+```
+
+We can plot, with the final model, the training error over the rounds
+of boosting. At each round, the method is attempting to improve on
+certain mis-classified samples, while still retaining good
+classification on the "easy" samples:
+
+```{r}
+plot(fit$finalModel$train.error, type="o",
+     xlab="round", ylab="train error")
+```
+
+Before we plot the learned surface, let's recall what the training
+data looked like:
+
+```{r}
+ggplot(dat, aes(x1,x2,col=y)) + geom_point()
+```
+
+The `plot` function, called on the final model, can be used to make
+low-dimensional plots showing how the variables relate to the class
+predictions. From `?plot.gbm`:
+
+> `plot.gbm` produces low dimensional projections of the
+> `gbm.object` by integrating out the variables not included in the
+> `i.var` argument. The function selects a grid of points and uses
+> the weighted tree traversal method described in Friedman (2001) to
+> do the integration.
+
+Here we plot the surface for `x1`, for `x2` and in the space of both
+variables. Note that, by adding over many simple learners, a complex
+shape can be created. Still, these boosted methods are quite good at
+not overfitting. GBM is one of the best methods for out-of-the-box
+performance, that is not requiring much "feature engineering":
+
+```{r}
+plot(fit$finalModel, i.var=1)
+plot(fit$finalModel, i.var=2)
+plot(fit$finalModel, i.var=1:2)
+```
 
 # Complexity of a classifier
 
+The final section of this lecture note will cover a formal definition
+of complexity that is used in machine learning, and a useful theorem
+giving a probabilistic upper bound on how far the test error will be
+from the training error of a classifier.
+
+First, we will define the concept of an algorithm *f* with parameters
+$\theta$ *shattering* a set of points. To shatter a set of points
+means that, for any labeling of the points, there exists a $\theta$
+such that *f* classifies all the points accurately. For the following
+examples, suppose we are working on binary classification, and for
+simplicity of notation, we will have the two class labels as
+$\{-1,+1\}$.
+
+Suppose we consider algorithms *f* which are of the form:
+
+$$ \textrm{sign}(a x_1 + b x_2 + c) $$
+
+with $a,b > 0$ (and a 0 will be given a positive label). We can
+visualize a particular instance of *a*, *b*, and *c*:
+
+```{r echo=FALSE, fig.width=6}
+a <- 3; b <- 1; c <- -2
+f <- function(x) factor(sign(a*x[,1]+b*x[,2]+c+1e-6))
+s <- seq(from=-4,to=4,length.out=200)
+grid <- expand.grid(x1=s,x2=s)
+grid$y <- f(grid)
+ggplot(grid, aes(x1,x2,fill=y)) + geom_raster(alpha=.2) +
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+Now let's lay down a single point and ask if our algorithm *f* as defined
+above can shatter it. If we have a single positive point, we can
+simply move the line so that it is below the point:
+
+```{r echo=FALSE, fig.width=6}
+dat <- data.frame(x1=-1,x2=-1,y=factor(1,levels=c(-1,1)))
+a <- 1; b <- 2; c <- 4
+grid$y <- f(grid)
+ggplot(dat, aes(x1,x2,color=y)) +
+  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+Likewise, with a negative point, we can move the line above it:
+
+```{r echo=FALSE, fig.width=6}
+dat <- data.frame(x1=-1,x2=-1,y=factor(-1,levels=c(-1,1)))
+a <- 1; b <- 2; c <- 1
+grid$y <- f(grid)
+ggplot(dat, aes(x1,x2,color=y)) +
+  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+Intuitively, *f* as defined above can shatter a single point.
+
+Now, suppose we have two points, with one in the upper right and one
+in the bottom left quadrant. We can correctly classify if the point
+toward the upper right quadrant is positive:
+
+```{r echo=FALSE, fig.width=6}
+dat <- data.frame(x1=c(-1,1),x2=c(-1,1),y=factor(c(-1,1)))
+a <- 1; b <- 1; c <- 0
+grid$y <- f(grid)
+ggplot(dat, aes(x1,x2,color=y)) +
+  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+...however there is no $\theta$ that will be able to correctly
+classify both when the labels are reversed:
+
+```{r echo=FALSE, fig.width=6}
+dat <- data.frame(x1=c(-1,1),x2=c(-1,1),y=factor(c(1,-1)))
+a <- 10; b <- 1; c <- 20
+grid$y <- f(grid)
+ggplot(dat, aes(x1,x2,color=y)) +
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
+  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+Let's now consider another set of two points. If the upper left
+quadrant is negative, we can tilt the slope very steeply:
+
+```{r echo=FALSE, fig.width=6}
+dat <- data.frame(x1=c(-1,1),x2=c(1,-1),y=factor(c(-1,1)))
+a <- 5; b <- 1; c <- 0
+grid$y <- f(grid)
+ggplot(dat, aes(x1,x2,color=y)) +
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
+  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+And if the point in the upper left quadrant is positive, we can tilt
+the slope very shallowly:
+
+```{r echo=FALSE, fig.width=6}
+dat <- data.frame(x1=c(-1,1),x2=c(1,-1),y=factor(c(1,-1)))
+a <- 1; b <- 5; c <- 0
+grid$y <- f(grid)
+ggplot(dat, aes(x1,x2,color=y)) +
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
+  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
+  geom_hline(yintercept=0) + geom_vline(xintercept=0)
+```
+
+So while *f* as defined above could not shatter the first set of
+points (the ones on the NE-SW axis), *f* could shatter the second set
+of points (the ones on the NW-SE axis).
+
+If we lift the positive-valued restriction on *a,b*, you can work out
+with examples how a real-valued version of *f* can shatter a set of
+three points as long as they do not lie on a straight line.
+
+Finally, the definition: The *VC dimension* of a classification
+algorithm is the size of the largest set of points that the algorithm
+can possibly *shatter*. There only has to be one set of such points,
+and so the positive-valued version of *f* has VC dimension 2 (no set
+of 3 points can be shattered) while the real-valued version of *f* has
+VC dimension 3 (no set of 4 points can be shattered). As typical,
+finding a set of points which an algorithm can shatter is the easy
+part, while proving that no $\theta$ exists such that an algorithm can
+shatter so many points is more difficult. *VC* stands for
+Vapnik–Chervonenkis, who outlined the definition in a 1971 paper,
+"*On the Uniform Convergence of the Frequencies of Occurrence of
+Events to Their Probabilities*". 
+
+Our main interest is in knowing the degree to which our ability to 
+predict the labels of the training set will generalize to our ability
+to predict new data that arises from the same distribution. Here, when
+we talk about training set error, we do not refer to the
+cross-validated or out-of-bag error, but the error on the same
+observations that are used for finding, e.g. $\theta$ for *f*
+above.
+
+My preferred walk-through of the VC dimension, and its relation to the
+bound on generalization error is 
+[Andrew Ng's notes on Learning Theory](http://cs229.stanford.edu/notes/cs229-notes4.pdf). 
+I would recommend to walk through these. In particular, these notes
+show how the estimated error in the training set must be close to the
+generalization error (error on new data). For a finite set of fitted
+models (where a "fitted model" is a function that maps from the
+predictor space to the space of labels of the outcome), the
+generalization error can be bound to within $\gamma$ of the training
+error, for all of the fitted models, with probability:
+
+$$ P \ge 1 - 2k\exp(-2 \gamma^2 m)$$
+
+where *k* is the number of models and *m* is the number of
+samples. This bound uses the union bound and the Hoeffding inequality
+in its derivation. Then using this probability bound, one can also
+bound the generalization error for the *best* fitted model (in terms
+of minimizing error on the training samples) among the *k*
+options. 
+
+However, we rarely work with finite sets of models, but instead work
+with infinite sets of models, such as the *f* we were describing
+above. Here, the VC dimension (if it is finite) becomes useful as way
+of describing the complexity of the set. For a classification
+algorithm with VC dimension *d*, with probability at least $1 -
+\delta$ the absolute difference between generalization error and the
+training error will be:
+
+$$ \le O\left( \sqrt{\frac{d}{m} \log \frac{m}{d} + \frac{1}{m} \log \frac{1}{\delta}} \right) $$
+
+Thus for classification algorithms with finite VC dimension, large
+sample size will give us probabilistic guarantee on only small
+differences between training and generalization error. Again for a
+closer walk through of these bounds, I recommend consulting 
+[Andrew Ng's notes on Learning Theory](http://cs229.stanford.edu/notes/cs229-notes4.pdf).

@@ -55,7 +55,7 @@ round(prop, 3) * 100 # percent
 ```
 
 ```{r}
-plotWithSD <- function(fit, a=2, param="k") {
+plotWithSD <- function(fit, param, a=2) {
   min <- with(fit$results, min(Kappa - (a+2)*KappaSD))
   max <- with(fit$results, max(Kappa + (a+2)*KappaSD))
   fit$results$ymax <- with(fit$results, Kappa + a*KappaSD)
@@ -65,7 +65,7 @@ plotWithSD <- function(fit, a=2, param="k") {
     geom_point(color="blue") + geom_line(color="blue") +
     ylim(min,max)
 }
-plotWithSD(fit)
+plotWithSD(fit, "k")
 ```
 
 ```{r}
@@ -78,8 +78,8 @@ ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 tg <- data.frame(k=c(5,9,13,17,21,25))
 trCtl <- trainControl(savePredictions=TRUE)
 fit.knn <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
-fit.knn$results # 89%
-plotWithSD(fit.knn)
+fit.knn$results # 88% Kappa
+plotWithSD(fit.knn, "k")
 ```
 
 ```{r}
@@ -87,34 +87,50 @@ tab <- table(obs=fit.knn$pred$obs, pred=fit.knn$pred$pred)
 prop <- tab/rowSums(tab)
 round(prop,3)*100 # percent
 diag(prop) <- NA
+```
+
+```{r}
 image(prop, xaxt="n", yaxt="n",
       xlab="obs", ylab="pred",
       col=colorRampPalette(c("white","blue"))(50))
 for (i in 1:2) axis(i, 0:9/9, 0:9)
 abline(0,1,col="red")
-lbl <- 100*round(head(sort(prop,decreasing=TRUE),3),3)
-text(c(4,3,9)/9, c(9,8,4)/9, labels=lbl, cex=.9, col="white")
-```
-
-```{r}
-x <- pc$x[,1:50]
-trCtl <- trainControl(savePredictions=TRUE)
-tg <- data.frame(size=c(7,8,9))
-# 450 s
-system.time({
-  fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg)
-})
-fit$results # 87% Kappa
-ggplot(fit, metric="Kappa")
-(tab <- table(obs=fit$pred$obs, pred=fit$pred$pred))
+mxs <- head(sort(prop,decreasing=TRUE),3)
+lbl <- 100*round(mxs,3)
+arr.idx <- sapply(mxs, function(i) which(prop == i, arr.ind=TRUE)) - 1
+text(arr.idx[1,]/9, arr.idx[2,]/9, labels=lbl, cex=.9, col="white")
 ```
 
 ```{r}
 x <- pc$x[,1:20]
-# 400 seconds
+tg <- data.frame(C=c(.5,1,2))
+# 700 seconds
 system.time({
-  fit <- train(x, y, method="svmRadial", trControl=trCtl)
+  fit <- train(x, y, method="svmRadial", trControl=trCtl, tuneGrid=tg)
 })
 plotWithSD(fit, param="C")
-fit$results # 4k data, 20 PCs, 93.3% Kappa
+fit$results # 10k data, 20 PCs, 94.5% Kappa
+```
+
+```{r}
+x <- pc$x[,1:60]
+tg <- data.frame(size=60)
+trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE, verboseIter=TRUE)
+# 60 s
+system.time({
+  fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg, maxit=50)
+})
+fit$results # 93.8% Kappa
+```
+
+```{r}
+library(RSNNS)
+x <- dat
+fit <- mlp(x, decodeClassLabels(y),
+           size=40, learnFunc="Rprop",
+           maxit=60)
+x.test <- as.data.frame(mnist_raw[10001:20000,-1])/255
+y.test <- factor(mnist_raw$X1[10001:20000])
+pred <- predict(fit,x.test)
+table(pred, y.test)
 ```
