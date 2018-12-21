@@ -26,7 +26,7 @@ First we construct some data that happens to be completely separable
 by a hyperplane in two dimensions:
 
 ```{r include=FALSE}
-knitr::opts_chunk$set(fig.width=6)
+knitr::opts_chunk$set(fig.width=6, cache=TRUE)
 ```
 
 ```{r}
@@ -66,13 +66,29 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
 
 We will go ahead a fit a *linear-kernel* SVM (to be explained later)
 to the same data. We will see a boundary as above, but the slope is a
-bit different. The key difference is that, instead of modeling the
-data as two Gaussians, the SVM has attempted to put the widest margin
-between the two groups of samples. This ends up being equivalent to
-finding a set of points which define the boundary between the two
-groups, and putting a wide band between those sets of points. The
-code may not make much sense now, but it is extracting the key
-parameters *w* and *b* which define the following rules: 
+bit different. 
+
+```{r}
+fit <- train(x, y, method="svmLinear", tuneGrid=data.frame(C=100))
+alpha <- fit$finalModel@alpha[[1]]
+sv <- as.data.frame(x[fit$finalModel@SVindex,]) # the "support vectors"
+sv.y <- 2 * (as.numeric(y[fit$finalModel@SVindex]) - 1.5)
+w <- colSums(alpha * sv.y * as.matrix(sv))
+b <- fit$finalModel@b
+grid <- expand.grid(x1=s,x2=s)
+grid$y.cont <- (as.matrix(grid[,1:2]) %*% w - b)[,1]
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_point(data=sv, col="black", size=5, shape=21) +
+  geom_contour(data=grid, aes(x1,x2,z=y.cont), breaks=c(-1,0,1), col="black")
+```
+
+The key difference is that, instead of modeling the data as two
+Gaussians, the SVM has attempted to put the widest margin between the
+two groups of samples. This ends up being equivalent to finding a set
+of points which define the boundary between the two groups, and
+putting a wide band between those sets of points. The code may not
+make much sense now, but it is extracting the key parameters *w* and
+*b* which define the following rules:
 
 $$ w^T x - b = 1 $$
 
@@ -87,25 +103,16 @@ called the *support vectors*. It is the nature of the constrained
 optimization of the SVM that a subset (sometimes small) of the
 training dataset ends up defining the decision boundary.
 
-```{r}
-fit <- train(x, y, method="svmLinear", tuneGrid=data.frame(C=100))
-alpha <- fit$finalModel@alpha[[1]]
-sv <- as.data.frame(x[fit$finalModel@SVindex,])
-sv.y <- 2 * (as.numeric(y[fit$finalModel@SVindex]) - 1.5)
-w <- colSums(alpha * sv.y * as.matrix(sv))
-b <- fit$finalModel@b
-grid <- expand.grid(x1=s,x2=s)
-grid$y.cont <- (as.matrix(grid[,1:2]) %*% w - b)[,1]
-ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
-  geom_point(data=sv, col="black", size=5, shape=21) +
-  geom_contour(data=grid, aes(x1,x2,z=y.cont), breaks=c(-1,0,1), col="black")
-```
-
 And just to show how SVM can be used to do more interesting things
 than finding a line between two sets of points, we show how by simply
-swapping out the *linear kernel* for a *radial kernel*, that is,
+swapping out the *linear kernel* (so whenever we compute the dot
+product between two observations),
 
-$$ K(x,x') = \exp\left(-\gamma \|x-x'\|^2 \right), $$
+$$ K\left(x,x'\right) = \left\langle x, x' \right\rangle, $$
+
+for a *radial kernel*, that is,
+
+$$ K\left(x,x'\right) = \exp\left(-\gamma \left\|x-x'\right\|^2 \right), $$
 
 we can use the same SVM routine to find a different set of support
 vectors (defining the boundary of points from all sides), and a very
@@ -124,7 +131,82 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2)
 ```
 
+# Motivation behind the SVM solution
+
+First we will give some motivation to how we solve for *w* and *b*
+above. Again, supposing we have two linearly separable sets of points,
+we want to find *w* and *b* so that the data are correctly classified,
+that is, $w^T x - b \ge 1$ for all the data with $y=1$ and $w^T x - b \le
+-1$ for all the data with $y=-1$. The distance between these two hyperplanes
+is given by:
+
+$$ \frac{(1 + b) - (-1 + b)}{\|w\|} = \frac{2}{\|w\|} $$
+
+and so to make the margin as wide as possible corresponds to
+minimizing $\|w\|$. The constrained optimization is then:
+
+$$
+\begin{aligned}
+& \underset{w,b}{\text{min}}
+& & \|w\| \\
+& \text{s.t.}
+& & w^T x_i - b \ge 1 : y_i = 1 \\
+& & & w^T x_i - b \le -1 : y_i = -1
+\end{aligned}
+$$
+
+Note that multiplying both of the constraints by $y_i$ then gives a
+cleaner form:
+
+$$
+\begin{aligned}
+& \underset{w,b}{\text{min}}
+& & \|w\| \\
+& \text{s.t.}
+& & y_i(w^T x_i - b) \ge 1,\quad i=1,\dots,n \\
+\end{aligned}
+$$
+
+And we can square the norm to make the optimization even easier,
+because we will have a quadratic objective to minimize, and linear
+constraints.
+
+$$
+\begin{aligned}
+& \underset{w,b}{\text{min}}
+& & \|w\|^2 \\
+& \text{s.t.}
+& & y_i(w^T x_i - b) \ge 1,\quad i=1,\dots,n \\
+\end{aligned}
+$$
+
 # SVM objective solved with quadratic programming
+
+We can take the above constrained optimization formulation and
+directly plug it into a quadratic programming package to find the
+optimal margin for the training data. The *quadprog* package in R
+offers optimization for problems of the form:
+
+$$
+\begin{aligned}
+& \underset{b}{\text{min}}
+& & -d^T b + \tfrac{1}{2} b^T D b \\
+& \text{s.t.}
+& & A^T b \ge b_0 \\
+\end{aligned}
+$$
+
+Unfortunately, they have used a *b* as well as the typically *b* that
+is used in the SVM problem. We will refer to their *b* as
+$b'$. Nevertheless, we can map our problem into their notation, by
+setting $d=0$, $b' = [w,b]$, 
+$D = \bigl(\begin{smallmatrix}I & 0 \\ 0 & 0\end{smallmatrix}\bigr)$,
+$A^T = [y x^1, y x^2, \dots, y x^p, -y]$, and $b_0 =
+[1,\dots,1]$. Here I have used $y x^j$ to refer to a column vector
+where each $y_i$ is multiplied by sample i's value for the j-th
+predictor, $x_i^j$.
+
+Converting our SVM notation to the notation of *quadprog* gives:
 
 ```{r}
 library(quadprog)
@@ -144,6 +226,9 @@ b0 <- rep(1, n)
 wb <- solve.QP(D,d,A,b0)
 ```
 
+We can then pull out our fitted *w* and *b*, and plot them against the
+training data:
+
 ```{r}
 w <- wb$solution[1:p]
 b <- wb$solution[p+1]
@@ -152,6 +237,10 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
   geom_abline(intercept=(b-1)/w[2],slope=-w[1]/w[2],alpha=.2,linetype=2) +
   geom_abline(intercept=b/w[2],slope=-w[1]/w[2],linetype=3)
 ```
+
+# Non separable case
+
+# Kernel trick
 
 # References
 
