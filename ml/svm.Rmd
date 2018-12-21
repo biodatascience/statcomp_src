@@ -5,28 +5,155 @@ date: 12/15/2018
 output: html_document
 ---
 
+Support vector machines (SVM) are a very popular machine learning
+method for binary classification, which can be solved efficiently even
+for large datasets. SVM have a number of desirable features,
+including: ability to perform classification in a non-linear space
+using kernels, tend to have good generalization to new data, and work
+well in very high dimensional space.
+
+# First look at SVM
+
+Here we will begin by demonstrating how SVM differ from other linear
+classifiers, such as LDA (linear discriminant analysis) on simulated
+data (two dimensional, so we can easily visualize the hyperplane that
+defines the classification boundary). We will then show the objective
+function that the SVM minimizes (in the completely separable case),
+show how this can be solved with quadratic programming, and then
+demonstrate the use of SVM on a real dataset.
+
+First we construct some data that happens to be completely separable
+by a hyperplane in two dimensions:
+
+```{r include=FALSE}
+knitr::opts_chunk$set(fig.width=6)
+```
+
 ```{r}
+set.seed(2)
 n <- 100
 x1 <- c(rnorm(n),rnorm(n,5))
 x2 <- c(rnorm(n),rnorm(n,5))
 x1 <- scale(x1)
 x2 <- scale(x2)
-y <- factor(rep(1:2,each=n))
+y <- factor(rep(c(-1,1),each=n))
 dat <- data.frame(y,x1,x2)
 library(ggplot2)
 ggplot(dat, aes(x1,x2,col=y)) + geom_point()
+```
+
+Using LDA gives us the following classification boundary. In this
+case, the boundary line is given by `-coefs[1]/coefs[2]`, but instead
+we use code which generalizes for other cases (including multiple
+classes, or non-linear boundaries as we will explore below). As you
+can recall, the boundary line for the LDA is determined by the
+likelihood ratio where two Gaussian distributions are fit to the data
+of the two classes. We draw the center of the Gaussians with a cross:
+
+```{r}
+library(caret)
 x <- data.frame(x1,x2)
+lfit <- train(x, y, method="lda")
+coefs <- lfit$finalModel$scaling
+means <- data.frame(lfit$finalModel$means, y=factor(c(-1,1)))
+s <- seq(from=-2,to=2,length=400)
+grid <- expand.grid(x1=s,x2=s)
+grid$y <- as.numeric(predict(lfit, newdata=grid))
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
+  geom_point(data=means,shape=10,size=10,stroke=2,alpha=.5,show.legend=FALSE) +
+  geom_contour(data=grid, aes(x1,x2,z=y), breaks=1.5, col="black")
+```
+
+We will go ahead a fit a *linear-kernel* SVM (to be explained later)
+to the same data. We will see a boundary as above, but the slope is a
+bit different. The key difference is that, instead of modeling the
+data as two Gaussians, the SVM has attempted to put the widest margin
+between the two groups of samples. This ends up being equivalent to
+finding a set of points which define the boundary between the two
+groups, and putting a wide band between those sets of points. The
+code may not make much sense now, but it is extracting the key
+parameters *w* and *b* which define the following rules: 
+
+$$ w^T x - b = 1 $$
+
+$$ w^T x - b = -1 $$
+
+Anything on or above the line defined by the first equation will be 
+classified as +1, while anything on or below the line in the second
+equation will be classified as -1. We then draw the lines for 1, 0,
+and -1 to show the boundaries and center of the margin dividing the
+two groups. The lines pass through a set of data points, these are
+called the *support vectors*. It is the nature of the constrained
+optimization of the SVM that a subset (sometimes small) of the
+training dataset ends up defining the decision boundary.
+
+```{r}
+fit <- train(x, y, method="svmLinear", tuneGrid=data.frame(C=100))
+alpha <- fit$finalModel@alpha[[1]]
+sv <- as.data.frame(x[fit$finalModel@SVindex,])
+sv.y <- 2 * (as.numeric(y[fit$finalModel@SVindex]) - 1.5)
+w <- colSums(alpha * sv.y * as.matrix(sv))
+b <- fit$finalModel@b
+grid <- expand.grid(x1=s,x2=s)
+grid$y.cont <- (as.matrix(grid[,1:2]) %*% w - b)[,1]
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_point(data=sv, col="black", size=5, shape=21) +
+  geom_contour(data=grid, aes(x1,x2,z=y.cont), breaks=c(-1,0,1), col="black")
+```
+
+And just to show how SVM can be used to do more interesting things
+than finding a line between two sets of points, we show how by simply
+swapping out the *linear kernel* for a *radial kernel*, that is,
+
+$$ K(x,x') = \exp\left(-\gamma \|x-x'\|^2 \right), $$
+
+we can use the same SVM routine to find a different set of support
+vectors (defining the boundary of points from all sides), and a very
+different classification boundary. Again, we will discuss how kernels
+are relevant to SVM in a section below.
+
+```{r}
+rfit <- train(x, y, method="svmRadial")
+rsv <- as.data.frame(x[rfit$finalModel@SVindex,])
+grid <- expand.grid(x1=s,x2=s)
+grid$y <- predict(rfit, newdata=grid)
+grid$yy <- 2*(as.numeric(grid$y) - 1.5)
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_point(data=rsv, col="black", size=5, shape=21) +
+  geom_contour(data=grid, aes(x1,x2,z=yy), breaks=0, col="black") +
+  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2)
+```
+
+# SVM objective solved with quadratic programming
+
+```{r}
+library(quadprog)
+# min_w,b wT w s.t. y_i (w x_i - b) >= 1
+# quadprog gives:
+# min_b 1/2 bT D b s.t. AT b >= b0
+yy <- 2 * (as.numeric(y) - 1.5) # {-1,1}
+n <- length(y)
+p <- ncol(x)
+D <- matrix(0, nrow=p+1, ncol=p+1)
+diag(D) <- 1
+D[p+1,p+1] <- 1e-6
+d <- numeric(p+1)
+AT <- cbind(as.matrix(x), rep(-1, n))
+A <- t(AT * yy)
+b0 <- rep(1, n)
+wb <- solve.QP(D,d,A,b0)
 ```
 
 ```{r}
-library(e1071)
-fit <- svm(x, y, kernel="linear")
-sv <- as.data.frame(fit$SV)
-ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
-  geom_point(data=sv, col="black", size=5, shape=21)
-fit <- svm(x, y, kernel="radial")
-sv <- as.data.frame(fit$SV)
-ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
-  geom_point(data=sv, col="black", size=5, shape=21)
+w <- wb$solution[1:p]
+b <- wb$solution[p+1]
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
+  geom_abline(intercept=(b+1)/w[2],slope=-w[1]/w[2],alpha=.2,linetype=2) +
+  geom_abline(intercept=(b-1)/w[2],slope=-w[1]/w[2],alpha=.2,linetype=2) +
+  geom_abline(intercept=b/w[2],slope=-w[1]/w[2],linetype=3)
 ```
 
+# References
+
+* [Andrew Ng's notes on SVM](http://cs229.stanford.edu/notes/cs229-notes3.pdf)
+  
