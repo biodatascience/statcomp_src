@@ -60,20 +60,20 @@ There are 171 attributes
 We also remove a troublesome line from the file using `grep`:
 
 ```
-grep -v 8584297742 aps_failure_training_set.csv > clean.csv
+grep -v 8584297742 aps_failure_training_set.csv > aps_clean.csv
 ```
 
 ```{r eval=FALSE}
 library(readr)
-dat <- read_csv("~/Downloads/clean.csv", skip=20, na="na")
+dat <- read_csv("aps_clean.csv", skip=20, na="na")
 table(dat$class)
 table(sapply(dat[,-1], class))
 summary(sapply(dat[,-1], function(dat) sum(is.na(dat))))
 with(dat, boxplot(aa_000 ~ class))
 with(dat, boxplot(ab_000 ~ class))
-iddat <- c(which(dat$class == "pos"),
-         sample(which(dat$class == "neg"), 1000))
-dat2 <- dat[iddat,]
+idx.dat <- c(which(dat$class == "pos"),
+             sample(which(dat$class == "neg"), 1000))
+dat2 <- dat[idx.dat,]
 table(dat2$class)
 with(dat2, boxplot(aa_000 ~ class))
 by(dat2$aa_000, dat2$class, quantile, .5)
