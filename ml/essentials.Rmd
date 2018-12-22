@@ -817,9 +817,9 @@ predictor space to the space of labels of the outcome), the
 generalization error can be bound to within $\gamma$ of the training
 error, for all of the fitted models, with probability:
 
-$$ P \ge 1 - 2k\exp(-2 \gamma^2 m)$$
+$$ P \ge 1 - 2k\exp(-2 \gamma^2 n)$$
 
-where *k* is the number of models and *m* is the number of
+where *k* is the number of models and *n* is the number of
 samples. This bound uses the union bound and the Hoeffding inequality
 in its derivation. Then using this probability bound, one can also
 bound the generalization error for the *best* fitted model (in terms
@@ -834,7 +834,7 @@ algorithm with VC dimension *d*, with probability at least $1 -
 \delta$ the absolute difference between generalization error and the
 training error will be:
 
-$$ \le O\left( \sqrt{\frac{d}{m} \log \frac{m}{d} + \frac{1}{m} \log \frac{1}{\delta}} \right) $$
+$$ \le O\left( \sqrt{\frac{d}{n} \log \frac{n}{d} + \frac{1}{n} \log \frac{1}{\delta}} \right) $$
 
 Thus for classification algorithms with finite VC dimension, large
 sample size will give us probabilistic guarantee on only small

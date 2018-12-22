@@ -19,8 +19,8 @@ classifiers, such as LDA (linear discriminant analysis) on simulated
 data (two dimensional, so we can easily visualize the hyperplane that
 defines the classification boundary). We will then show the objective
 function that the SVM minimizes (in the completely separable case),
-show how this can be solved with quadratic programming, and then
-demonstrate the use of SVM on a real dataset.
+show how this can be solved with quadratic programming. Finally, we
+will discuss how various kernels can be used in combination with SVM.
 
 First we construct some data that happens to be completely separable
 by a hyperplane in two dimensions:
@@ -64,7 +64,7 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
   geom_contour(data=grid, aes(x1,x2,z=y), breaks=1.5, col="black")
 ```
 
-We will go ahead a fit a *linear-kernel* SVM (to be explained later)
+We will go ahead a fit a *linear kernel* SVM (to be explained later)
 to the same data. We will see a boundary as above, but the slope is a
 bit different. 
 
@@ -110,7 +110,7 @@ product between two observations),
 
 $$ K\left(x,x'\right) = \left\langle x, x' \right\rangle, $$
 
-for a *radial kernel*, that is,
+for a *radial basis function kernel*, that is,
 
 $$ K\left(x,x'\right) = \exp\left(-\gamma \left\|x-x'\right\|^2 \right), $$
 
@@ -134,7 +134,12 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
 # Motivation behind the SVM solution
 
 First we will give some motivation to how we solve for *w* and *b*
-above. Again, supposing we have two linearly separable sets of points,
+above. The notes below follow closely 
+[Andrew Ng's notes on SVM](http://cs229.stanford.edu/notes/cs229-notes3.pdf),
+which I recommend for more in depth derivation and details on the
+algorithms which solve the SVM.
+
+Again, supposing we have two linearly separable sets of points,
 we want to find *w* and *b* so that the data are correctly classified,
 that is, $w^T x - b \ge 1$ for all the data with $y=1$ and $w^T x - b \le
 -1$ for all the data with $y=-1$. The distance between these two hyperplanes
@@ -167,14 +172,14 @@ $$
 \end{aligned}
 $$
 
-And we can square the norm to make the optimization even easier,
-because we will have a quadratic objective to minimize, and linear
-constraints.
+And we can square the norm and multiply by one half to make the
+optimization even easier, because we will have a quadratic objective
+to minimize, and linear constraints.
 
 $$
 \begin{aligned}
 & \underset{w,b}{\text{min}}
-& & \|w\|^2 \\
+& & \tfrac{1}{2} w^T w \\
 & \text{s.t.}
 & & y_i(w^T x_i - b) \ge 1,\quad i=1,\dots,n \\
 \end{aligned}
@@ -238,9 +243,179 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
   geom_abline(intercept=b/w[2],slope=-w[1]/w[2],linetype=3)
 ```
 
-# Non separable case
+# Non separable case and soft margins
+
+The SVM would be a very brittle method if it required separability in
+all cases, as it would both fail for many datasets, and it wouldn't be
+very robust to outliers. Since the constraints are hard, a single
+data point could tilt the margin. So, the SVM which is actually used
+in practice is not the one defined above, with a "hard margin", but
+instead one with a "soft margin", where points in the training set can
+cross the margin, and even cross the classification boundary and
+therefore be misclassified, with the advantage that the method will
+now work on all datasets and be more robust and have lower
+generalization error.
+
+The soft margin SVM is accomplished by softening the constraints,
+while adding a penalty for points which are above the margin. The
+tradeoff between the main objective of making a wide margin and the
+penalty for points crossing the margin will be controlled with a
+tuning parameter *C*. The soft margin constrained optimization then
+looks like: 
+
+$$
+\begin{aligned}
+& \underset{w,b}{\text{min}}
+& & \tfrac{1}{2} w^T w + C \sum_{i=1}^n \xi_i \\
+& \text{s.t.}
+& & y_i(w^T x_i - b) \ge 1 - \xi_i,\quad i=1,\dots,n \\
+& & & \xi_i \ge 0 \\
+\end{aligned}
+$$
+
+If all the points can be kept outside the margin and correctly
+classified then this means all the $\xi_i = 0$. This can also be
+re-formulated as a "hinge loss". The above optimization is equivalent
+to trying to minimize:
+
+$$ \tfrac{1}{2} w^T w + C \left( \sum_{i=1}^n \max(0, 1 - y_i (w^T x_i - b) ) \right) $$ 
+
+where the piece inside the large parentheses is equal to $\xi_i$. This
+is called a hinge loss, because, again, the $\xi_i = 0$ for those *i*
+that are outside of the margin and correctly classified, and only
+engages as a loss when a boundary is crossed. You may have noticed
+above that we set *C* very large when we ran the linear kernel
+SVM. This is so that we would obtain the hard margin classifier. We
+can re-run with a more typical value of $C=1$, and notice how the
+margin changes. Now more points emerge as support vectors, and some of
+them are within the margin.
+
+```{r}
+fit <- train(x, y, method="svmLinear")
+fit$results
+alpha <- fit$finalModel@alpha[[1]]
+sv <- as.data.frame(x[fit$finalModel@SVindex,]) # the "support vectors"
+sv.y <- 2 * (as.numeric(y[fit$finalModel@SVindex]) - 1.5)
+w <- colSums(alpha * sv.y * as.matrix(sv))
+b <- fit$finalModel@b
+grid <- expand.grid(x1=s,x2=s)
+grid$y.cont <- (as.matrix(grid[,1:2]) %*% w - b)[,1]
+ggplot(dat, aes(x1,x2,col=y)) + geom_point() + 
+  geom_point(data=sv, col="black", size=5, shape=21) +
+  geom_contour(data=grid, aes(x1,x2,z=y.cont), breaks=c(-1,0,1), col="black")
+```
 
 # Kernel trick
+
+Finally, we explain what we meant earlier by saying that various
+*kernels* can be used with SVM. So far we have mostly looked at
+*linear kernel* SVM, except for a sneak peak of a *radial basis
+function kernel* where we saw very different behavior of the support
+vectors and the classification boundary. To explain how kernels come
+into play, we need to show the Lagrangian dual form of the constrained
+optimization we have been showing. We will go back to the hard margin
+SVM but the logic applies equally to the soft margin as well.
+
+Our optimization can be written:
+
+$$
+\begin{aligned}
+& \underset{w,b}{\text{min}}
+& & \tfrac{1}{2} w^T w \\
+& \text{s.t.}
+& & -y_i(w^T x_i - b) + 1 \le 0,\quad i=1,\dots,n \\
+\end{aligned}
+$$
+
+And the Lagrange function, with multipliers $\alpha_i$ is:
+
+$$ \mathcal{L}(w,b,\alpha) = \tfrac{1}{2} w^T w - \sum_{i=1}^n \alpha_i \left( y_i (w^T x_i - b) - 1 \right) $$
+
+Taking the gradient with respect to *w* and setting equal to zero gives:
+
+$$ w - \sum_{i=1}^n \alpha_i y_i x_i = 0$$
+
+$$ w = \sum_{i=1}^n \alpha_i y_i x_i $$
+
+Repeating the same for *b* gives:
+
+$$ \sum_{i=1}^n \alpha_i y_i = 0 $$
+
+Then we can rewrite the Langrange function, using these two equations, as:
+
+$$ \mathcal{L}(w,b,\alpha) = \tfrac{1}{2} A - A - \sum_{i=1}^n \alpha_i y_i b + \sum_{i=1}^n \alpha_i $$
+
+where $A = \sum_{i,j=1}^n y_i y_j \alpha_i \alpha_j x_i^T x_j$. 
+Re-arranging this gives what is typically shown for the Lagrangian
+dual of the SVM:
+
+$$
+\begin{aligned}
+& \underset{\alpha}{\text{max}}
+& & \sum_{i=1}^n \alpha_i - \tfrac{1}{2} \sum_{i,j=1}^n y_i y_j \alpha_i \alpha_j \langle x_i, x_j \rangle \\
+& \text{s.t.}
+& & \alpha_i \ge 0, \quad i=1,\dots,n \\\
+& & & \sum_{i=1}^n \alpha_i y_i = 0 
+\end{aligned}
+$$
+
+One note while looking at the first line of the Lagrangian dual: 
+
+$$ \max_\alpha \sum_{i=1}^n \alpha_i - \tfrac{1}{2} \sum_{i,j=1}^n y_i y_j \alpha_i \alpha_j \langle x_i, x_j \rangle $$
+
+We want to maximize this quantity, which has a $-\tfrac{1}{2}$ and then
+a dot product between all $x_i$ and $x_j$. If sample *i* and *j* are
+in the same class, then $y_i y_j$ will be positive. If they are near
+each other, then the dot product will be large. For this reason, for
+many of the samples in the interior of a group of samples, the
+maximization will "want" to set $\alpha_i, \alpha_j = 0$. This is some
+loose motivation for why we will end up with a sparse solution, where
+only a few of the $\alpha_i$ are non-zero, and these will be the
+*support vectors* that define the hyperplane.
+
+As we have defined $w = \sum_{i=1}^n \alpha_i y_i x_i$, once we
+have fit a model to the training data, calculating the label for a new
+data point $x'$ involves calculating:
+
+$$ w^T x' - b = \sum_{i=1}^n \alpha_i y_i \langle x_i, x' \rangle - b, $$
+
+but since most of the $\alpha_i$ will be equal to zero, we only need
+to perform the dot product for the support vectors. This is one of the
+efficiencies that allows SVM good performance for large, high
+dimensional datasets.
+
+We showed that both finding the solution to the SVM on the training
+data, and calculating the label for a new point, involves a dot
+product $\langle x_i, x_j \rangle$ for all the samples *i*, *j* in the 
+dataset. This observation motivates the following trick: if we wanted
+to work in a transformed space on the original *x*, we could apply a
+function *f* throughout all of our equations around *x*. However, we
+just saw that the solution and prediction of labels for new points
+requires only $\langle x_i, x_j \rangle$, and so working in the
+transformed space implies replacing this with $\langle f(x_i), f(x_j)
+\rangle$. This is what is referred to as a kernel, and our
+transformation could be written:
+
+$$ K(x_i, x_j) = \langle f(x_i), f(x_j) \rangle $$
+
+This property of the SVM both allows arbitrary transformations, and
+means that we can work in arbitrary large spaces, as long as we can
+calculate $K(x_i, x_j)$. We can avoid actually calculating $x_i$ or
+$f(x_i)$. To give an example, suppose we are interested in classifying
+documents that contain words. We could count each word as a feature,
+and give a 1 if the document contains the word, or a 0 if the document
+does not contain a word. This is a very high dimensional space, if we
+start to enumerate all the words in a corpus of documents. However, we
+only need to the dot product between two documents, which amounts to
+counting the number of words that appear in common, and we never need
+to enumerate the $x_i$ themselves. 
+
+The radial basis function kernel we used above gives a high value for
+$K(x_i, x_j)$ if the points are close together, and a value that
+quickly drops off to zero if the points are not close. It is easy to
+compute the value of the kernel function for two points, however the
+feature space is represented by an 
+[infinite sum](https://en.wikipedia.org/wiki/Radial_basis_function_kernel).
 
 # References
 
