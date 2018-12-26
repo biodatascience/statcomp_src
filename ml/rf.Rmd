@@ -177,7 +177,7 @@ instead use all of the predictors.
 ```{r}
 library(caret)
 x <- as.data.frame(dat2[,2:21])
-y <- dat2$class
+y <- factor(dat2$class)
 summary(sapply(x, function(z) sum(is.na(z))))
 ppfit <- preProcess(x, method=c("center","scale","knnImpute"))
 x <- predict(ppfit, x)
@@ -203,25 +203,25 @@ here makes use of the Gini impurity.
 library(rpart)
 library(rpart.plot)
 df <- data.frame(class=y,x)
-fit <- rpart(class ~ ., data=df)
-printcp(fit)
-rpart.plot(fit)
+rfit <- rpart(class ~ ., data=df)
+printcp(rfit)
+rpart.plot(rfit)
 ```
 
 ```{r}
-fit$cptable
+rfit$cptable
 # try a higher complexity parameter
 cp <- 0.015
 # this is the minimizing complexity parameter:
-# cp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"]
-pfit <- prune(fit, cp=cp)
+# cp <- rfit$cptable[which.min(rfit$cptable[,"xerror"]),"CP"]
+pfit <- prune(rfit, cp=cp)
 rpart.plot(pfit)
 ```
 
 # Random forests
 
 ```{r}
-trCtl <- trainControl(savePredictions=TRUE)
+trCtl <- trainControl(savePredictions=TRUE, classProbs=TRUE)
 fit <- train(x, y, method="rf", trControl=trCtl) # ~150 s
 ```
 
@@ -235,6 +235,21 @@ barplot(table(tab))
 dotplot(tail(sort(imp[,1]),10), xlab="Mean Decrease Gini")
 ```
 
+```{r}
+costFn <- function(cut, df) {
+  tab <- table(obs=df$obs, pred=factor(df$pos >= cut, c("FALSE","TRUE")))
+  cost <- tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
+  cost
+}
+costFn(cut=.5, fit$pred)
+s <- seq(from=0, to=0.5, length=100)
+costs <- sapply(s, costFn, df=fit$pred)
+plot(s, costs, type="l", lwd=3, col="dodgerblue")
+s <- seq(from=0, to=0.1, length=100)
+costs <- sapply(s, costFn, df=fit$pred)
+plot(s, costs, type="l", lwd=3, col="dodgerblue")
+```
+
 # Regression trees
 
 ```{r}
@@ -242,10 +257,12 @@ library(rpart)
 dat <- data.frame(x=runif(1000))
 dat$y <- sin(2 * pi * dat$x)
 with(dat, plot(x,y))
-fit <- rpart(y ~ x, data=dat, method="anova", cp=.001)
-printcp(fit)
-plotcp(fit)
-pred <- predict(fit, dat)
+rfit <- rpart(y ~ x, data=dat, method="anova", cp=.001)
+rpart.plot(rfit)
+```
+
+```{r}
+pred <- predict(rfit, dat)
 with(dat, plot(x,y))
 points(dat$x, pred, col="red")
 ```
@@ -255,18 +272,18 @@ dat <- data.frame(x=runif(200))
 dat$y <- sin(2 * pi * dat$x)
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 tg <- data.frame(mtry=1)
-fit <- train(dat["x"], dat$y, method="rf", trControl=trCtl, tuneGrid=tg)
+rf.fit <- train(dat["x"], dat$y, method="rf", trControl=trCtl, tuneGrid=tg)
 with(dat, plot(x,y))
-pred <- fit$pred[order(fit$pred$rowIndex),]
+pred <- rf.fit$pred[order(rf.fit$pred$rowIndex),]
 points(dat$x, pred$pred, col="red")
 ```
 
 ```{r}
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
-fit <- train(dat["x"], dat$y, method="knn", trControl=trCtl)
-ggplot(fit)
+kfit <- train(dat["x"], dat$y, method="knn", trControl=trCtl)
+ggplot(kfit)
 with(dat, plot(x,y))
-pred <- fit$pred[fit$pred$k == 5,]
+pred <- kfit$pred[kfit$pred$k == 5,]
 pred <- pred[order(pred$rowIndex),]
 points(dat$x, pred$pred, col="red")
 ```
