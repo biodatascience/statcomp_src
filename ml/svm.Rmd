@@ -69,7 +69,10 @@ to the same data. We will see a boundary as above, but the slope is a
 bit different. 
 
 ```{r}
-fit <- train(x, y, method="svmLinear", tuneGrid=data.frame(C=100))
+# for standard SVM usage, do not set this `C` parameter so high
+# this will be discussed later when we talk about "soft margin" SVM
+tg <- data.frame(C=100)
+fit <- train(x, y, method="svmLinear", tuneGrid=tg)
 alpha <- fit$finalModel@alpha[[1]]
 sv <- as.data.frame(x[fit$finalModel@SVindex,]) # the "support vectors"
 sv.y <- 2 * (as.numeric(y[fit$finalModel@SVindex]) - 1.5)
@@ -417,7 +420,20 @@ compute the value of the kernel function for two points, however the
 feature space is represented by an 
 [infinite sum](https://en.wikipedia.org/wiki/Radial_basis_function_kernel).
 
-# References
+# Extensions to regression
+
+We won't cover these, but I wanted to provide pointers to literature
+which extends the SVM model to predict continuous covariates. Two such
+references are:
+
+* Drucker et al. [Support Vector Regression Machines](https://papers.nips.cc/paper/1238-support-vector-regression-machines) (1996)
+* Suykens and Vandewalle [Least Squares Support Vector Machine Classifiers](https://doi.org/10.1023/A:101862860) (1999)
+
+These can be accessed within *caret* by selecting one of the 
+[SVM models](https://topepo.github.io/caret/train-models-by-tag.html#support-vector-machines)
+with a *regression* tag.
+
+# Additional reference for these notes
 
 * [Andrew Ng's notes on SVM](http://cs229.stanford.edu/notes/cs229-notes3.pdf)
   

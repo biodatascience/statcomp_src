@@ -5,17 +5,24 @@ date: 12/14/2018
 output: html_document
 ---
 
-Download the
-[APS Failure at Scania Trucks Data Set](https://archive.ics.uci.edu/ml/datasets/APS+Failure+at+Scania+Trucks) from
-the
-[UC Irvine Machine Learning Repository](https://archive.ics.uci.edu/ml/index.php)
+In this lecture note we will introduce classification and regression
+trees (CART), and *random forests*, which incorporate trees into a
+bagging ensemble method. We will first describe the dataset that we
+will use in the following section as a motivating example.
+
+```{r include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+# APS Failure data set
+
+To begin, we download the
+[APS Failure at Scania Trucks Data Set](https://archive.ics.uci.edu/ml/datasets/APS+Failure+at+Scania+Trucks)
+from the 
+[UC Irvine Machine Learning Repository](https://archive.ics.uci.edu/ml/index.php).
 
 The dataset description is:
 
-> The datasets' positive class consists of component failures for a
-> specific component of the APS system. The negative class consists of
-> trucks with failures for components not related to the APS.
->
 > The dataset consists of data collected from heavy Scania 
 > trucks in everyday usage. The system in focus is the 
 > Air Pressure system (APS) which generates pressurised 
@@ -44,7 +51,7 @@ negative observations than positive observations:
 > 59000 belong to the negative class and 1000 positive class. 
 > The test set contains 16000 examples. 
 
-There are 171 attributes
+There are 170 predictors plus the outcome (`class`):
 
 > The attribute names of the data have been anonymized for 
 > proprietary reasons. It consists of both single numerical 
@@ -57,64 +64,178 @@ There are 171 attributes
 > In total there are 171 attributes, of which 7 are 
 > histogram variabels. Missing values are denoted by 'na'.
 
-We also remove a troublesome line from the file using `grep`:
+We remove a single troublesome line from the file using `grep`:
 
 ```
 grep -v 8584297742 aps_failure_training_set.csv > aps_clean.csv
 ```
 
-```{r eval=FALSE}
+We begin by exploring the training data. Note that we have variable
+amount of missing data across the columns:
+
+```{r}
 library(readr)
 dat <- read_csv("aps_clean.csv", skip=20, na="na")
 table(dat$class)
 table(sapply(dat[,-1], class))
-summary(sapply(dat[,-1], function(dat) sum(is.na(dat))))
+summary(sapply(dat[,-1], function(z) sum(is.na(z))))
+```
+
+The very first column has decent discrimination of the outcome:
+
+```{r}
 with(dat, boxplot(aa_000 ~ class))
 with(dat, boxplot(ab_000 ~ class))
+```
+
+## Imbalanced data and unequal costs
+
+There is a technical report, 
+[Using Random Forest to Learn Imbalanced Data](https://statistics.berkeley.edu/sites/default/files/tech-reports/666.pdf),
+with Leo Breiman, the creator of the random forest, as a co-author,
+which goes into detail on how to use random forests to deal with
+imbalanced data. Here we have many more negative examples than
+positives, although we want to have very high sensitivity (false
+negatives are very costly, relative to false positives). One of the
+strategies mentioned in the technical report is to down-sample the
+majority class. For convenience, we will take this approach for this
+lecture note, producing equal classes by down-sampling the
+negatives. However, given that we have explicit costs associated with
+the types of error, the down-sampling may not be sufficient, and a
+method with customizable loss function may actually be preferred for
+this dataset.
+
+We note that another approach aside from down-sampling is to use the
+`classwt` parameter in the `randomForest` function from the package of
+the same name. The report mentions that, of the class weights and the
+down-sampling approaches, "We show that both of our methods have
+favorable prediction performance."
+
+```{r}
+set.seed(1)
 idx.dat <- c(which(dat$class == "pos"),
              sample(which(dat$class == "neg"), 1000))
 dat2 <- dat[idx.dat,]
 table(dat2$class)
 with(dat2, boxplot(aa_000 ~ class))
+```
+
+Some quick examination of the quantiles of the first variable for each
+class: 
+
+```{r}
 by(dat2$aa_000, dat2$class, quantile, .5)
 by(dat2$aa_000, dat2$class, quantile, .9)
-(tab <- table(obs=dat2$class, pred=dat2$aa_000 > 75000))
-tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
-(tab <- table(obs=dat2$class, pred=dat2$aa_000 > 120000))
-tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
 ```
+
+## Picking a cut point for a single variable
+
+We can already start to motivate decision trees by looking at this
+first variable. As it seems to discriminate the groups pretty well,
+what if we put a cut point at an arbitrary value, say 75,000. How
+would our prediction on the training data turn out? We end up with
+about 92% prediction accuracy:
+
+```{r}
+(tab <- table(obs=dat2$class, pred=dat2$aa_000 > 75000))
+round(prop.table(tab), 2)
+(cost <- tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500)
+```
+
+We can also try a much higher value of the first variable to define a
+cut point. This gives us 93% accuracy, but actually the total cost
+nearly doubles, because we have more false negatives:
+
+```{r}
+(tab <- table(obs=dat2$class, pred=dat2$aa_000 > 125000))
+round(prop.table(tab), 2)
+(cost <- tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500)
+```
+
+We will come back to the unequal costs later in the note, by examining
+a continuous prediction score and finding a new cut point which
+minimizes the cost. But for now, we will focus instead on prediction
+accuracy and Cohen's kappa as the metric. If we wanted to also
+incorporate unequal costs into our parameter tuning, we could define a
+[alternate performance metric](https://topepo.github.io/caret/model-training-and-tuning.html#alternate-performance-metrics).
+
+## Imputing missing values
+
+Before we dive into decision trees and random forests, we need to
+clean up the predictors a bit. The *caret* package offers imputation
+of missing values using k-nearest neighbors, via the `preProcess`
+function. We train a `preProcess` fit similar to how we use `train`,
+and then apply it to the training data using `predict`.
+
+**Note:** because the dataset has many predictors (170 possible), it
+would take a long time to run a random forest on the entire set of
+features (about half an hour on the 2000 observation training
+set). For demonstration, we subset to the first 20 predictors, which
+then can be fit in a few minutes. For a real application, one would
+instead use all of the predictors.
 
 ```{r}
 library(caret)
-x <- as.data.frame(dat2[,2:20])
+x <- as.data.frame(dat2[,2:21])
 y <- dat2$class
-x[is.na(x)] <- 0 # instead impute
+summary(sapply(x, function(z) sum(is.na(z))))
+ppfit <- preProcess(x, method=c("center","scale","knnImpute"))
+x <- predict(ppfit, x)
+summary(sapply(x, function(z) sum(is.na(z))))
+```
+
+# Decision trees
+
+Decision trees are a class of classification algorithms which subject
+the observations to a series of binary decisions based on the
+predictors, with the goal of separating the classes in the *leaves* of
+the tree. If all of the samples begin at the root node (typically
+drawn at the top), then each internal node represents one of the
+binary decisions. The terminal nodes, or leaves, are drawn at the
+bottom, and the goal is to achieve high *purity* of the classes in the
+leaves. Purity can be measured by multiple metrics, typically using the
+[Gini impurity](https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity), or the 
+[entropy](https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain). The
+*CART* (classification and regression trees) method that we will use
+here makes use of the Gini impurity.
+
+```{r}
+library(rpart)
+library(rpart.plot)
+df <- data.frame(class=y,x)
+fit <- rpart(class ~ ., data=df)
+printcp(fit)
+rpart.plot(fit)
+```
+
+```{r}
+fit$cptable
+# try a higher complexity parameter
+cp <- 0.015
+# this is the minimizing complexity parameter:
+# cp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"]
+pfit <- prune(fit, cp=cp)
+rpart.plot(pfit)
+```
+
+# Random forests
+
+```{r}
 trCtl <- trainControl(savePredictions=TRUE)
-fit <- train(x, y, method="rf", trControl=trCtl)
+fit <- train(x, y, method="rf", trControl=trCtl) # ~150 s
+```
+
+```{r}
+fit$results
 table(fit$pred$mtry)
 tab <- table(fit$pred$rowIndex[fit$pred$mtry==2])
 head(tab,10)
 barplot(table(tab))
-# tg <- data.frame(mtry=c(5,10,15))
-# fit <- train(x, y, method="rf", tuneGrid=tg)
-fit$results
-library(ggplot2)
-ggplot(fit)
-fit$finalModel$importance
+(imp <- fit$finalModel$importance)
+dotplot(tail(sort(imp[,1]),10), xlab="Mean Decrease Gini")
 ```
 
-```{r}
-library(rpart)
-fit <- rpart(class ~ aa_000 + ag_004 + ag_005 + ah_000, data=dat2)
-printcp(fit)
-plotcp(fit)
-summary(fit)
-ggplot(fit); text(fit, use.n=TRUE, all=TRUE, cex=.8)
-fit$cptable
-(cp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"])
-pfit <- prune(fit, cp=cp)
-ggplot(pfit); text(pfit, use.n=TRUE, all=TRUE, cex=.8)
-```
+# Regression trees
 
 ```{r}
 library(rpart)
