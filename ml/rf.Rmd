@@ -64,18 +64,13 @@ There are 170 predictors plus the outcome (`class`):
 > In total there are 171 attributes, of which 7 are 
 > histogram variabels. Missing values are denoted by 'na'.
 
-We remove a single troublesome line from the file using `grep`:
-
-```
-grep -v 8584297742 aps_failure_training_set.csv > aps_clean.csv
-```
-
 We begin by exploring the training data. Note that we have variable
 amount of missing data across the columns:
 
 ```{r}
 library(readr)
-dat <- read_csv("aps_clean.csv", skip=20, na="na")
+col_types <- paste0(c("c",rep("n",170)),collapse="")
+dat <- read_csv("aps_failure_training_set.csv", skip=20, na="na", col_types=col_types)
 table(dat$class)
 table(sapply(dat[,-1], class))
 summary(sapply(dat[,-1], function(z) sum(is.na(z))))
@@ -197,7 +192,21 @@ leaves. Purity can be measured by multiple metrics, typically using the
 [Gini impurity](https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity), or the 
 [entropy](https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain). The
 *CART* (classification and regression trees) method that we will use
-here makes use of the Gini impurity.
+here makes use of the Gini impurity, which is similar to the
+definition of Cohen's kappa. The Gini impurity is the probability of
+misclassification using random labeling (but proportional to the
+distribution of labels). If we have *K* classes, each with probability
+$p_i$, the Gini impurity can be calculated as:
+
+$$ GI = \sum_{i=1}^K p_i (1 - p_i) = 1 - \sum_{i=1}^K p_i^2 $$
+
+With two classes, this becomes:
+
+$$ GI = 1 - p_i^2 - (1 - p_i)^2 $$
+
+$$ = 1 - p_i^2 - (1 - 2 p_i + p_i^2) $$
+
+$$ = 2 p_i - 2 p_i^2 $$
 
 ```{r}
 library(rpart)
@@ -236,17 +245,40 @@ dotplot(tail(sort(imp[,1]),10), xlab="Mean Decrease Gini")
 ```
 
 ```{r}
+col_types <- paste0(c("c",rep("n",170)),collapse="")
+dat.test <- read_csv("aps_failure_test_set.csv", skip=20, na="na", col_types=col_types)
+```
+
+```{r}
+summary(sapply(dat.test[,-1], function(z) sum(is.na(z))))
+x.test <- as.data.frame(dat.test[,2:21])
+y.test <- factor(dat.test$class)
+table(y.test)
+```
+
+```{r}
+x.test <- predict(ppfit, x.test)
+y.pred <- predict(fit, x.test)
+y.prob <- predict(fit, x.test, type="prob")
+confusionMatrix(data=y.pred, reference=y.test)
+```
+
+```{r}
+test.pred <- data.frame(obs=y.test, pos=y.prob$pos)
 costFn <- function(cut, df) {
   tab <- table(obs=df$obs, pred=factor(df$pos >= cut, c("FALSE","TRUE")))
   cost <- tab["neg","TRUE"] * 10 + tab["pos","FALSE"] * 500
   cost
 }
-costFn(cut=.5, fit$pred)
-s <- seq(from=0, to=0.5, length=100)
-costs <- sapply(s, costFn, df=fit$pred)
+costFn(cut=.5, test.pred)
+s <- seq(from=0.1, to=.9, length=100)
+costs <- sapply(s, costFn, df=test.pred)
 plot(s, costs, type="l", lwd=3, col="dodgerblue")
-s <- seq(from=0, to=0.1, length=100)
-costs <- sapply(s, costFn, df=fit$pred)
+```
+
+```{r}
+s <- seq(from=0.45, to=0.75, length=100)
+costs <- sapply(s, costFn, df=test.pred)
 plot(s, costs, type="l", lwd=3, col="dodgerblue")
 ```
 
@@ -254,36 +286,36 @@ plot(s, costs, type="l", lwd=3, col="dodgerblue")
 
 ```{r}
 library(rpart)
-dat <- data.frame(x=runif(1000))
-dat$y <- sin(2 * pi * dat$x)
-with(dat, plot(x,y))
-rfit <- rpart(y ~ x, data=dat, method="anova", cp=.001)
+df <- data.frame(x=runif(1000))
+df$y <- sin(2 * pi * df$x)
+with(df, plot(x,y))
+rfit <- rpart(y ~ x, data=df, method="anova", cp=.001)
 rpart.plot(rfit)
 ```
 
 ```{r}
-pred <- predict(rfit, dat)
-with(dat, plot(x,y))
-points(dat$x, pred, col="red")
+pred <- predict(rfit, df)
+with(df, plot(x,y))
+points(df$x, pred, col="red")
 ```
 
 ```{r}
-dat <- data.frame(x=runif(200))
-dat$y <- sin(2 * pi * dat$x)
+df <- data.frame(x=runif(200))
+df$y <- sin(2 * pi * df$x)
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 tg <- data.frame(mtry=1)
-rf.fit <- train(dat["x"], dat$y, method="rf", trControl=trCtl, tuneGrid=tg)
-with(dat, plot(x,y))
+rf.fit <- train(df["x"], df$y, method="rf", trControl=trCtl, tuneGrid=tg)
+with(df, plot(x,y))
 pred <- rf.fit$pred[order(rf.fit$pred$rowIndex),]
-points(dat$x, pred$pred, col="red")
+points(df$x, pred$pred, col="red")
 ```
 
 ```{r}
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
-kfit <- train(dat["x"], dat$y, method="knn", trControl=trCtl)
-ggplot(kfit)
-with(dat, plot(x,y))
+kfit <- train(df["x"], df$y, method="knn", trControl=trCtl)
+kfit$results
+with(df, plot(x,y))
 pred <- kfit$pred[kfit$pred$k == 5,]
 pred <- pred[order(pred$rowIndex),]
-points(dat$x, pred$pred, col="red")
+points(df$x, pred$pred, col="red")
 ```
