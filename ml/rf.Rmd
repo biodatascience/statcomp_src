@@ -279,41 +279,143 @@ rpart.plot(pfit)
 This results in a tree with a single split, but which nevertheless has
 leaves with high purity.
 
-# Random forests
+# Ensemble methods
+
+A quick motivation for why ensembles of simple learners like decisions
+trees would do well is to consider the law of large numbers. Suppose
+we have a decision tree which will mis-classify a given observation
+with fixed probability 0.35. And then suppose we build 25 such trees,
+*and each tree is independent*. Then using the binomial density, we can
+see that a majority vote of the ensemble will do much better than any
+individual tree:
 
 ```{r}
-trCtl <- trainControl(savePredictions=TRUE, classProbs=TRUE)
+ntree <- 25
+p <- 0.35
+trees <- function() rbinom(ntree, 1, p)
+# one ensemble vote:
+sum(trees()) >= ceiling(ntree/2)
+# probability the ensemble will mis-classify:
+pbinom(floor(ntree/2), ntree, p, lower.tail=FALSE)
+```
+
+However, we will not necessarily be able to generate *independent*
+classifiers as they use the same covariates and training data. This
+motivates the method of random forests as well.
+
+# Random forests
+
+Random forests are ensembles of decision trees which are built both by
+bootstrapping the observations (bagging) as well as randomly
+subsetting the set of predictors that are used to build a tree. The
+trees are grown without pruning. And the final prediction is made by a
+majority vote of the ensemble of trees. The combination of
+bootstrapping the samples, and subsampling the predictors will lead to
+reduction in the correlation of the trees, which will help if one
+considers the logic in the previous section with wholly *independent*
+classifiers. 
+
+Here we will use the *randomForest* package for constructing
+trees. From `?randomForest` we can see the rules for how many
+predictors are used in each tree: 
+
+> mtry: Number of variables randomly sampled as candidates at each
+>       split.  Note that the default values are different for
+>       classification (sqrt(p) where p is number of variables in
+>       ‘x’) and regression (p/3)
+
+We will call for a random forest to be built using this library, by
+specifying `method="rf"` from the *caret* interface. We specify that
+we want to retain the predictions. Note that when we run `train` we
+are doing two levels of bootstrap resampling: there is the
+bootstrapping that `train` performs for all methods (unless
+cross-validation or an addition `method` is specified to
+`trainControl`), as well as the bootstrapping for individual trees
+within the forests. The number of bootstraps is controlled by `number`
+in `trainControl` for the former (default is 25) and by `ntree` in the
+*randomForest* package for the latter (default is 500).
+
+```{r}
+trCtl <- trainControl(savePredictions=TRUE)
 fit <- train(x, y, method="rf", trControl=trCtl) # ~150 s
 ```
 
+We can see that the forest achieves fairly high accuracy and kappa at
+various levels of `mtry`:
+
 ```{r}
 fit$results
-table(fit$pred$mtry)
-tab <- table(fit$pred$rowIndex[fit$pred$mtry==2])
-head(tab,10)
-barplot(table(tab))
-(imp <- fit$finalModel$importance)
+```
+
+Random forest comes with a measure of variable importance (described
+in `?importance`:
+
+> For each tree, the prediction error on the out-of-bag portion of the data is
+> recorded (error rate for classification, MSE for regression). Then
+> the same is done after permuting each predictor variable. The
+> difference between the two are then averaged over all trees, and
+> normalized by the standard deviation of the differences. If the
+> standard deviation of the differences is equal to 0 for a variable,
+> the division is not done (but the average is almost always equal to
+> 0 in that case). 
+>
+> The second measure is the total decrease in node impurities from
+> splitting on the variable, averaged over all trees. For
+> classification, the node impurity is measured by the Gini index. For
+> regression, it is measured by residual sum of squares. 
+
+We can see that the random forests built by *caret* use the second
+measure of importance by default:
+
+```{r}
+imp <- fit$finalModel$importance
+head(imp)
 dotplot(tail(sort(imp[,1]),10), xlab="Mean Decrease Gini")
 ```
+
+# Returning to unequal costs
+
+We previously used down-sampling as a method to address the fact that
+we had many more negative examples than positive examples, although
+the false negatives should be counted as 50x more costly than the
+false positives. We can now return to this question, to see if the
+default prediction by the trained random forest is optimal, or if we
+should re-calibrate to minimize total cost further (relative to a
+given distribution of positives and negatives).
+
+Note that, if one were to use a test set as below to re-calibrate a
+predictor based on minimizing costs in a given dataset, one would want
+to use a final held-out test set to assess cost in a new dataset.
+
+We read in a held-out test set:
 
 ```{r}
 col_types <- paste0(c("c",rep("n",170)),collapse="")
 dat.test <- read_csv("aps_failure_test_set.csv", skip=20, na="na", col_types=col_types)
 ```
 
+And we can again impute the missing values using the previously
+generated pre-processing rule:
+
 ```{r}
 summary(sapply(dat.test[,-1], function(z) sum(is.na(z))))
 x.test <- as.data.frame(dat.test[,2:21])
 y.test <- factor(dat.test$class)
 table(y.test)
+x.test <- predict(ppfit, x.test)
 ```
 
+We then classify the test set and also generate class probabilities,
+by setting `type="prob"`:
+
 ```{r}
-x.test <- predict(ppfit, x.test)
 y.pred <- predict(fit, x.test)
 y.prob <- predict(fit, x.test, type="prob")
 confusionMatrix(data=y.pred, reference=y.test)
 ```
+
+We can create a function which evaluates the total costs for a given
+cut point, and run this over the test set predictions:
 
 ```{r}
 test.pred <- data.frame(obs=y.test, pos=y.prob$pos)
@@ -328,6 +430,10 @@ costs <- sapply(s, costFn, df=test.pred)
 plot(s, costs, type="l", lwd=3, col="dodgerblue")
 ```
 
+Note that the default prediction (class probability > 0.5) is doing
+pretty well at minimizing costs, although it appears adopting a rule
+closer to 0.6 would do a bit better:
+
 ```{r}
 s <- seq(from=0.45, to=0.75, length=100)
 costs <- sapply(s, costFn, df=test.pred)
@@ -335,6 +441,16 @@ plot(s, costs, type="l", lwd=3, col="dodgerblue")
 ```
 
 # Regression trees
+
+Finally, we demonstrate with some simulated data that trees and
+forests can be applied to continuous data as well. Instead of focusing
+on decreasing impurity in the leaves, the trees are focused on
+reducing the variance of a continuous target in each leaf, again
+splitting using the predictors. If we try to learn a sine function, we
+can see that a tree with very low complexity penalty can learn an
+arbitrary shape by splitting along `x` (here a one dimensional
+surface, but consider how a multi-dimensional surface could be
+approximated as well).
 
 ```{r}
 library(rpart)
@@ -351,6 +467,9 @@ with(df, plot(x,y))
 points(df$x, pred, col="red")
 ```
 
+By bagging and subsetting predictors in a random forest, we get a more
+complex shape, much closer to the true distribution of the target:
+
 ```{r}
 df <- data.frame(x=runif(200))
 df$y <- sin(2 * pi * df$x)
@@ -362,6 +481,14 @@ pred <- rf.fit$pred[order(rf.fit$pred$rowIndex),]
 points(df$x, pred$pred, col="red")
 ```
 
+Finally, we note that the random forest approach to predicting this
+continuous function may look similar to a k-nearest-neighbors
+approach, although the random forest approach will scale to higher
+dimensions, while k-nearest-neighbors will begin to breakdown, due to
+difficulties posed by
+[distance functions](https://en.wikipedia.org/wiki/Curse_of_dimensionality#Distance_functions) 
+in high dimensions.
+
 ```{r}
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
 kfit <- train(df["x"], df$y, method="knn", trControl=trCtl)
@@ -372,6 +499,5 @@ pred <- pred[order(pred$rowIndex),]
 points(df$x, pred$pred, col="red")
 ```
 
-* The decision tree portion of this lecture note borrows from
-  (offline) machine learning course notes
-  of [Guenther Walther](http://statweb.stanford.edu/~gwalther/). 
+* This lecture note borrows from (offline) machine learning course
+  notes of [Guenther Walther](http://statweb.stanford.edu/~gwalther/). 
