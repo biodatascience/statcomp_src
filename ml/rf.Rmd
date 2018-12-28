@@ -202,11 +202,47 @@ $$ GI = \sum_{i=1}^K p_i (1 - p_i) = 1 - \sum_{i=1}^K p_i^2 $$
 
 With two classes, this becomes:
 
-$$ GI = 1 - p_i^2 - (1 - p_i)^2 $$
+$$ GI = 1 - p_1^2 - (1 - p_1)^2 $$
 
-$$ = 1 - p_i^2 - (1 - 2 p_i + p_i^2) $$
+$$ = 2 p_1 - 2 p_1^2 $$
 
-$$ = 2 p_i - 2 p_i^2 $$
+```{r echo=FALSE}
+plot(function(p) 2*p - 2*p^2, xlim=c(0,1), ylim=c(0,1),
+     xlab=expression(p[1]), main="Gini impurity")
+```
+
+From this function we can see that an algorithm will try to create
+leaves where the probabilities for a given class are close to 0
+or 1. A decision tree is built using an algorithm as follows: each
+node is recursively partitioned using a splitting rule. To consider
+whether to split a node, one can consider the gain (impurity of parent
+minus the impurity of the proposed child nodes):
+
+$$ \textrm{gain} = I(\textrm{parent}) - \sum_{j=1}^2 \frac{N(j)}{N} I(j) $$
+
+where *N* is the number of observations at the parent node, $N(j)$ is
+the number of observations at the *j*th child node, and $I(j)$ is the
+impurity at the *j*th child node. Here, as we are considering binary
+splits, we sum over the two proposed child nodes. Instead of
+attempting to find the optimal decision tree, a greedy algorithm is
+used to find the optimal split using the covariates for each terminal
+node. There are various options for stopping criteria. Some of these
+can be found in `?rpart.control`:
+
+> minsplit: the minimum number of observations that must exist in a node
+>           in order for a split to be attempted.
+>
+> minbucket: the minimum number of observations in any terminal ‘<leaf>’
+>            node.  If only one of ‘minbucket’ or ‘minsplit’ is specified,
+>            the code either sets ‘minsplit’ to ‘minbucket*3’ or
+>            ‘minbucket’ to ‘minsplit/3’, as appropriate.
+
+Here we can demonstrate building a tree with our reduced 20 variable
+dataset. We use the `rpart` function from the *rpart* package, and
+then plot with a nice function from the *rpart.plot* package. We also
+print the "Complexity Parameter" table, which offers a tuning variable
+`cp`. The `xerror` column in the table gives the cross-validation
+error, where cross-validation is being performed within `rpart`.
 
 ```{r}
 library(rpart)
@@ -217,15 +253,31 @@ printcp(rfit)
 rpart.plot(rfit)
 ```
 
+Taking a look at the tree above, each node gives a label, the fraction
+of positive observations in the node, and the percent of observations
+at that node. Below the node is the decision rule that decides the
+split: the variable name and the critical value that was chosen by the
+greedy algorithm. A decision tree can use any variable at any step in
+the process, so they can generate, for example, interactions between
+variables or step-like functions of a single variable. We will see in
+a final example how decision trees can approximate any smooth function
+as long as the tree is given enough splits and data.
+
+We can also prune back the tree to one with a higher complexity
+parameter (think of CP as a penalty on complex trees).
+
 ```{r}
 rfit$cptable
 # try a higher complexity parameter
-cp <- 0.015
+cp <- rfit$cptable[2,"CP"]
 # this is the minimizing complexity parameter:
 # cp <- rfit$cptable[which.min(rfit$cptable[,"xerror"]),"CP"]
 pfit <- prune(rfit, cp=cp)
 rpart.plot(pfit)
 ```
+
+This results in a tree with a single split, but which nevertheless has
+leaves with high purity.
 
 # Random forests
 
@@ -319,3 +371,7 @@ pred <- kfit$pred[kfit$pred$k == 5,]
 pred <- pred[order(pred$rowIndex),]
 points(df$x, pred$pred, col="red")
 ```
+
+* The decision tree portion of this lecture note borrows from
+  (offline) machine learning course notes
+  of [Guenther Walther](http://statweb.stanford.edu/~gwalther/). 
