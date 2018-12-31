@@ -5,6 +5,64 @@ date: 12/15/2018
 output: html_document
 ---
 
+This lecture note will give a brief introduction to (artificial)
+neural networks (where we may include the word "artificial" to
+contrast with biological neural networks). We begin by reviewing
+logistic regression and the gradient descent/acsent method, and
+connect this to the 
+[perceptron](https://en.wikipedia.org/wiki/Perceptron).
+We then describe how layers of perceptrons can lead to complex
+prediction algorithms. Finally, we will construct various neural
+networks for classifying the MNIST handwritten digits dataset. The
+field of neural networks and deep learning is vast and quickly
+evolving. For these interested in exploring the topic, I recommend
+searching for current methods implementing deep learning for a
+specific problem of interest.
+
+This lecture note borrows from Andrew Ng's course notes for
+[supervised learning](http://cs229.stanford.edu/notes/cs229-notes1.pdf)
+and the (offline) machine learning course notes
+of [Guenther Walther](http://statweb.stanford.edu/~gwalther/).
+
+```{r include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+# Gradient ascent for logistic regression
+
+Recall that if we want to minimize least squares in a simple linear
+model,
+
+$$ \hat{y} = w_1 x_1 + w_2 x_2 + \dots w_p x_p + t, $$
+
+we can use a gradient descent update rule for each predictor *j*,
+either a *batch* update: 
+
+$$ w_j^{t+1} = w_j^t + \lambda \textstyle \sum_{i=1}^N (y_i - \hat{y}_i) x_{ij}, $$ 
+
+where we sum over all observations *i*, or *stochastic* gradient
+descent where we update the $w_j$ by looking at one *i* at a time:
+
+$$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$ 
+
+This is the gradient descent method, where we move in the direction
+that minimizes the sum of squared error for each predictor.
+
+If we instead use the logistic function for a binary target,
+
+$$ \hat{y} = f(w_1 x_1 + w_2 x_2 + \dots w_p x_p + t), $$
+
+with a logistic function, *f*:
+
+$$ f(z) = \frac{1}{1 + \exp(-z)}, $$
+
+we have the same update rule for gradient ascent on the log likelihood
+(here the stochastic version): 
+
+$$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$ 
+
+# MNIST handwritten digits
+
 * <http://varianceexplained.org/r/digit-eda/>
 * <https://pjreddie.com/media/files/mnist_train.csv>
 
@@ -89,7 +147,7 @@ round(prop,3)*100 # percent
 diag(prop) <- NA
 ```
 
-```{r}
+```{r, fig.width=5, fig.height=5.5}
 image(prop, xaxt="n", yaxt="n",
       xlab="obs", ylab="pred",
       col=colorRampPalette(c("white","blue"))(50))
@@ -101,7 +159,7 @@ arr.idx <- sapply(mxs, function(i) which(prop == i, arr.ind=TRUE)) - 1
 text(arr.idx[1,]/9, arr.idx[2,]/9, labels=lbl, cex=.9, col="white")
 ```
 
-```{r}
+```{r eval=FALSE}
 x <- pc$x[,1:20]
 tg <- data.frame(C=c(.5,1,2))
 # 700 seconds
@@ -112,7 +170,7 @@ plotWithSD(fit, param="C")
 fit$results # 10k data, 20 PCs, 94.5% Kappa
 ```
 
-```{r}
+```{r eval=FALSE}
 x <- pc$x[,1:60]
 tg <- data.frame(size=60)
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE, verboseIter=TRUE)
@@ -121,16 +179,4 @@ system.time({
   fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg, maxit=50)
 })
 fit$results # 93.8% Kappa
-```
-
-```{r}
-library(RSNNS)
-x <- dat
-fit <- mlp(x, decodeClassLabels(y),
-           size=40, learnFunc="Rprop",
-           maxit=60)
-x.test <- as.data.frame(mnist_raw[10001:20000,-1])/255
-y.test <- factor(mnist_raw$X1[10001:20000])
-pred <- predict(fit,x.test)
-table(pred, y.test)
 ```
