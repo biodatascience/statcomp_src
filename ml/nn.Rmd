@@ -46,7 +46,8 @@ descent where we update the $w_j$ by looking at one *i* at a time:
 $$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$ 
 
 This is the gradient descent method, where we move in the direction
-that minimizes the sum of squared error for each predictor.
+that minimizes the sum of squared error for each predictor, and where
+the parameter $\lambda$ controls the rate of descent.
 
 If we instead use the logistic function for a binary target,
 
@@ -56,10 +57,51 @@ with a logistic function, *f*:
 
 $$ f(z) = \frac{1}{1 + \exp(-z)}, $$
 
-we have the same update rule for gradient ascent on the log likelihood
+we have the same update rule for gradient *ascent* of the log likelihood
 (here the stochastic version): 
 
 $$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$ 
+
+# Perceptron
+
+A limiting case of the logistic function is a function that only
+outputs values of 0 or 1 around a critical value of $x = 0$:
+
+```{r echo=FALSE, fig.width=5}
+plot(function(x) 1/(1 + exp(-x)), xlim=c(-5,5), ylab="f(x)")
+plot(function(x) 1/(1 + exp(-2*x)), xlim=c(-5,5), add=TRUE)
+plot(function(x) 1/(1 + exp(-10*x)), xlim=c(-5,5), add=TRUE)
+plot(function(x) ifelse(x >= 0, 1, 0), xlim=c(-5,5), col="red", add=TRUE)
+```
+
+If we use this step function instead of the logistic, the
+classification algorithm is called the 
+[perceptron](https://en.wikipedia.org/wiki/Perceptron).
+The perceptron was invented in 1957 at the Cornell Aeronautical
+Laboratory. From Wikipedia:
+
+> The perceptron was intended to be a machine, rather than a program,
+> and while its first implementation was in software for the IBM 704,
+> it was subsequently implemented in custom-built hardware as the
+> "Mark 1 perceptron". This machine was designed for image
+> recognition: it had an array of 400 photocells, randomly connected
+> to the "neurons". Weights were encoded in potentiometers, and weight
+> updates during learning were performed by electric motors. 
+
+For the perceptron, again we can use the update rule:
+
+$$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$
+
+Although the update rules look very similar, the following note from
+Andrew Ng's notes on supervised learning is apt:
+
+> Note however that even though the perceptron may
+> be cosmetically similar to the other algorithms we talked about, it
+> is actually a very different type of algorithm than logistic regression and
+> least squares linear regression; in particular, it is difficult to
+> endow the perceptron’s predictions with meaningful probabilistic
+> interpretations, or derive the perceptron as a maximum likelihood
+> estimation algorithm.
 
 # MNIST handwritten digits
 
