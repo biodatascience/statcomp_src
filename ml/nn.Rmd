@@ -103,6 +103,39 @@ Andrew Ng's notes on supervised learning is apt:
 > interpretations, or derive the perceptron as a maximum likelihood
 > estimation algorithm.
 
+```{r}
+set.seed(1)
+n <- 100
+x1 <- c(rnorm(n),rnorm(n,2))
+x2 <- c(rnorm(n),rnorm(n,2))
+x1 <- scale(x1)
+x2 <- scale(x2)
+y <- rep(0:1,each=n)
+dat <- data.frame(y=factor(y),x1,x2)
+library(ggplot2)
+ggplot(dat, aes(x1,x2,shape=y)) + geom_point() +
+n  scale_shape_discrete(solid=FALSE)
+w <- c(-4,1)
+t <- 3
+w.mat <- matrix(nrow=6,ncol=2)
+t.vec <- numeric(6)
+lambda <- 0.01
+for (i in 1:6) {
+  w.mat[i,] <- w; t.vec[i] <- t
+  y.hat <- ifelse(cbind(x1,x2) %*% w + t >= 0, 1, 0)
+  for (j in 1:2) {
+    w[j] <- w[j] + lambda * sum((y.hat - y) * x1)
+  }
+  t <- t + lambda * sum(y.hat - y)
+}
+w.mat[i,] <- w; t.vec[i] <- t
+dat2 <- data.frame(t=t.vec, w1=w.mat[,1], w2=w.mat[,2], iter=1:6)
+ggplot(dat, aes(x1,x2,shape=y)) + geom_point() +
+  scale_shape_discrete(solid=FALSE) +
+  geom_abline(data=dat2, aes(intercept=-t/w2, slope=-w1/w2, color=iter), size=1) +
+  scale_color_continuous(low="green",high="blue")
+```
+
 # MNIST handwritten digits
 
 * <http://varianceexplained.org/r/digit-eda/>
