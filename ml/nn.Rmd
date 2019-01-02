@@ -20,7 +20,8 @@ searching for current methods implementing deep learning for a
 specific problem of interest.
 
 This lecture note borrows from Andrew Ng's course notes for
-[supervised learning](http://cs229.stanford.edu/notes/cs229-notes1.pdf)
+[supervised learning](http://cs229.stanford.edu/notes/cs229-notes1.pdf), 
+[deep learning](http://cs229.stanford.edu/notes/cs229-notes-deep_learning.pdf),
 and the (offline) machine learning course notes
 of [Guenther Walther](http://statweb.stanford.edu/~gwalther/).
 
@@ -28,12 +29,12 @@ of [Guenther Walther](http://statweb.stanford.edu/~gwalther/).
 knitr::opts_chunk$set(cache=TRUE)
 ```
 
-# Gradient ascent for logistic regression
+# Gradient descent for LS and logistic regression
 
 Recall that if we want to minimize least squares in a simple linear
 model,
 
-$$ \hat{y} = w_1 x_1 + w_2 x_2 + \dots w_p x_p + t, $$
+$$ \hat{y} = w_1 x_1 + w_2 x_2 + \dots w_p x_p + b, $$
 
 we can use a gradient descent update rule for each predictor *j*,
 either a *batch* update: 
@@ -51,16 +52,21 @@ the parameter $\lambda$ controls the rate of descent.
 
 If we instead use the logistic function for a binary target,
 
-$$ \hat{y} = f(w_1 x_1 + w_2 x_2 + \dots w_p x_p + t), $$
+$$ \hat{y} = f(w_1 x_1 + w_2 x_2 + \dots w_p x_p + b), $$
 
 with a logistic function, *f*:
 
 $$ f(z) = \frac{1}{1 + \exp(-z)}, $$
 
-we have the same update rule for gradient *ascent* of the log likelihood
-(here the stochastic version): 
+we have the same update rule for gradient descent of the negative log
+likelihood (here the stochastic version),
 
-$$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$ 
+$$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij}, $$ 
+
+where $y_i \in \{ 0,1 \}$ and $\hat{y} \in [0,1]$. We will see how
+we can build up from these relatively simple algorithms using similar
+update rules to learn more complex relationships between predictors
+and target. 
 
 # Perceptron
 
@@ -92,6 +98,11 @@ For the perceptron, again we can use the update rule:
 
 $$ w_j^{t+1} = w_j^t + \lambda (y_i - \hat{y}_i) x_{ij} $$
 
+The [course notes from Michael Collins](http://www.cs.columbia.edu/~mcollins/courses/6998-2012/lectures/lec1.3.pdf) 
+on the perceptron contain a useful proof that if there exists a set of
+parameters such that all training samples can be classified correctly,
+then the above algorithm will converge.
+
 Although the update rules look very similar, the following note from
 Andrew Ng's notes on supervised learning is apt:
 
@@ -103,45 +114,111 @@ Andrew Ng's notes on supervised learning is apt:
 > interpretations, or derive the perceptron as a maximum likelihood
 > estimation algorithm.
 
+Here we construct a simple case and show how the perceptron using the
+above update rule moves to reduce training errors.
+
 ```{r}
 set.seed(1)
 n <- 100
-x1 <- c(rnorm(n),rnorm(n,2))
-x2 <- c(rnorm(n),rnorm(n,2))
+x1 <- c(rnorm(n),rnorm(n,4))
+x2 <- c(rnorm(n),rnorm(n,4))
 x1 <- scale(x1)
 x2 <- scale(x2)
 y <- rep(0:1,each=n)
 dat <- data.frame(y=factor(y),x1,x2)
-library(ggplot2)
-ggplot(dat, aes(x1,x2,shape=y)) + geom_point() +
-n  scale_shape_discrete(solid=FALSE)
+```
+
+Here we encode the update rule, and run five iterations:
+
+```{r}
 w <- c(-4,1)
-t <- 3
+b <- 3
 w.mat <- matrix(nrow=6,ncol=2)
-t.vec <- numeric(6)
+b.vec <- numeric(6)
 lambda <- 0.01
 for (i in 1:6) {
-  w.mat[i,] <- w; t.vec[i] <- t
-  y.hat <- ifelse(cbind(x1,x2) %*% w + t >= 0, 1, 0)
+  w.mat[i,] <- w
+  b.vec[i] <- b
+  y.hat <- ifelse(cbind(x1,x2) %*% w + b >= 0, 1, 0)
   for (j in 1:2) {
     w[j] <- w[j] + lambda * sum((y.hat - y) * x1)
   }
-  t <- t + lambda * sum(y.hat - y)
+  b <- b + lambda * sum(y.hat - y)
 }
-w.mat[i,] <- w; t.vec[i] <- t
-dat2 <- data.frame(t=t.vec, w1=w.mat[,1], w2=w.mat[,2], iter=1:6)
+w.mat[i,] <- w
+b.vec[i] <- b
+dat2 <- data.frame(b=b.vec, w1=w.mat[,1], w2=w.mat[,2], iter=1:6)
+```
+
+We can plot the decision boundary at each iteration:
+
+```{r fig.width=5.5}
+library(ggplot2)
 ggplot(dat, aes(x1,x2,shape=y)) + geom_point() +
   scale_shape_discrete(solid=FALSE) +
-  geom_abline(data=dat2, aes(intercept=-t/w2, slope=-w1/w2, color=iter), size=1) +
-  scale_color_continuous(low="green",high="blue")
+  geom_abline(data=dat2, aes(intercept=-b/w2, slope=-w1/w2, color=iter), size=1) +
+  scale_color_continuous(low="blue",high="green")
 ```
+
+It is clear that a classifier of the form of the perceptron will only 
+generate linear decision boundaries. However, we can add multiple
+layers of perceptrons to form a more complex classifier. First, let's
+visualize the kind of contours we obtain when we go straight from
+inputs to the target with a single perceptron:
+
+```{r fig.width=5.5}
+s <- seq(from=-2,to=2,length=400)
+grid <- expand.grid(x1=s,x2=s)
+grid$y <- with(grid, x1 * 2 + x2 * -1 + 1)
+ggplot(grid, aes(x1,x2,z=y,fill=y)) +
+  geom_raster(alpha=.5) +
+  scale_fill_continuous(low="blue",high="green") +
+  geom_contour()
+```
+
+Now, instead of a single set of weights from the input variables
+directly predicting *y*, we can add a hidden layer in between the
+inputs and the output. Suppose we add four nodes in between, giving us
+eight weights from the inputs to the hidden nodes (plus four
+bias/intercept terms), and four weights from the hidden nodes to the
+target (plus one bias term). What kind of shapes might be recoverable
+with such a network?
+
+```{r fig.width=5.5}
+s <- seq(from=-2,to=2,length=400)
+grid <- expand.grid(x1=s,x2=s)
+grid$h1 <- with(grid, ifelse(1*x1 + 1*x2 + 1 >= 0, 1, 0))
+grid$h2 <- with(grid, ifelse(1*x1 - 1*x2 + 1 >= 0, 1, 0))
+grid$h3 <- with(grid, ifelse(-1*x1 + 1*x2 + 1 >= 0, 1, 0))
+grid$h4 <- with(grid, ifelse(-1*x1 - 1*x2 + 1 >= 0, 1, 0))
+grid$y <- with(grid, 1*h1 + 1*h2 + 1*h3 + 1*h4 - 3.5)
+ggplot(grid, aes(x1,x2,z=y,fill=y)) +
+  geom_raster(alpha=.5) +
+  scale_fill_continuous(low="blue",high="green") +
+  geom_contour()
+```
+
+Jumping ahead, there is a really beautiful visualization of how
+multiple layers of nodes/units/neurons can be used to learn complex
+decision boundaries for various datasets (here with 2D input for ease
+of visualization):
+
+* [Tensorflow Playground](http://playground.tensorflow.org)
+
+# Activation functions
+
+# Backpropagation 
+
+# Regularization and weight decay
+
+# Convolutional layers
 
 # MNIST handwritten digits
 
 * <http://varianceexplained.org/r/digit-eda/>
 * <https://pjreddie.com/media/files/mnist_train.csv>
 
-```{r}
+```{r eval=FALSE}
 library(readr)
 mnist_raw <- read_csv("mnist_train.csv", col_names=FALSE)
 dim(mnist_raw)
@@ -164,7 +241,7 @@ ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
   scale_fill_gradient(low="white", high="black")
 ```
 
-```{r}
+```{r eval=FALSE}
 library(caret)
 dat <- as.data.frame(mnist_raw[1:10000,-1])/255
 y <- factor(mnist_raw$X1[1:10000])
@@ -187,7 +264,7 @@ prop <- tab/rowSums(tab)
 round(prop, 3) * 100 # percent
 ```
 
-```{r}
+```{r eval=FALSE}
 plotWithSD <- function(fit, param, a=2) {
   min <- with(fit$results, min(Kappa - (a+2)*KappaSD))
   max <- with(fit$results, max(Kappa + (a+2)*KappaSD))
@@ -201,7 +278,7 @@ plotWithSD <- function(fit, param, a=2) {
 plotWithSD(fit, "k")
 ```
 
-```{r}
+```{r eval=FALSE}
 dat <- as.data.frame(mnist_raw[1:10000,-1])/255
 y <- factor(mnist_raw$X1[1:10000])
 pc <- prcomp(dat)
@@ -215,14 +292,14 @@ fit.knn$results # 88% Kappa
 plotWithSD(fit.knn, "k")
 ```
 
-```{r}
+```{r eval=FALSE}
 tab <- table(obs=fit.knn$pred$obs, pred=fit.knn$pred$pred)
 prop <- tab/rowSums(tab)
 round(prop,3)*100 # percent
 diag(prop) <- NA
 ```
 
-```{r, fig.width=5, fig.height=5.5}
+```{r eval=FALSE, fig.width=5, fig.height=5.5}
 image(prop, xaxt="n", yaxt="n",
       xlab="obs", ylab="pred",
       col=colorRampPalette(c("white","blue"))(50))
