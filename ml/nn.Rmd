@@ -15,12 +15,13 @@ We then describe how layers of perceptrons can lead to complex
 prediction algorithms. Finally, we will construct various neural
 networks for classifying the MNIST handwritten digits dataset. The
 field of neural networks and deep learning is vast and quickly
-evolving. For these interested in exploring the topic, I recommend
+evolving. For those interested in exploring the topic, I recommend
 searching for current methods implementing deep learning for a
 specific problem of interest.
 
 This lecture note borrows from Andrew Ng's course notes for
 [supervised learning](http://cs229.stanford.edu/notes/cs229-notes1.pdf), 
+Ng and Katanforoosh's notes on 
 [deep learning](http://cs229.stanford.edu/notes/cs229-notes-deep_learning.pdf),
 and the (offline) machine learning course notes
 of [Guenther Walther](http://statweb.stanford.edu/~gwalther/).
@@ -157,7 +158,7 @@ library(ggplot2)
 ggplot(dat, aes(x1,x2,shape=y)) + geom_point() +
   scale_shape_discrete(solid=FALSE) +
   geom_abline(data=dat2, aes(intercept=-b/w2, slope=-w1/w2, color=iter), size=1) +
-  scale_color_continuous(low="blue",high="green")
+  scale_color_continuous(low="purple",high="orange")
 ```
 
 It is clear that a classifier of the form of the perceptron will only 
@@ -198,20 +199,53 @@ ggplot(grid, aes(x1,x2,z=y,fill=y)) +
   geom_contour()
 ```
 
-Jumping ahead, there is a really beautiful visualization of how
-multiple layers of nodes/units/neurons can be used to learn complex
+There is a much more elegant visualization from *Tensorflow* of how
+multiple layers of nodes/neurons can be used to learn complex
 decision boundaries for various datasets (here with 2D input for ease
 of visualization):
 
 * [Tensorflow Playground](http://playground.tensorflow.org)
 
+Having gotten a sense for how multiple layers of nodes can be used to
+learn complex patterns, a natural question is how we will be able to
+fit the weights for these multi-layer perceptrons (MLP). What if we
+attempt our approach from earlier: define a loss function such as the sum
+of squared error, and then take the partial derivative of this with
+respect to each weight, and move some direction down the gradient at
+each iteration. There are numerous problems with the gradient descent
+approach: (1) certain *activation functions* such as the step function
+we had above and the Rectified linear unit (ReLU) function, as well as
+the addition of hidden layers, make taking the derivative difficult,
+and (2) there will be many local minima where the descent method gets
+stuck.
+
+Instead, a method called *backpropagation* can be used. This method
+starts with the layer closest to the target *y* and, one weight at a
+time, takes the partial derivative with respect to this weight. Then
+the weight can be adjusted using the old weight and multiplying the
+gradient by the learning rate $\lambda$. The weights for the nodes in
+the layer second closest to the target are then updated, which can be
+computed with a trick that uses the chain rule to formulate a product
+of terms that can be calculated. The name for the method stands for
+"backward propagation of error" because the derivative of the error
+from the layers closer to the target are propagated backward through
+the network recursively. We do not demonstrate backpropagation in this
+note (it is derived in the notes from Ng and Katanforoosh on
+[deep learning](http://cs229.stanford.edu/notes/cs229-notes-deep_learning.pdf) and
+[backpropagation](http://cs229.stanford.edu/notes/cs229-notes-backprop.pdf)),
+but instead will describe a number of options when building neural
+networks, before demonstrating the use of one in classifying
+handwritten digits:
+
 # Activation functions
 
-# Backpropagation 
+* https://en.wikipedia.org/wiki/Activation_function
 
 # Regularization and weight decay
 
 # Convolutional layers
+
+* http://cs231n.github.io/convolutional-networks/
 
 # MNIST handwritten digits
 
