@@ -321,16 +321,56 @@ sub-matrix and pass this through to the next layer.
 
 # MNIST handwritten digits
 
-* <http://varianceexplained.org/r/digit-eda/>
-* <https://pjreddie.com/media/files/mnist_train.csv>
+We will now explore a dataset where neural networks provide a clear
+advantage in prediction. The 
+[MNIST handwritten digits dataset](https://en.wikipedia.org/wiki/MNIST_database)
+is a famous one for machine learning algorithms. MNIST stands for
+"Modified National Institute of Standards and Technology". From
+Wikipedia:
 
-```{r eval=FALSE}
+> [MNIST] was created by "re-mixing" the samples from NIST's original
+> datasets. The creators felt that since NIST's training dataset was
+> taken from American Census Bureau employees, while the testing
+> dataset was taken from American high school students, it was not
+> well-suited for machine learning experiments. Furthermore, the
+> black and white images from NIST were normalized to fit into a 28x28
+> pixel bounding box and anti-aliased, which introduced grayscale
+> levels.
+> 
+> The MNIST database contains 60,000 training images and 10,000
+> testing images. Half of the training set and half of the test set
+> were taken from NIST's training dataset, while the other half of the
+> training set and the other half of the test set were taken from
+> NIST's testing dataset. There have been a number of scientific
+> papers on attempts to achieve the lowest error rate; one paper,
+> using a hierarchical system of convolutional neural networks,
+> manages to get an error rate on the MNIST database of 0.23%.
+
+We will begin by reading in the data and visualizing some of the
+digits. We use a CSV file created by Joseph Redmon, and some code from
+David Robinson's blog post, both linked below:
+
+* <https://pjreddie.com/media/files/mnist_train.csv>
+* <http://varianceexplained.org/r/digit-eda/>
+
+The following R code, from David Robinson's blog post, re-organizes
+the raw data so that we can visualize the digits in a 2D matrix. The
+predictors are the 28 x 28 = 784 pixels in the image, in grayscale,
+with values from 0 to 255. The target is the digit itself, which takes
+values from 0-9. In the CSV file, the first column is the target, and
+the remaining 784 columns are the grayscale values of the pixels. The
+predictors are ordered row-by-row, so the first 28 columns after the
+target column make up the first row of the image. The modulo
+arithmetic below gives us x- and y-coordinates for plotting the
+pixels. 
+
+```{r}
 library(readr)
+library(tidyr)
+library(dplyr)
 mnist_raw <- read_csv("mnist_train.csv", col_names=FALSE)
 dim(mnist_raw)
 mnist_raw[1:5,1:5]
-library(tidyr)
-library(dplyr)
 pixels_gathered <- mnist_raw %>%
   head(10000) %>%
   rename(label = X1) %>%
@@ -340,6 +380,9 @@ pixels_gathered <- mnist_raw %>%
   mutate(pixel = pixel - 2,
          x = pixel %% 28,
          y = 28 - pixel %/% 28)
+```
+
+```{r}
 library(ggplot2)
 sub <- pixels_gathered %>% filter(instance <= 12)
 ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
@@ -347,30 +390,82 @@ ggplot(sub, aes(x, y, fill = value)) + geom_tile() +
   scale_fill_gradient(low="white", high="black")
 ```
 
-```{r eval=FALSE}
-library(caret)
+We will now forget for a while that the predictors make up pixels in a
+2D matrix (until the end when we will use convolutional layers). We
+will for the meantime just consider the predictors as exchangeable
+and not spatially oriented. 
+
+Before we try to predict all 10 digits, let's try just trying to
+predict the digits 3, 5 and 8. We will see that even these three
+digits are not trivial to classify: 
+
+```{r}
 dat <- as.data.frame(mnist_raw[1:10000,-1])/255
 y <- factor(mnist_raw$X1[1:10000])
 idx <- y %in% c("3","5","8")
 dat <- dat[idx,]
 y <- droplevels(y[idx])
 pc <- prcomp(dat)
+```
+
+We can reduce the dimensionality of the data substantially by taking
+just the top PCs:
+
+```{r}
 plot(pc$sdev[1:20]^2/sum(pc$sdev^2))
+```
+
+Just taking the top 7 PCs, we can see there is some separation along,
+e.g. PC1, or looking at PC1 vs PC2:
+
+```{r}
 x <- pc$x[,1:7]
 boxplot(x[,1] ~ y)
 ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 table(y)
+```
+
+A very simple method for classification is *k-nearest neighbors*,
+where we calculate the Euclidean distance of each sample in the test
+or out-of-bag set to those samples in the training set. A majority
+vote of the closest *k* training samples becomes the prediction.
+The difficulties for *kNN* are that distances in high-dimensional space
+become problematic, due to what is called the 
+[curse of dimensionality](https://en.wikipedia.org/wiki/Curse_of_dimensionality#Distance_functions).
+Briefly, it becomes difficult to get a good sense of neighbors in high
+dimensional space. Another problem is that the algorithm is not
+sparse: we have to save the entire training dataset in order to
+classify new points. However, it is very straightforward to implement,
+so it makes sense as a first try (or a lower bound in terms of
+accuracy which we will try to improve upon). 
+
+```{r}
+library(caret)
 tg <- data.frame(k=c(5,9,13,17,21,25))
 trCtl <- trainControl(savePredictions=TRUE)
 fit <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
+```
+
+We can plot the kappa statistics for various settings of *k*:
+
+```{r}
 ggplot(fit, metric="Kappa")
+```
+
+Also the confusion matrix, to see which digits are being misclassified:
+
+```{r}
 fit$results
 tab <- table(obs=fit$pred$obs, pred=fit$pred$pred)
 prop <- tab/rowSums(tab)
 round(prop, 3) * 100 # percent
 ```
 
-```{r eval=FALSE}
+Rather than looking at a single kappa statistics, we will write this
+small function to plot 2x the standard deviation of the statistic,
+over bootstrap replications:
+
+```{r}
 plotWithSD <- function(fit, param, a=2) {
   min <- with(fit$results, min(Kappa - (a+2)*KappaSD))
   max <- with(fit$results, max(Kappa + (a+2)*KappaSD))
@@ -381,16 +476,38 @@ plotWithSD <- function(fit, param, a=2) {
     geom_point(color="blue") + geom_line(color="blue") +
     ylim(min,max)
 }
+```
+
+We see that the kappa statistic plateaus around 0.85 even though we
+are only trying to classify the digits 3, 5, and 8.
+
+```{r}
 plotWithSD(fit, "k")
 ```
 
-```{r eval=FALSE}
+Now let's return to all the digits and see how we do with our *kNN*
+approach: 
+
+```{r}
 dat <- as.data.frame(mnist_raw[1:10000,-1])/255
 y <- factor(mnist_raw$X1[1:10000])
 pc <- prcomp(dat)
+```
+
+Again, looking at PC1 and PC1 vs PC2, we see some separation of the
+digits already. We will work with the top 10 PCs (chosen arbitrarily,
+mostly for computational speed of training the methods below).
+
+```{r}
 x <- pc$x[,1:10]
 boxplot(x[,1] ~ y)
 ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
+```
+
+We can again try *kNN* and we see that it's doing fairly well across
+all 10 digits, with a kappa statistic that plateaus at around 0.885.
+
+```{r}
 tg <- data.frame(k=c(5,9,13,17,21,25))
 trCtl <- trainControl(savePredictions=TRUE)
 fit.knn <- train(x, y, method="knn", tuneGrid=tg, trControl=trCtl)
@@ -398,14 +515,21 @@ fit.knn$results # 88% Kappa
 plotWithSD(fit.knn, "k")
 ```
 
-```{r eval=FALSE}
+It's useful to look at the confusion matrix:
+
+```{r}
 tab <- table(obs=fit.knn$pred$obs, pred=fit.knn$pred$pred)
 prop <- tab/rowSums(tab)
 round(prop,3)*100 # percent
 diag(prop) <- NA
 ```
 
-```{r eval=FALSE, fig.width=5, fig.height=5.5}
+We can plot this, after removing the diagonal elements, and highlight
+the top three mistakes that are made by our *kNN* approach. We see
+that 4 and 9 are often misclassified as each other, as well as 3
+and 8. 
+
+```{r fig.width=5, fig.height=5.5}
 image(prop, xaxt="n", yaxt="n",
       xlab="obs", ylab="pred",
       col=colorRampPalette(c("white","blue"))(50))
@@ -418,12 +542,14 @@ text(arr.idx[1,]/9, arr.idx[2,]/9, labels=lbl, cex=.9, col="white")
 ```
 
 ```{r eval=FALSE}
-x <- pc$x[,1:20]
-tg <- data.frame(C=c(.5,1,2))
+x <- pc$x[,1:10]
 # 700 seconds
 system.time({
-  fit <- train(x, y, method="svmRadial", trControl=trCtl, tuneGrid=tg)
+  fit <- train(x, y, method="svmRadial", trControl=trCtl)
 })
+```
+
+```{r eval=FALSE}
 plotWithSD(fit, param="C")
 fit$results # 10k data, 20 PCs, 94.5% Kappa
 ```
@@ -436,5 +562,8 @@ trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE, verboseIter=T
 system.time({
   fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg, maxit=50)
 })
+```
+
+```{r eval=FALSE}
 fit$results # 93.8% Kappa
 ```
