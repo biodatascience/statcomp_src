@@ -72,13 +72,13 @@ and target.
 # Perceptron
 
 A limiting case of the logistic function is a function that only
-outputs values of 0 or 1 around a critical value of $x = 0$:
+outputs values of 0 or 1 around a critical value of $z = 0$:
 
 ```{r echo=FALSE, fig.width=5}
-plot(function(x) 1/(1 + exp(-x)), xlim=c(-5,5), ylab="f(x)")
+plot(function(x) 1/(1 + exp(-x)), xlim=c(-5,5), xlab="z", ylab="f(z)")
 plot(function(x) 1/(1 + exp(-2*x)), xlim=c(-5,5), add=TRUE)
 plot(function(x) 1/(1 + exp(-10*x)), xlim=c(-5,5), add=TRUE)
-plot(function(x) ifelse(x >= 0, 1, 0), xlim=c(-5,5), col="red", add=TRUE)
+plot(function(x) ifelse(x >= 0, 1, 0), xlim=c(-5,5), col="dodgerblue", lwd=3, add=TRUE)
 ```
 
 If we use this step function instead of the logistic, the
@@ -225,12 +225,13 @@ time, takes the partial derivative with respect to this weight. Then
 the weight can be adjusted using the old weight and multiplying the
 gradient by the learning rate $\lambda$. The weights for the nodes in
 the layer second closest to the target are then updated, which can be
-computed with a trick that uses the chain rule to formulate a product
+computed with a trick that uses the chain rule to reformulate a product
 of terms that can be calculated. The name for the method stands for
 "backward propagation of error" because the derivative of the error
 from the layers closer to the target are propagated backward through
-the network recursively. We do not demonstrate backpropagation in this
-note (it is derived in the notes from Ng and Katanforoosh on
+the network recursively. We do not derive or demonstrate
+backpropagation in this note (it is derived in the notes from Ng and
+Katanforoosh on
 [deep learning](http://cs229.stanford.edu/notes/cs229-notes-deep_learning.pdf) and
 [backpropagation](http://cs229.stanford.edu/notes/cs229-notes-backprop.pdf)),
 but instead will describe a number of options when building neural
@@ -239,13 +240,84 @@ handwritten digits:
 
 # Activation functions
 
-* https://en.wikipedia.org/wiki/Activation_function
+The term *activation functions* describe the functions $f(z)$ that are
+applied to the weighted combination of the incoming nodes. Above we
+discussed a *logistic*, or *sigmoid*, activation function, as well as a
+step function $f(x) = 1_{\{x \ge 0\}}$. There are numerous choices,
+which can be browsed at the following 
+[Wikipedia page](https://en.wikipedia.org/wiki/Activation_function). 
+Properties of an activation function to consider are whether they have
+a continuous derivative, the steepness of the curve, whether it
+asymptotes for large absolute values of the input, and the range. We
+plot some of the more popular activation functions, including ones
+which we will use in the example at the end of this note.
 
-# Regularization and weight decay
+```{r echo=FALSE, fig.width=6}
+par(mfrow=c(2,2),mar=c(3,3,2,1))
+myplot <- function(f, main) {
+  plot(f, main=main, xlim=c(-3,3), ylim=c(-2,2), xlab="", ylab="", type="n")
+  abline(h=0)
+  plot(f, col="dodgerblue", lwd=3, add=TRUE, xlim=c(-3,3))
+}
+myplot(function(x) 1/(1 + exp(-x)), "logistic")
+myplot(function(x) tanh(x), "tanh")
+myplot(function(x) ifelse(x >= 0, x, 0), "ReLU")
+myplot(function(x) ifelse(x > 0, x, (exp(x) - 1)), "ELU")
+```
+
+In addition, the *softmax* activation function is useful for mapping
+from a vector defined in $\mathcal{R}^n$ to a vector on the
+$(n-1)$-simplex defined such that each element is restricted between 0
+and 1 and the elements sum to 1:
+
+$$ f_i(\vec{z}) = \frac{\exp(z_i)}{\sum_{j=1}^J \exp(z_j)} $$
+
+This activation function will be useful when we are trying to predict
+multiple classes, such as the handwritten digits data (0-9) we will
+consider below.
+
+# Regularization / weight decay
+
+As with many classification or regression models with many parameters
+to learn, the models can become unstable and potentially have
+difficulties with overfitting. We therefore may benefit from
+considering *regularization*, that is, the penalization of large
+weights. As with penalized regression, we can consider an L1 or L2
+regularization on the weights, as well as the tuning between the loss
+function and the penalty term. Another regularization implementation is
+to have the weights slowly decay during training iterations, by simply
+multiplying the weights by a value less than 1 at each iteration. It
+turns out that weight decay is 
+[equivalent to L2 regularization](https://arxiv.org/abs/1711.05101)
+for certain training methods (stochastic gradient descent) but not for
+all algorithms, which should be kept in mind.
 
 # Convolutional layers
 
-* http://cs231n.github.io/convolutional-networks/
+A final topic which will be important for our application below is the
+concept of convolutional layers of nodes in the beginning of a neural
+network. These are important component of networks that are designed
+to take images or 3D volumes as input, where the features $x_j$ have
+some meaningful spatial relationship that can be captured by features
+learned in the hidden layers. A good extended reference for
+convolutional neural networks is the
+[CNN lecture note by Andrej Karpathy](http://cs231n.github.io/convolutional-networks/).
+One motivation of convolutional layers is that, we may want hidden
+layers of the network to be able to detect common patterns across the
+image, regardless of where they occur positionally in the image. We
+can convolve a *filter* across the pixels of the image (or voxels of a
+volume) and take the sum as the output. As explained best by the
+lecture note linked above:
+
+> Intuitively, the network will learn filters that activate when they
+> see some type of visual feature such as an edge of some orientation or
+> a blotch of some color on the first layer, or eventually entire
+> honeycomb or wheel-like patterns on higher layers of the network.
+
+In addition *pooling* layers are typically added as well which
+additionally reduce the input to reduce the number of parameters to
+learn. One way to reduce the image is to take the maximum of every 2x2
+sub-matrix and pass this through to the next layer. 
 
 # MNIST handwritten digits
 
