@@ -267,7 +267,7 @@ myplot(function(x) ifelse(x > 0, x, (exp(x) - 1)), "ELU")
 
 In addition, the *softmax* activation function is useful for mapping
 from a vector defined in $\mathcal{R}^n$ to a vector on the
-$(n-1)$-simplex defined such that each element is restricted between 0
+(n-1)-simplex defined such that each element is restricted between 0
 and 1 and the elements sum to 1:
 
 $$ f_i(\vec{z}) = \frac{\exp(z_i)}{\sum_{j=1}^J \exp(z_j)} $$
@@ -485,7 +485,7 @@ are only trying to classify the digits 3, 5, and 8.
 plotWithSD(fit, "k")
 ```
 
-Now let's return to all the digits and see how we do with our *kNN*
+Now let's return to all the digits and see how we do with our kNN
 approach: 
 
 ```{r}
@@ -504,7 +504,7 @@ boxplot(x[,1] ~ y)
 ggplot(data.frame(x,y), aes(PC1, PC2, col=y)) + geom_point()
 ```
 
-We can again try *kNN* and we see that it's doing fairly well across
+We can again try kNN and we see that it's doing fairly well across
 all 10 digits, with a kappa statistic that plateaus at around 0.885.
 
 ```{r}
@@ -525,7 +525,7 @@ diag(prop) <- NA
 ```
 
 We can plot this, after removing the diagonal elements, and highlight
-the top three mistakes that are made by our *kNN* approach. We see
+the top three mistakes that are made by our kNN approach. We see
 that 4 and 9 are often misclassified as each other, as well as 3
 and 8. 
 
@@ -541,29 +541,169 @@ arr.idx <- sapply(mxs, function(i) which(prop == i, arr.ind=TRUE)) - 1
 text(arr.idx[1,]/9, arr.idx[2,]/9, labels=lbl, cex=.9, col="white")
 ```
 
-```{r eval=FALSE}
-x <- pc$x[,1:10]
-# 700 seconds
-system.time({
-  fit <- train(x, y, method="svmRadial", trControl=trCtl)
-})
+We can also try a linear SVM. A radial basis function SVM does
+out-perform this but takes about 15 times longer to fit (we observed
+kappa statistic up to 0.94). The linear SVM doesn't do much better
+than the kNN but is more efficient; it doesn't store the whole
+dataset, only the support vectors (although here we have 2,000+
+support vectors).
+
+```{r}
+x <- pc$x[,1:20]
+fit <- train(x, y, method="svmLinear", trControl=trCtl)
+fit$results
+fit$finalModel@nSV
 ```
 
-```{r eval=FALSE}
-plotWithSD(fit, param="C")
-fit$results # 10k data, 20 PCs, 94.5% Kappa
-```
+# Multi-layer perceptron
 
-```{r eval=FALSE}
+There are a few neural networks that can be accessed via *caret* but
+we will show that these underperform compared to a fully specified
+neural network with convolutional layers. Here, we take the top 60 PCs
+and train a multi-layer perceptron (MLP) with a single hidden layer
+with 60 nodes.
+
+```{r}
 x <- pc$x[,1:60]
 tg <- data.frame(size=60)
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE, verboseIter=TRUE)
-# 60 s
-system.time({
-  fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg, maxit=50)
-})
+fit <- train(x, y, method="mlp", trControl=trCtl, tuneGrid=tg, maxit=50)
 ```
 
-```{r eval=FALSE}
-fit$results # 93.8% Kappa
+This model gives us a kappa statistic of 0.94, which is also close to
+what we observed with radial basis function SVM.
+
+```{r}
+fit$results
+```
+
+Let's again see what type of digits are being misclassified:
+
+```{r}
+tab <- table(obs=fit$pred$obs, pred=fit$pred$pred)
+prop <- tab/rowSums(tab)
+round(prop, 3) * 100 # percent
+```
+
+Again, predicting 9 instead of 4 is the worst error, and the reverse
+is the second worst error, but the rate has dropped a lot compare to
+kNN. 
+
+# Convolutional neural network
+
+Finally, we show an example of a convolutional neural network (CNN)
+code using the *keras* R package, which provides an interface to the
+Keras Python Deep Learning library. The code that we used below is
+copied from the following example. We do not motivate all of the
+choices, as they have been tuned specifically for this problem by
+researchers that have focused deeply on the MNIST data, handwriting,
+and image recognition in general.
+
+* <https://keras.rstudio.com/articles/examples/mnist_cnn.html>
+
+We being by converting the target `y` to a 10 dimensional binary matrix:
+
+```{r}
+library(keras)
+y_train <- to_categorical(y)
+head(y_train)
+```
+
+The following parameters are chosen for the MNIST data in particular
+(the image size and number of classes are determined obviously by the
+problem). 
+
+```{r}
+batch_size <- 128
+num_classes <- 10
+epochs <- 12
+img_rows <- 28
+img_cols <- 28
+```
+
+We reshape `x` as well into an array that takes into account the fact
+that we have a 2D array of pixels.
+
+```{r}
+x <- as.matrix(dat)
+x_train <- array_reshape(x, c(nrow(x), img_rows, img_cols, 1))
+dim(x_train)
+input_shape <- c(img_rows, img_cols, 1)
+```
+
+The following code chunk specifies the model: two 2D convolutional
+layers, a 2D pooling layer, a dropout layer, followed by a dense layer
+with 28 nodes and ReLU activation function, followed by a dropout
+layer, and finally a dense output layer using softmax activation
+function. Each *epoch* takes about 20 seconds, and we run 12 epochs in
+total. 
+
+```{r}
+set.seed(1)
+
+model <- keras_model_sequential() %>%
+  layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu',
+                input_shape = input_shape) %>% 
+  layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>% 
+  layer_flatten() %>% 
+  layer_dense(units = 128, activation = 'relu') %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = num_classes, activation = 'softmax')
+
+# Compile model
+model %>% compile(
+  loss = loss_categorical_crossentropy,
+  optimizer = optimizer_adadelta(),
+  metrics = c('accuracy')
+  )
+
+# Train model
+history <- model %>% fit(
+  x_train, y_train,
+  batch_size = batch_size,
+  epochs = epochs,
+  validation_split = 0.2
+  )
+```
+
+We can plot the accuracy of the model over time. Note that the
+validation accuracy approaches 98%, which beats our previous
+approaches (the MLP had about 94% accuracy).
+
+```{r}
+plot(history)
+```
+
+We can evaluate the CNN on a test set (we only used the first 10,000
+rows to train our model).
+
+```{r}
+x2 <- as.matrix(mnist_raw[10001:20000,-1])/255
+x_test <- array_reshape(x2, c(nrow(x2), img_rows, img_cols, 1))
+y_test <- to_categorical(factor(mnist_raw$X1[10001:20000]))
+```
+
+```{r}
+scores <- model %>% evaluate(
+  x_test, y_test, verbose = 0
+  )
+scores
+```
+
+We can get the predicted classes:
+
+```{r}
+pred <- model %>% predict_classes(x_test)
+```
+
+We can see we've further reduced our worst misclassification rate to
+1.4%.
+
+```{r}
+y.test <- factor(mnist_raw$X1[10001:20000])
+tab <- table(obs=y.test, pred=pred)
+prop <- tab/rowSums(tab)
+round(prop, 3) * 100 # percent
 ```
