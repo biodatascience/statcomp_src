@@ -1,0 +1,101 @@
+---
+title: "Homework 1 - readable and efficient R code"
+author: "your name here"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+# Question 1 - "function-alize" this code
+
+Read over the code below and perform the following:
+
+* Wrap it into a function `foobar0` which has arguments `x` and `z`
+  and which returns the last value of `x`
+* Rewrite this into a function `foobar` which is easier to read, by
+  reducing repetitive code. E.g. `foobar` might call a function to
+  check the input, and another function to perform the three lines of
+  computation. 
+* Check that the two versions produce the same output using the
+  function `all.equal`.
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+z <- rnorm(100)
+if (sum(x >= .001) < 1) {
+  stop("step 1 requires 1 observation(s) with value >= .001")
+}
+fit <- lm(x ~ z)
+r <- fit$residuals
+x <- sin(x) + .01
+if (sum(x >= .002) < 2) {
+  stop("step 2 requires 2 observation(s) with value >= .002")
+}
+fit <- lm(x ~ z)
+r <- fit$residuals
+x <- 2 * sin(x) + .02
+if (sum(x >= .003) < 3) {
+  stop("step 3 requires 3 observation(s) with value >= .003")
+}
+fit <- lm(x ~ z)
+r <- fit$residuals
+x <- 3 * sin(x) + .03
+if (sum(x >= .004) < 4) {
+  stop("step 4 requires 4 observation(s) with value >= .004")
+}
+fit <- lm(x ~ z)
+r <- fit$residuals
+x <- 4 * sin(x) + .04
+x # the last value of 'x'
+```
+
+# Question 2 - vectorize this code and benchmark
+
+* Take the following function `f0` and rewrite it as a function `f`,
+  which is faster and easier to read, by removing the loop of `i` from
+  1 to `m`.
+* Benchmark `f` and `f0` using `microbenchmark`. How much faster is `f`?
+
+```{r}
+n <- 30
+p <- 50
+p2 <- 25
+m <- 1000
+set.seed(1)
+x <- matrix(rnorm(n*p),nrow=n,ncol=p)
+b <- matrix(rnorm(m*p),nrow=m,ncol=p)
+a <- matrix(rnorm(m*p2),nrow=m,ncol=p2)
+f0 <- function(x,b,a) {
+  out <- numeric(0)
+  for (i in seq_len(m)) {
+    bb <- b[i,]
+    aa <- a[i,]
+    out <- c(out, sum(x %*% bb) + sum(aa))
+  }
+  out
+}
+```
+
+# Question 3 - build a faster t-test
+
+* Rewrite the following function `getT0` which computes `m`
+  two-sample t-tests (equal variance) between two groups as a function
+  `getT`, which is faster by using vectorized operations over the `m`
+  sets of observations. (There are functions in R packages, such as
+  `genefilter::rowttests` which will quickly perform this operation,
+  but I want you to write your own function using simple R functions
+  like `rowSums`, etc.)
+* Benchmark `getT` and `getT0`. How much faster is `getT`?
+
+```{r}
+m <- 400
+n <- 50
+little.n <- n/2
+set.seed(1)
+x <- matrix(rnorm(m*n),nrow=m,ncol=n)
+f <- gl(2,little.n)
+getT0 <- function(x, f) {
+  ts <- sapply(seq_len(m), function(i) t.test(x[i,] ~ f, var.equal=TRUE)$statistic)
+  unname(ts)
+}
+```
