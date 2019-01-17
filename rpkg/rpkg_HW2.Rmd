@@ -1,0 +1,71 @@
+---
+title: "Homework 2 - building an R package"
+author: "your name here"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+# Question 1 - build and document an R package
+
+Take the `getT` function that you wrote for last weeks homework and
+put it into a R package called `bios735`. You should add this to
+your homework repository, so it looks like the directory structure
+drawn below. You will re-use `bios735` across multiple homeworks.
+
+```
+statcomp-yourgithub
+|-- rpkg_HW1.html
+|-- rpkg_HW1.Rmd
+|-- rpkg_HW2.html
+|-- rpkg_HW2.Rmd
+|-- bios735
+    |-- DESCRIPTION
+    ...
+```
+
+Add the function `getT` to `bios735` and document its two arguments
+`x` and `f`, provide information about the output, add a description
+and details. Export the `getT` function. So in the end, you should be
+adding `.Rd` files to the `man` directory through the use of
+`devtools::document`. You should also update the `DESCRIPTION` file
+with your details. You can put whatever you like as the `Title` of
+your package and so on. Finally, build the package. Add the `.tar.gz`
+built package to your homework repository as well.
+
+# Question 2 - add tests to your package
+
+Use the *testthat* package to add tests to your package. The details
+of the tests are up to you, but you should have both some tests of the
+input to `getT`, for example, that `x` and `f` have consistent
+dimension. Also, the way we wrote `getT` assumes that there is equal
+sample size between the two levels of `f`: don't bother making the
+function more general, but instead make sure that `f` indeed is a
+factor with two levels and that both levels have `little.n` number of
+samples. You should also have some tests that the function gives the
+expected output on a toy dataset. You can for example, simulate a few
+rows of data, and then check that `getT` gives the same answer as
+`t.test` with `var.equal=TRUE`. Remember to add the tests directory to
+your GitHub repository so that the graders can see it. You can try out
+your tests with `test_package` or `test_file`.
+
+Finally, run `check(manual=TRUE)` from within your package. Make sure
+that it passes without error, including `checking tests ...` and put
+the output below: 
+
+```
+#PUT THE OUTPUT OF CHECK HERE:
+> check(manual=TRUE)
+...
+```
+
+# Question 3 - short debugging example
+
+The last question is a short one. You should (temporarily) add a bug
+to `getT`, which can be a either a bug that produces an error or a
+silent bug which creates some kind of erroneous output. Then use one
+of the debugging methods presented in the lecture to get to this point
+in the code when calling the function, and examine the variables at
+that point in the code, e.g. `ls()` and using `head`. Take a
+screenshot of the debugging environment and add this screenshot to
+your GitHub repository.
+
