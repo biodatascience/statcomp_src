@@ -47,7 +47,8 @@ files. This will be covered in detail in another lecture note.
 
 Two additional references for building R packages are:
 
-* [R Packages](http://r-pkgs.had.co.nz/) by Hadley Wickham
+* [R Packages](http://r-pkgs.had.co.nz/) by Hadley Wickham (currently
+  out of date with respect to the addition of the *usethis* package)
 * [Writing R Extensions](https://cran.r-project.org/doc/manuals/R-exts.html)
   the official guide from CRAN on how to create an R package
 
@@ -60,7 +61,7 @@ The bare minimum for an R package is a directory with the following:
   exported by the package (best written automatically, not manually)
 * a directory called `R` with the R scripts inside
 
-We can get started by using the `create` function from the *devtools*
+We can get started by using the `create_package()` function from the *usethis*
 package. Suppose we have an R script with the following function:
 
 ```{r eval=FALSE}
@@ -77,28 +78,32 @@ Let's say we will create an R package called *foo*. We can start with
 the following:
 
 ```{r eval=FALSE}
-create("foo", rstudio=FALSE)
+library(usethis)
+create_package("foo", rstudio=FALSE)
 ```
 
 This will make a directory called `foo` in the current working
-directory:
+directory, and will then change the working directory to `foo`:
 
 ```{r}
-list.files("foo")
+list.files()
 ```
 
 It will start with a DESCRIPTION file that looks like:
 
 ```
-## Package: foo
-## Title: What the Package Does (one line, title case)
-## Version: 0.0.0.9000
-## Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-## Description: What the package does (one paragraph).
-## Depends: R (>= 3.6.0)
-## License: What license is it under?
-## Encoding: UTF-8
-## LazyData: true
+Package: foobar
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R:
+    person(given = "First",
+           family = "Last",
+           role = c("aut", "cre"),
+           email = "first.last@example.com")
+Description: What the package does (one paragraph).
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
 ```
 
 The DESCRIPTION file has a number of fields that we need to
@@ -110,7 +115,6 @@ Title: Functions for doing great things
 Version: 0.0.1
 Authors@R: person("Jane","Doe",email="jdoe@uni.edu",role=c("aut","cre"))
 Description: Contains amazing functions for doing amazing things.
-Depends: R (>= 3.6.0)
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
@@ -353,3 +357,9 @@ that you will need to pass if you want to submit to Bioconductor. We
 won't cover R package checking, as we only have limited time, but the
 reference on [R Packages](http://r-pkgs.had.co.nz/check.html) from
 Hadley Wickham discusses this.
+
+# Session info
+
+```{r}
+session_info()
+```

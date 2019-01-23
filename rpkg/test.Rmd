@@ -22,29 +22,47 @@ Packages](http://r-pkgs.had.co.nz/tests.html) book by Hadley Wickham.
 
 # Set up testthat for a package
 
-To begin writing tests, you can run the *devtools* function
-`use_testthat()`. This will create a directory called `tests/testthat`
-in the root of your R package directory, add *testthat* to your
-`Suggests:` line in the `DESCRIPTION` file, and create a file
-`tests/testthat.R` that will run all the tests in `tests/testthat`
-when you run R's package check. The `testthat.R` file is very simple:
+To begin writing tests, say for a part of your software that you call
+"name", you can run the *usethis* function `use_test("name")`. This
+will create a directory called `tests/testthat` in the root of your R
+package directory, add *testthat* to your `Suggests:` line in the
+`DESCRIPTION` file, create a file `tests/testthat.R` that will run
+all the tests in `tests/testthat` when you run R's package check, and
+create a file `tests/testthat/test-name.R`. You may have multiple
+groups of tests that you want to separate into different files, so you
+can choose "name" however you like, e.g. `test-data-input.R`,
+`test-normalization.R`, etc. However, you can also put all your tests
+into a single file for the package, e.g. `test-foo.R`.
+
+The `testthat.R` file is very simple:
 
 ```
 library(testthat)
 library(foo)
+
 test_check("foo")
 ```
 
 This file stays the same way, and we will write new `.R` files that go
 into `tests/testthat` which will implement the package tests.
 
-Suppose we have already run `use_testthat()` for our *foo* package,
-and we want to write a test for our `add` function. We can do this by
-creating a new file `tests/testthat/add.R` with the following
-structure:
+Suppose we run `use_test("add")` for our *foo* package, and we want to
+write a test for our `add` function. We can do this by opening up the
+file `tests/testthat/test-add.R`, and adding some tests. The default
+file has some dummy code to show you the style:
 
 ```
-context("add")
+context("test-add")
+
+test_that("multiplication works", {
+  expect_equal(2 * 2, 4)
+})
+```
+
+But we can rewrite this for our purposes:
+
+```
+context("test-add")
 test_that("add works on two vectors", {
 
   expect_equal(add(1:5,6:10), c(7,9,11,13,15))
@@ -100,6 +118,7 @@ that the entire warning doesn't need to be written out, only a regular
 expression that would produce a match.
 
 ```{r}
+library(testthat)
 expect_warning(add2(1:5, -11:-15), "are negative")
 ```
 
@@ -110,11 +129,12 @@ function respectively.
 # Testing individual files or whole packages
 
 We can check all the tests for individual files with the following
-call to `test_file`: 
+call to `test_file`, from within the package root:
 
-```{r}
-load_all("foo")
-test_file("foo/tests/testthat/add.R")
+```{r eval=FALSE}
+library(devtools)
+load_all()
+test_file("tests/testthat/test-add.R")
 ```
 
 Or we can check all of the tests for a given package with the
@@ -122,4 +142,10 @@ following call to `test_package`:
 
 ```{r eval=FALSE}
 test_package("foo")
+```
+
+# Session info
+
+```{r}
+session_info()
 ```
