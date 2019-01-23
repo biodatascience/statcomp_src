@@ -83,10 +83,12 @@ create_package("foo", rstudio=FALSE)
 ```
 
 This will make a directory called `foo` in the current working
-directory, and will then change the working directory to `foo`:
+directory, and will then change the working directory to `foo`.
+(This Rmarkdown however needs to point to the `foo` directory to look
+inside.)
 
 ```{r}
-list.files()
+list.files("foo")
 ```
 
 It will start with a DESCRIPTION file that looks like:
@@ -358,8 +360,3 @@ won't cover R package checking, as we only have limited time, but the
 reference on [R Packages](http://r-pkgs.had.co.nz/check.html) from
 Hadley Wickham discusses this.
 
-# Session info
-
-```{r}
-session_info()
-```
