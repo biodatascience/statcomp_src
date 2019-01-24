@@ -1,0 +1,193 @@
+---
+title: "Homework 3 - C++ code from R"
+author: "your name here"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+# Setup and hints
+
+For all of the following functions, you should add these functions to
+your R package, by adding code to the `src` directory, adding the
+necessary importing and linking to lines to `DESCRIPTION`, and then
+writing and exporting a wrapper R function (e.g. adding a `@export`
+tag). 
+
+Remember to include the following at the top of your C++ script (you
+do not include `Rcpp.h` because `RcppArmadillo.h` includes this). As
+the homework uses RcppArmadillo, the following covers all questions:
+
+```
+#include <RcppArmadillo.h>
+using namespace Rcpp;
+```
+
+Remember that Armadillo uses 0-based indexing. This is true for square
+bracket indexing `z[0]` or `Z[0,0]` as well as using the row and
+column getters: `z.row(0)` and `z.col(0)`.
+
+# Question 1 - simple Rcpp function
+
+Write a simple Rcpp function that implements the following R code:
+
+`ifelse(x < 0.0, 1.0, exp(x))`
+
+Compare it's output in R. Your R wrapper function should be named
+`one.or.exp()`.
+
+```{r}
+library(devtools)
+document("bios735")
+load_all("bios735")
+x <- -10:10
+one.or.exp(x)
+all.equal(ifelse(x < 0.0,1.0,exp(x)), one.or.exp(x))
+```
+
+# Question 2 - random walk in C++ and vectorized R
+
+Write a random walk function in C++, call the wrapper function for
+your C++ function, `randomWalk2`. Your C++ function should follow the
+same style as the function below, by iterating over 1-niter, despite
+the fact that the random walk can be vectorized in R as a cumulative
+sum. You will later compare to the vectorized random walk in R.
+
+Hint: you should use the C++ function `Rf_rbinom(integer size, numeric
+probability)` function to flip the coin in the random walk.
+
+Compare the output of `randomWalk2` to ensure that it produces the
+same output as `randomWalk1`, with the same seed set in R. How much
+faster is your random walk? 
+
+```{r}
+niter <- 1e4
+lambda <- .01
+randomWalk1 <- function(niter,lambda) {
+  x <- numeric(niter)
+  y <- numeric(niter)
+  for (i in seq_len(niter)[-1]) {
+    x[i] <- x[i-1] + lambda * (2.0 * rbinom(1,1,0.5) - 1.0)
+  }
+  for (i in seq_len(niter)[-1]) {
+    y[i] <- y[i-1] + lambda * (2.0 * rbinom(1,1,0.5) - 1.0)
+  }
+  list(x=x,y=y)
+}
+myplot <- function(dat) {
+  niter <- length(dat$x)
+  plot(0,type="n",xlim=c(-2,2),ylim=c(-2,2),xlab="x",ylab="y")
+  cols <- colorRampPalette(c("blue","red","orange"))(100)
+  with(dat, segments(x[-niter],y[-niter],x[-1],y[-1],col=rep(cols,each=niter/100)))
+}
+set.seed(5)
+dat1 <- randomWalk1(niter,lambda)
+str(dat1)
+myplot(dat1)
+```
+
+Your random walk:
+
+```{r}
+document("bios375")
+load_all("bios375")
+set.seed(5)
+dat2 <- randomWalk2(niter,lambda)
+str(dat2)
+myplot(dat2)
+all.equal(dat2$x, dat1$x)
+all.equal(dat2$y, dat1$y)
+library(microbenchmark)
+microbenchmark(randomWalk1(niter,lambda),randomWalk2(niter,lambda),times=10)
+```
+
+Now write a vectorized version of the random walk in R and call this
+function `randomWalkVectorized`. Compare to ensure it gives the same
+result at `randomWalk1`, and compare its speed to `randomWalk1` and to
+`randomWalk2`:
+
+```{r}
+randomWalkVectorized <- function(niter,lambda) {
+  # your code here...
+}
+set.seed(5)
+datVec <- randomWalkVectorized(niter,lambda)
+str(datVec)
+myplot(datVec)
+all.equal(datVec$x, dat1$x)
+all.equal(datVec$y, dat1$y)
+library(microbenchmark)
+microbenchmark(randomWalk1(niter,lambda),randomWalkVectorized(niter,lambda),times=10)
+microbenchmark(randomWalk2(niter,lambda),randomWalkVectorized(niter,lambda),times=10)
+```
+
+# Question 3 - simple RcppArmadillo function
+
+Write a simple RcppArmadillo function that solves for `x` in the
+matrix multiplication formula $Ax = b$. Call your R wrapper function
+`armadilloSolve`. You can skip the part about pointing to the matrix
+in R with `const arma::mat& A` for this and the following homework
+question. That is, the top line of your function can look like:
+
+```
+arma::mat armadillo_solve(arma::mat A, arma::vec b) {
+```
+
+Check that your function gives the correct answer here:
+
+```{r}
+document("bios735")
+load_all("bios735")
+A <- matrix(runif(12),ncol=3)
+x <- matrix(runif(3),ncol=1)
+b <- A %*% x
+xx <- armadilloSolve(A,b)
+all.equal(x, xx)
+```
+
+# Question 4 - column-wise ridge regression
+
+Implement a C++ function that performs ridge regression one-by-one on
+columns of a matrix `Y`, using a constant design matrix `X`, and a
+variable ridge parameter `lambda`. That is, use `lambda[1]` for the
+first column, `Y[,1]` and so on. Call your R wrapper function
+`colRidge2`. Compare the output to `colRidge1`. It is not expected to
+be numerically identical, but it should be "close" which you can see
+from the plots. How much faster is the C++ version?
+
+Hint: use the simple ridge formula:
+
+$\hat{\beta} = (X^t X + \lambda I)^{-1} X^t y$
+
+Hint: see the `eye()` function in Armadillo to build the identity matrix.
+
+```{r}
+document("bios735")
+load_all("bios735")
+set.seed(1)
+n <- 100
+Y <- matrix(rnorm(n*20),nrow=20)
+X <- scale(matrix(rnorm(20*2),ncol=2))
+lambda <- runif(n,.1,2)
+library(MASS)
+colRidge1 <- function(Y, X, lambda) {
+  df <- as.data.frame(X)
+  n <- ncol(Y)
+  beta <- matrix(nrow=2,ncol=n)
+  stopifnot(length(lambda) == n)
+  for (j in seq_len(n)) {
+    beta[,j] <- coef(lm.ridge(Y[,j] ~ 0 + V1 + V2, data=df, lambda=lambda[j]))
+  }
+  beta
+}
+beta1 <- colRidge1(Y, X, lambda)
+beta1[,1:5]
+beta2 <- colRidge2(Y, X, lambda)
+beta2[,1:5]
+plot(beta1[1,], beta2[1,])
+abline(0,1)
+plot(beta1[2,], beta2[2,])
+abline(0,1)
+all.equal(beta1[1,], beta2[1,])
+all.equal(beta1[2,], beta2[2,])
+microbenchmark(colRidge1(Y, X, lambda), colRidge2(Y, X, lambda), times=10)
+```
