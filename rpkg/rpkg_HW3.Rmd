@@ -148,13 +148,21 @@ all.equal(x, xx)
 
 Implement a C++ function that performs ridge regression one-by-one on
 columns of a matrix `Y`, using a constant design matrix `X`, and a
-variable ridge parameter `lambda`. That is, use `lambda[1]` for the
-first column, `Y[,1]` and so on. Call your R wrapper function
-`colRidge2`. Compare the output to `colRidge1`. It is not expected to
+variable ridge parameter `lambda`. That is, use the first element of
+`lambda` for the first column of `Y` and so on. Call your R wrapper
+function `colRidge2`. Again, you can skip the part about pointing from
+C++ to the matrix in R and just have the top of your C++ function look
+like, e.g.
+
+```
+arma::mat col_ridge_2(arma::mat Y, arma::mat X, arma::vec lambda) {
+```
+
+Compare the output of `colRidge2` to `colRidge1`. It is not expected to
 be numerically identical, but it should be "close" which you can see
 from the plots. How much faster is the C++ version?
 
-Hint: use the simple ridge formula:
+Hint: for your C++ function use the simple ridge formula:
 
 $\hat{\beta} = (X^t X + \lambda I)^{-1} X^t y$
 
