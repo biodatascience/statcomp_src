@@ -10,7 +10,7 @@ output: html_document
 Read over the code below and perform the following:
 
 * Wrap it into a function `foobar0` which has arguments `x` and `z`
-  and which returns the last value of `x`
+  and which returns the vector `x` at the end of the following code.
 * Rewrite this into a function `foobar` which is easier to read, by
   reducing repetitive code. E.g. `foobar` might call a function to
   check the input, and another function to perform the three lines of
@@ -27,26 +27,26 @@ if (sum(x >= .001) < 1) {
 }
 fit <- lm(x ~ z)
 r <- fit$residuals
-x <- sin(x) + .01
+x <- sin(r) + .01
 if (sum(x >= .002) < 2) {
   stop("step 2 requires 2 observation(s) with value >= .002")
 }
 fit <- lm(x ~ z)
 r <- fit$residuals
-x <- 2 * sin(x) + .02
+x <- 2 * sin(r) + .02
 if (sum(x >= .003) < 3) {
   stop("step 3 requires 3 observation(s) with value >= .003")
 }
 fit <- lm(x ~ z)
 r <- fit$residuals
-x <- 3 * sin(x) + .03
+x <- 3 * sin(r) + .03
 if (sum(x >= .004) < 4) {
   stop("step 4 requires 4 observation(s) with value >= .004")
 }
 fit <- lm(x ~ z)
 r <- fit$residuals
-x <- 4 * sin(x) + .04
-x # the last value of 'x'
+x <- 4 * sin(r) + .04
+x
 ```
 
 # Question 2 - vectorize this code and benchmark
