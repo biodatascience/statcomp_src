@@ -1,0 +1,126 @@
+---
+title: "Homework 4 - Working with large datasets"
+author: "your name here"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+# Question 1 - benchmark data.table's grouping on real data
+
+Download the College Scorecard data from here:
+
+<https://collegescorecard.ed.gov/data/>
+
+The data dictionary is here:
+
+<https://collegescorecard.ed.gov/assets/CollegeScorecardDataDictionary.xlsx>
+
+We will work with the data since 2010. You will need to `cat` the
+files from 2009 to 2016 together on the command line. But first, we
+have to remove the headers from the files other than 2009. You can
+do this by opening up a shell and running:
+
+```
+for i in `ls MERGED201*`; do echo $i; tail -n +2 $i > ${i/.csv}_nohead.csv; done
+cp MERGED2009_10_PP.csv MERGED2009_head.csv
+cat MERGED*head.csv > Scorecard_2009-2016.csv
+```
+
+Read in the 2009-2016 dataset, which will give you 60,306 rows.
+
+In class we performed some simple subsetting and grouping
+operations. The lecture notes use a previous version of the dataset,
+and since they were compiled, `CONTROL` is now integer valued, and
+the `TUITFTE` and `SAT_AVG` columns will need to be coerced to a
+numeric using `as.numeric`, before you can work with it. (This will
+give a warning about NAs introduced, which you should ignore.)
+
+Also you should convert `CONTROL` to a factor, and then change the
+levels 1,2,3 to instead `pub`,`pnp`,`pfp`.
+
+From the data dictionary, we have: 
+
+| C | Value              |
+|---|--------------------|
+| 1 | Public             |
+| 2 | Private nonprofit  |
+| 3 | Private for-profit |
+
+First, tabulate the number of schools you have in the table for each
+value of `CONTROL` (you can use data.table or base R for this). Also
+tabulate, the number of schools for each value of `CONTROL` that have
+non-NA values for both `TUITFTE` *and* `SAT_AVG`.
+
+Then, compute the mean and SD tuition per FTE and the mean and SD average
+SAT for each of the classes of ownership (pub, pnp, pfp), (1) using
+data.table, and (2) using `aggregate` with the columns `TUITFTE`,
+`SAT_AVG`, `CONTROL` and your NA-removed mean and sd function. Confirm
+by eye that they give the same result and compare speed. You can
+benchmark with `times=10`.
+
+A typical use of aggregate is:
+
+```
+aggregate(df[,c("col1","col2")], df[,"grouping"], function(x) ...)
+```
+
+# Question 2- doing more with "by" in data.table
+
+Make a subset of the data, called `scores.sub`, which has complete
+data for both `TUITFTE` and `SAT_AVG`. You can look up the `na.omit`
+function in data.table.
+
+Make a plot of `SAT_AVG` over `TUITFTE`, and color the points by
+`CONTROL`, with x-limits of [0-40,000] and y-limits of [500-1600].
+
+Now tabulate the number of schools that have tuition per FTE over
+20,000 and/or average SAT over 1200, grouped by ownership
+category. Your output should be sorted on the groupings you define, so
+the first row should be public, TUITFTE < 20,000 and SAT_AVG < 1200,
+and so on for 12 rows. See the Introduction vignette for data.table
+for insight on how to perform this operation. Hint: "sorted by" and
+"expressions in by".
+
+# Question 3 - subsets of data 
+
+Use data.table to obtain the tuition per FTE and average SAT for the
+two schools with the top average SAT within each ownership
+group. Hint: I performed this in two steps, first by ordering
+`scores.sub`, and then using "subset of data". Make sure to avoid
+returning all of the columns...
+
+# Question 4 - MovieLens sparse dataset
+
+As we mentioned in class, one common form of sparse data is when we
+have information about individuals and their interaction with a large
+set of items (e.g. movies, products, etc.). The interactions may be
+ratings or purchases. One publicly available dataset of movie ratings
+is *MovieLens*, which has a 1 MB download available here:
+
+<https://grouplens.org/datasets/movielens/>
+
+Download the `ml-latest-small.zip` dataset. Take a look at each of the
+CSV files. How many of the movies have the "Comedy" genre attached to
+them? 
+
+Build a sparse matrix of the movies by users, and just put a 1 for if
+the user rated the movie (don't actually record the value of the
+rating itself). You can do this but not specifying the value `x`. In
+the abstract, this is a very large matrix, but this is because the
+user IDs go up to nearly 200,000. Remove the rows of the sparse matrix
+where there are no ratings to produce a sparse matrix that is roughly
+~10,000 by ~600. Use `summary` to investigate the range, quartiles,
+etc. of number of movies rated by each user.
+
+Compute the SVD of the matrix. Plot the columns of the U matrix
+against each other: 1 vs 2, 2 vs 3, 1 vs 3. Note that column 1 and 3
+are correlated, with a long tail of movies. Investigate the names of
+these movies. What property can you infer about the top 6 movies in
+the tail w.r.t. column 1 and 3? Now look at the extremes of column 2
+of U. What difference can you tell about the movies, between the
+smallest values and the largest values in column 2?
+
+Hint: there are a few movies which are in the `movies.csv` file, but
+are not in the `ratings.csv` file. I recommend to subset the list of
+movies first, which will help with this problem.
+
