@@ -11,7 +11,11 @@ header_includes:
 - \usepackage{amsthm}
 include-before:
 - '\newcommand{\bfm}[1]{\ensuremath{\mathbf{#1}}}'
+- '\newcommand{\bftm}[1]{\ensuremath{\mathbf{#1$^{T}$}}}'
 - '\newcommand{\bdm}[1]{\ensuremath{\boldsymbol{#1}}}'
+- '$\def \A \bfm{A}$'
+- '$\def \b \bfm{b}$'
+- '$\def \tA \bftm{A}$'
 - '$\def \d \bfm{d}$'
 - '$\def \e \bfm{e}$'
 - '$\def \g \bfm{g}$'
@@ -22,11 +26,14 @@ include-before:
 - '$\def \y \bfm{y}$'
 - '$\def \Y \bfm{Y}$'
 - '$\def \X \bfm{X}$'
+- '$\def \x \bfm{x}$'
+- '$\def \tx \bftm{x}$'
 - '$\def \z \bfm{z}$'
 - '$\def \betab \bdm{\beta}$'
 - '$\def \Omegab \bdm{\Omega}$'
 - '$\def \pib \bdm{\pi}$'
 - '$\def \thetab \bdm{\theta}$'
+- '$\def \epsilonb  \bdm{\epsilon}$'
 ---
 
 ```{r setup, include=FALSE}
@@ -51,20 +58,178 @@ The term "unconstrained"  in Unconstrained Optimization relates to the parameter
 
 To introduce the topic, let us start with a familiar problem.  In the first lecture, we talked about maximum likelihood estimation in the context of linear regression.  In this setting, let us assume that we have an $n\times 1$ vector of observed responses $\y$ and an $n \times p$ full rank matrix of predictors $\X$.  We assume that $$\y = \X\betab + \epsilonb,$$ where $\betab$ is a $p \times 1$ vector of unknown parameters to be estimated, $\epsilonb$ is an $n \times 1$ vector of unobserved errors such that $\epsilon_i\sim N(0,\sigma^2)$ for $i = 1\ldots n$, and $\sigma^2$ is the variance of each of the unobserved errors (also unknown).  In doing so, we assume that the relationship between $\y$ and $\X\beta$ is linear, with some error.
 
-In our first lecture, we discussed for the intercept-only model case how one may perform maximum likelihood estimation to obtain estimates for $\betab$.  We can also show how this approach is equivalent to the problem of minimizing the regression sum of squares $\sum_{i = 1}^n (y_i - \X_i\betab)^2$, where $\X_i$ is the set of covariates pertaining to the $i'th$ subject.  We also may write this as $(\y - \X\betab)'(\y - \X\betab)$.  There is a close form for the minimized of the RSS, and during the derivation of which we arrive at the normal equations $\X'\X\betab = \X'\y$.  This implies that $\hat{\betab} = (\X'\X)^{-1}\X'\y$, our closed form solution for the minimizer of the RSS.  
+In our first lecture, we discussed for the intercept-only model case how one may perform maximum likelihood estimation to obtain estimates for $\betab$.  We can also show how this approach is equivalent to the problem of minimizing the regression sum of squares $\sum_{i = 1}^n (y_i - \X_i\betab)^2$, where $\X_i$ is the set of covariates pertaining to the $i'th$ subject.  We also may write this as $(\y - \X\betab)^T(\y - \X\betab)$.  There is a close form for the minimized of the RSS, and during the derivation of which we arrive at the normal equations $\tX\X\betab = \tX\y$.  This implies that $\hat{\betab} = (\tX\X)^{-1}\tX\y$, our closed form solution for the minimizer of the RSS.  
 
 Recall that we do not explicitly make any assumptions regarding $\epsilonb$ when decide to obtain $\hat{\betab}$ through simply minimizing the RSS.  If we make the additional usual assumption that $\epsilon_i\sim N(0,\sigma^2)$ for $i = 1\ldots n$, then we know that this minimizer is also the UMVUE estimator for $\beta$.  This assumption is implicit when we obtain $\hat{\beta}$ instead through maximum likelihood estimation.
 
 Alternatively, we may use unconstrained quadratic programming to obtain the minimizer of the RSS.  
 
-Let us write the general form of an Unconstrained Quadratic Programming problem as the following:
+Let us write the form of this Unconstrained Quadratic Programming problem as the following: 
 
-Minimize $||Ax - b||_2^2$ = \x'\A'\Ax - 2\b'\A\x + \b'\b$ over $\x$
+<center>Minimize $||Ax - b||_2^2 = \tx\tA\Ax - 2\b^T\A\x + \b^T\b$ over $\x \in \mathbb{R}^p$</center>
 
-For the current regression example, $\A = \X$, $\x = \betab$, and $\b = y$.  Note that $||Ax - b||_2^2 = ||b - Ax||_2^2$ and that we do not put any explicit bounds on $\x$.  With no surprise, we can derive the minimizer of this objective function in a manner very similar to our minimizer for the RSS.  That is, we have an analytic solution to this problem $\hat{x} = (\A'\A)^{-1}\A'\b$.  If we assume that $\A$ is full rank, then this implies that this solution (as in the regression case) is unique. 
 
-Generally speaking, we can use the methods for lecture 1 to perform optimization in this setting.  So why bother introduce this notation?  We do this to set up the unconstrained setting in the next section, where such objective functions are no longer convex. In general, we rarely see many unconstrained versions of Linear Programming problems as the objective function is linear, and therefore does not have a natural minimum without constraints as in the quadratic case.  That is, optimization in the quadratic case may be convex and therefore may naturally have a unique solution in the absence of constraints, but this is not the case with the linear objective function.  We will show examples of linear programming later in this lecture. 
+For the current regression example, $\A = \X$, $\x = \betab$ and is assumed to be $p$-dimensional, and $\b = y$.  Note that $||Ax - b||_2^2 = ||b - Ax||_2^2$ and that we do not put any explicit bounds on $\x$.  With no surprise, we can derive the minimizer of this objective function in a manner very similar to our minimizer for the RSS.  That is, we have an analytic solution to this problem $\hat{x} = (\tA\A)^{-1}\tA\b$.  If we assume that $\A$ is full rank, then this implies that this solution (as in the regression case) is unique. 
+
+Also, if $\A^T\A$ is positive definite, then this problem (as is usually the case when $\A$ is full rank), then the objective function is convex and is easily solvable by the methods discussed in the first lecture of this module.  
+
+We may more commonly see a more general form of this problem, written as the following:
+
+<center>Minimize $\frac{1}{2}\tx\Qx - \B^T\x + c$ over $\x \in \mathbb{R}^p$</center>
+
+With respect to the linear regression problem above, $\Q = \A^T\A$, $\B = \b^T\A$, and $\c =  \b^T\b$.  Oftentimes you may see $\c$ omitted as it is a constant unrelated to $\x$, and therefore has no role in terms of minimization with respect to $\x$.  Here, it is assumed that $\Q$ is $p\times p$ and is symmetric.
+
+
+Generally speaking, when $\Q$ is convex (positive definite and the cholesky decomposition form is full rank) we can use the methods for lecture 1 to perform optimization in this setting.  So why bother introduce this notation?  We do this to set up the unconstrained setting in the next section. 
+
+In general, we rarely see many unconstrained versions of Linear Programming problems as the objective function is linear, and therefore does not have a natural minimum without constraints as in the quadratic case.  That is, optimization in the quadratic case when the objective function is convex may naturally have a unique solution in the absence of constraints, but with the linear objective function is is rarely the case without constraints for obvious reasons (no natural minimum).  
+
+In general, when both the objective function and the constraints are both linear, we call this a Linear Programming problem.  We will show examples of linear programming later in this lecture. When the objective function is quadratic, and the constaints are linear, we call this a Quadratic Programming problem.  There are generalizations for quadratic constraints, but we will not cover them in this lecture. 
+
+Making a note regarding convexity of the objective function in QP: is it required?
 
 # Constrained Quadratic Optimization (Quadratic Programming)
 
-Now lets move to the case where 
+Now lets move to the case where we may constraints on the quadratic optimization problem introduced earlier.  We will start with the general for specifying the constrained quadratic optimization problem, and then we will given examples of such constraints and their connection to common problems in statistics.  
+
+We can write the general form of a constrained Quadratic Programming problem as the following:
+
+<center>Minimize $\frac{1}{2}\tx\Qx - \B^T\x + c$ 
+subject to $A_1\x = \d$ and
+$A_2\x \leq \e$
+</center>
+
+Where Q, B, and c are defined similarly to the previous section, $A_1$ is an $l\times p$ matrix, $A_2$ is an $m\times p$ matrix, $\d$ is a $l\times 1$ vector, and $\e$ is a $m\times 1$ vector.  The last two lines of the above represent the constraints on X.  This is a general form, and therefore there are several special cases of this that may have simple ways of solving for the minimizer with respect to $\x$.
+
+## Brief recap of langrange multipliers and the lagrangian
+
+In order to solve constrained quadratic programming problems, it is helpful to introduce the concept of langrange multipliers and the langrangian. In each of the special cases we will cover we will see how they provide one avenue to arriving at a solution, however multiple approaches for solving may exist.  
+
+For a generic problem where we have the following problem
+
+<center>Maximize $f(x)$ 
+subject to $g(x) = 0$ 
+</center>
+
+then we can introduce a new variable $\lambda$ and defined a function $$\mathcal{L}(x, \lambda) = f(x) - \lambda g(x)$$.  Here, $\lambda$ is called a Lagrange Multiplier, and $\mathcal{L}(x, \lambda)$ is called the Lagrangian.  Clearly, minimizing rather than maximizing is a trivial modification to this problem.  Here we assume that $f(x)$ and $g(x)$ have similar partial derivatives. 
+
+Clearly, we can see how this may relate to our Quadratic Programming problems, where we are attempting to minimize some function (say $f(x)$) subject to some constraint ($g(x) = 0$).  This can be generalized to multiple constraints as well.  
+
+So how does this approach help us solve the general QP problem?  The Langrangian helps us convert our originally constrained optimization problem to an unconstrained one.  
+
+In this current setup with a single constraint, we simply solve for $x$ and $\lambda$ from the following system of equations. 
+
+$0 = \frac{d}{dx}\mathcal{L}(x, \lambda)$ and 
+$0 = \frac{d}{d\lambda}\mathcal{L}(x, \lambda)$
+
+Later we will see cases where there may not be able closed form solution for $\lambda$ and the other parameters, and that one may need to fix $\lambda$ into order to arrive at a unique solution for the rest (objective function is only convex with $\lambda$ fixed).  This obviously presents a clear problem as to what is the best $\lambda$ to choose but for now we can assume that we can solve for $\lambda$ and $x$ directly.  
+
+### Example 1:  Simple function
+
+### Example 2:  Likelihood function
+
+## Application to solving a Quadratic Programming problem
+
+Now lets apply this to solving some common examples of Quadratic Programming problems
+
+## Quadratic programming with equality constraint
+
+In this case we specify an equalty constraint, and we drop c in the objective function has it has no impact on the minimization.  We can write the setup as the following:
+<center>Minimize $\tx\Qx - 2\B^T\x$ over $\x \in \mathbb{R}^p$
+subject to $A_1\x = \d$ 
+</center>
+
+Using the results from the previous section, we can express the Lagrangian as the following:  $$\mathcal{L}(\x, \lambda) = \frac{1}{2}\tx\Qx - 2\B^T\x- \lambda(A_1\x-\d).$$  Notice that in the previous section, the langrangian was defined only for constraints in the form of $g(x) = 0$.  We can format our current constraint such that $A_1\x-\d$, where $\d$ is considered a "slack variable" that allows for an adjustment to $A_1\x$ that ensures equality with 0.
+
+CHECK DEFINITION OF SLACK VARIABLE
+
+Taking derviatives with respect to $\x$ and $\lambda$, we arrive at the following:
+
+$0 = \frac{d}{dx}\mathcal{L}(\x, \lambda) = \Qx  - B^T - \lambdaA_1$ 
+$0 = \frac{d}{d\lambda}\mathcal{L}(\x, \lambda) = 0 + 0 + A_1\x - d$
+
+We can rewrite this as
+
+$B^T  =  \Qx  -\lambdaA_1$ 
+$d = A_1\x$
+
+Under certain conditions, we will have a unique solution to this problem.  
+
+### Example
+
+## Quadratic programming with inequality constraint
+
+We can write the setup as the following:
+<center>Minimize $\tx\Qx - 2\B^T\x$ over $\x \in \mathbb{R}^p$
+subject to $A_1\x \leq \d$ 
+</center>
+
+Using the results from the previous section, we can express the Lagrangian as the following:  $$\mathcal{L}(\x, \lambda) = \frac{1}{2}\tx\Qx - 2\B^T\x- \lambda(A_1\x-\d).$$  Notice that in the previous section, the langrangian was defined only for constraints in the form of $g(x) = 0$. 
+
+# Primal and Dual
+
+We can also represent an alternative form of the original maximization problem in the section prior.  We can denote the original optimization problem as the "primal" problem in terms of the langrangian defined.  We can also define what is called the "dual" function which can be defined as $$inf_x \mathcal{L}(\x, \lambda)$$, where this value can be dermined from solving for $x$ in $0 = \frac{d}{dx}\mathcal{L}(\x, \lambda)$.  After plugging this value back into the $ \mathcal{L}(\x, \lambda)$, the resulting fuction is now considered as the dual to the original problem.  Maximizing this function with respect to lambda is equivalent to minimizing with respect to the original problem
+
+## Examples
+
+# Application of Unconstrained Optimization: Ridge Regression regualrization
+In the linear model context, ridge regression has several applications.  It can 1) allow to get a set of estimates from a linear regression model where $\X$ is less than full rank, and 2) shrink coefficients.   In overdetermined models, this can be helpful in being able to obtain a set of coefficient estimates.  
+
+We can write the primarl of the minimization problem as the following:
+
+<center>Minimize $||Ax - b||_2^2$ 
+over $\x \in \mathbb{R}^p$
+subject to $||x||_2^2 \leq t$
+</center>
+
+We can write the dual of the minimization problem as the following: CHECK THIS
+
+<center>Minimize $||Ax - b||_2^2 + \lambda||x||_2^2$ over $\x \in \mathbb{R}^p$</center>
+
+Here \lambda, where $\lambda \geq 0$ s thought as the penalty or regularization parameter, where $\lambda = 0$ pertains to the regular least squares fit, and larger values of $\lambda$ results in more regularization.  For a fixed value of $\lambda$, we can show that there is a unique minimizer with respect to $x$, here $\hat{x} = (A^TA + \lambda I)^{-1}A^Tb$, where I is a $p\times p$ identity matrix. We can easily see that if $A$ is less than full rank, then $A^TA$ is less than full rank and therefore we cannot compute the inverse $(A^TA)^{-1}$ to obtain the standard least squares estimate.  In such cases where $A$ is LTFR, adding a diagonal matrix of fixed constants prior to taking the inverse will transform the matrix to be inverted into a full rank problem an therefore a unique solution exists.  Therefore, we can show that there is a unique minimizer for a given value of $\lambda$, however it is unknown apriori how to select the optimal value of lambda, which essentially controls the balance between model fit and model complexity. This LTFR situation may occur in extreme cases of multicollinearity and also when $p > n$ such as in high dimensional regression.  
+
+We can see that this an example of unconstrained regression, where conditional on $\lambda$ the objective function is still convex and therefore has a unique analytical solution.  One common way to choose $\lambda$ is via cross validation, which will be covered in detail in module 3.  In essence, we choose the $\lambda$ that has the smallest cross validation error.  Other criteria includes computing traditional model selection criteria on the fitted model, and selecting the lambda with the best corresponding BIC.  
+
+# Applications to variable selection: LASSO Regression
+One thing that is clear from ridge regression is that while it can shrink coefficients in the model, it cannot perform variable selection in the sense that it may remove variables from the model that are unhelpful (penalize coefficients to 0).  LASSO regression was introduced as a means to achieve this, where we can write the contstrained objective function in the linear model case such that 
+
+<center>Minimize $||Ax - b||_2^2  $ over $\x \in \mathbb{R}^p$
+subject to $||x|| \leq t$
+</center>
+
+When we attempt to solve this problem, we find that there is no closed form solution here. If we can rewrite the problem in a way that drops the absolute value in the constraint, then we reduce this problem to a standard QP problem.  Taking this route, we can write the langrangian of the rewritten problem as $$\mathcal{L}(\x, \lambda) = ||Ax - b||_2^2 - \lambda \sum_{i=1}^{p}|x_i|$$
+
+For a fixed $\lambda$, this problem is now a convex optimization problem.  Again, since there is no closed form solution here, we evaluate a range of $\lambda$ values and evaluate some sort of model selection criterian on each fit, choosing $\lambda$ that minimizes this criterion (cross validation error is one such criterion).
+
+# Alternative Approaches to Variable selection via Penalized Likelihood
+We will see that the above approachs in application to model selection problems in regression have overlap with the vast literature on variable selection methods via penalized likelihood.  The statistcal formulation of this problem was first introduced with the development of the LASSO by Hastie and Tibsirani, and some of the statistcal properties of general classes of penalities was introduced by Fan and Li in 2001.  
+
+
+# Fitting Penalized Likelihood Problems 
+
+## Penalty Functions and impact of choice
+
+### Properties and implications on penalty
+
+## Taylor Series Expansion
+
+## Coordinate Descent
+
+### Linear Models
+
+### Generalized Linear Models
+
+## Speeding upfitting
+
+### Initialization 
+
+### Warm Starts
+
+### Active Set
+
+### Prescreening (Sure Independence Screening for ultra high dimension)
+
+
+
+
+

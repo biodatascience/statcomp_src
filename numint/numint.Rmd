@@ -1,0 +1,470 @@
+---
+title: "numint"
+author: "Naim Rashid"
+date: "1/6/2019"
+output: 
+  html_document:
+    number_sections: true
+header_includes:
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
+include-before:
+- '\newcommand{\bfm}[1]{\ensuremath{\mathbf{#1}}}'
+- '\newcommand{\bftm}[1]{\ensuremath{\mathbf{#1$^{T}$}}}'
+- '\newcommand{\bdm}[1]{\ensuremath{\boldsymbol{#1}}}'
+- '$\def \A \bfm{A}$'
+- '$\def \b \bfm{b}$'
+- '$\def \tA \bftm{A}$'
+- '$\def \d \bfm{d}$'
+- '$\def \e \bfm{e}$'
+- '$\def \g \bfm{g}$'
+- '$\def \I \bfm{I}$'
+- '$\def \l \bfm{l}$'
+- '$\def \M \bfm{M}$'
+- '$\def \W \bfm{W}$'
+- '$\def \y \bfm{y}$'
+- '$\def \Y \bfm{Y}$'
+- '$\def \X \bfm{X}$'
+- '$\def \x \bfm{x}$'
+- '$\def \tx \bftm{x}$'
+- '$\def \z \bfm{z}$'
+- '$\def \betab \bdm{\beta}$'
+- '$\def \Omegab \bdm{\Omega}$'
+- '$\def \pib \bdm{\pi}$'
+- '$\def \thetab \bdm{\theta}$'
+- '$\def \epsilonb  \bdm{\epsilon}$'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#  Introduction
+Statisticians often encounter situations where they need to evaluate an integral during the evaluation or fitting of a statistical model.  One may recall that in random effects models, bayesian methods, and in the evaluation of expectations such integral evaluations are necessary.  
+
+In this section we wish to cover several strategies to evaluate such integrals in practice. In particular, we focus on situations where there is no clear analytical form for the integral.  In such cases we resort to numerical integration to approximate the integral.  
+
+There are a variety of methods to perform numerical intregration, and some you may have already learned in high school calculus.  We will review these methods plus commonly utilized ones in statistics, such as gaussian quadrature and monte carlo integration.  
+
+## Example
+
+Let us take a simple example of an integral below: 
+
+$$\int_{0}^1 x^2dx$$
+
+Here, we wish to integrate the area under the function $x^2$ from $x=0$ to $x=1$.  Graphically, we want to evaluate the area of the shaded region below:
+
+```{r, echo=TRUE}
+x = seq(-1.5,1.5,,1000)
+
+# make a plot with this function
+plot(x, x^2, ylab = "f(x)", xlab = "x", type= 'l')
+polygon( c(0,x[x>=0 & x<=1],1),  c(0,(x^2)[x>=0 & x<=1],0), col="grey")
+```
+
+So how do we evaluate this intergral?  Clearly there is an analytical form of the integral in this situation, and we can fall back to what we learned in high school calculus to evaluate it:
+
+$$\int_{0}^1 x^2dx = \frac{x^3}{3}\Big|_0^1 = \frac{1}{3}$$
+
+In statistics there are also situations where nice analytical forms of integrals exist, for example through the use of conjugate priors in bayesian methods, however more often than not this will not be the case. 
+
+## A more realistic example
+
+### Intro and data 
+
+This is an example taken an alzheimer dataset from Givens and Hoeting (example 5.1) that illustrates an application of the Generalized Linear Mixed Model (GLMM) to longitudinal patient study.  
+
+The example described a study of 22 alzheimers patients that were tracked over a period of 5 months, where  each month patients were asked to recall words from a list that was provided at baseline. The outcome variable in this setting is a count of the number of words recalled by each patients in a given month.  
+
+These patients were also recieving an experimental treatment during the course of the study, and the investigators sought to determine whether there is an improvement of word recall over time (assumed to be linear). 
+
+Clearly the repeated measurements within each subject are not independent, and that there may be substantial between-patient variation in each patient's baseline recall.  Therefore, a GLMM is more appropriate ot use in this scenario rather than a standard GLM.  
+
+insert some plots here of the data?
+
+### Model setup
+We can more formally set up with problem with the following.  Let $Y_{ij}$ be the number of words recalled by patient $i$ in month $j$, where $i = 1\ldots 22$ and $j = 1 \ldots 5$.  We assume that $Y_{ij} | \lambda_{ij}$ have independent Poisson($\lambda_{ij}$) distributions, where the mean and variance of $Y_{ij}$ is $\lambda_{ij}$.  
+
+We also let the covariate vector for the $i$th patient in the $j$th month be $\x_{ij} = (1, j)$, indicating that we assume an intercept $\beta_0$ and linear slope $\beta_1$ for month ($\betab = (\beta_0,\beta_1)$.  
+
+Then, the counts can be modeled with a poisson GLMM sich that $$\lambda_{ij} = \x_{ij}^T\betab + \gamma_i$$, where $\gamma_i$ is the unobserved subject-level random effect such that  $\gamma_i \sim $ N(0,$\sigma_\gamma^2$).  
+
+So, how do we write  the likelihood for this poisson GLMM with random intercept?  If say  $\gamma_i$ was observable and that we knew what it was, we could write it as the following:
+
+$$L(\betab, \sigma^2_\gamma | \y, \gamma) = \prod_{i = 1}^{22} \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_\gamma).$$
+Here $f(y_{ij} | \lambda_{ij})$ is the Poisson PDF with mean $\lambda_{ij}$ (defined above, dependent on $\gamma_{i}$), and $\phi(\gamma_i| 0, \sigma^2_\gamma)$ is the Normal PDF with mean 0 and variance $ \sigma^2_\gamma$.   Also, $\y$ is the vector of all observations in the study.  
+
+However, as in all GLMM's, the random effects are unobservable in the model, and therefore in order to obtain the likelihood we must integrate them out.  
+
+We perform separate integrals for each $\gamma_i$, 22 in total, which share a common distribution determined by $\sigma^2_gamma$.  In some sense, we can interpret these $\gamma_i's$ was 22 iid draws from $\phi(\gamma_i| 0, \sigma^2_\gamma)$ which represent the baseline subject-level variability about $\beta_0$.  This likelihood can be represented as the following:
+
+$$L(\betab, \sigma^2_\gamma | \y) = \prod_{i = 1}^{22}\int \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_\gamma) \right] d\gamma_i$$
+
+  
+
+The log-likelihood is therefore $$\mathcal{l}(\betab, \sigma^2_\gamma | \y) = \sum_{i = 1}^{22}\log\left[\int \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_\gamma) \right] d\gamma_i\right].$$
+
+### About those parameter estimates...
+
+This is a bread and butter GLMM, specifically a poisson GLMM with a subject level random intercept.  Now we would not like to maximize this function to obtain estimates for $\betab$ and $\sigma^2_\gamma$. But how do we do even do this?
+
+Well, given that the joint density in the integrand does not simplify to a known distribution, there are no simple closed form solutions for the MLEs.  No surprise,  as a result we will have to use the optimization tools discussed in the prior lectures. 
+
+However, we have the additional complication of the presence of an integral with respect to $\gamma_i$ in the log likelihood. Again, the joint density in the integrand does not simplify to some known distribution, so again we must approximate this integral numerically during the maximization process.  We also have to make some assumptions regarding switching the order or integration and derivation when calculating derivatives, but that is less of an issues. 
+
+### A path forward
+If we assume that we can switch the order of integration and derivation when computing the 1st and 2nd derivatives of the log likelihood, we can obtain forms for first and second derivatives of the likelihood.  Then, we can implement a few of the  optimization schemes discussed in the first lecture of this module. 
+
+However, we still have to worry about evaluating these integrals in each iteration of whatever optimization method we choose.  If the evaluation of the integral is complex or computationally burdensome, this may impact the choice of optimizaton method we may want to use practically. For example, NR may not be an efficient choice in such situations, as we will have to integrate in both the score function (1st derivative) and hessian function (2nd derviative) in each iteration.  Some software also evaluates the log likelihood by default at each iteration, adding another round of integration.
+
+The more basic question is how would we even perform this integral to begin with?  The integral clearly does not have a closed form.  In the next several sections we will introduce some general methods to approximate these integrals.  We will then combine these approaches with the methods discussed in the previous lecture for maximization.  
+
+To give you a taste of how we can use existing software to fit GLMMs, we can use the \texttt{glmer} function from the \texttt{lme4} package:
+
+```{r, echo=TRUE}
+library(lme4)
+#fit = glmer(y ~ 1 + month + (1|subject), family = poisson())
+#summary(fit)
+#ranef(fit)
+```
+
+You can see that .... glmer uses the "Laplace Approximation" in evaluating the integrals in question, which is a special form of Gaussian Quadrature that we will learn about later. There are some additiona tricks that it uses to increase speed and accuracy, but we will not go into too much detail here in this course.  For more detail you can see...
+
+
+## General numerical integration
+Many of the approaches that fall into this section are all approaches you likely have seen in prior calculus courses. These methods include the trapezoidal rule, simpson's rule, reimann integation, etc and have their own pro's and con's.  Rather than rehash each of these approaches in detail we will cover one or two of these methods and discuss the pro's and con's of others.  We will also talk about the advantages and disadvantages of this general category of methods relative to others. 
+
+Lets consider the general problem of evaluating a one dimensional integral of the function $f(x)$ with respect to $x$ within the range of $a$ to $b$.  We can write this as $\int_a^bf(x)dx$.  As mentioned earlier, oftentimes in bayesian analysis the posterior distribution in question does not have an analytical form for the integral, or in frequentists methods such as GLMMs the likelihoods require integration.  
+
+To approximate such integrals in this class of methods, we can first split the interval $[a,b]$ into $n$ parts, say $[x_i,x_{i+1}]$ for $i = 0, \ldots, n-1$, where $x_1 = a$ and $x_n = b$.   Then we can write $$\int_a^bf(x)dx = \sum_{i=0}^{n-1}\int_{x_i}^{x_{i+1}}f(x)dx.$$  
+
+In this sense, we are breaking up the original integral into the sum of integrals on disjoint subintervals spanning the original range of integration.  Then, we then worry about approximating the integral on each individual interval, an sum these approximations to obtain the estimate for the original full integral.
+
+On an individual interval $[x_i,x_{+1}]$, we initiate the approximation by inserting $m+1$ nodes $x_{ij}^*$ for $j = 0, \ldots,m$ across the interval.  Then, we can approximate the intergral in this subinterval in the general form in the following: $$\int_{x_i}^{x_{i+1}}f(x)dx =  \sum_{j=0}^m A_{ij}f(x_{ij})^*$$ where $A_{ij}$ is some set of constants. 
+
+In other words, we approximate the integral in each subinterval by evaluating the function of interest $f(x)$ at each node in the the subinterval and then multiplying by some constant prior to summing up over the nodes.  
+
+The length of the intervals in addition to the spacing of the nodes in each integral does not need to be equal as a general rule.  What may be apparent from the above approximation is that the accuracy in general should improve as we decrease the length of the subintervals and/or increase the number of nodes per subinterval.
+
+For this general class of methods the main differentiator between approximation is the choice of $A_{ij}$.  
+
+## Newton-Cotes Quadrature
+
+This class of methods is characterized by having nodes equally spaced in $[x_i,x_{+1}]$ with the name number of nodes used across all subintervals. In a general sense, the function to be intregated in each subinterval is replaced with a polynomial approximation that is easier to intergrate. Three methods in this class pertain to Riemann, trapezoidal, and Simpson's rules.  The main difference in these rules is the order of the polynomial approximation, from 0 (constant), 1 (linear), to 2 (quadratic), respecively.  This is illustrated in the figure below
+
+![Illustrations of the approximations based upon  Riemann, trapezoidal, and Simpson's rules in a given subinterval for some function f(x).](chap6figrules.jpg){width=65%}
+
+We discuss each of these methods briefly below
+
+## Reimann Rule
+The Reimann rule boils down to approximating the function in a given subinterval with a constant function (1 node in the interval, order is 0).  For each, one may use the value of $f(x)$ at a given point in the interval, say $f(x_i)$ for example, pertaining to a 0th degree polynomial.  Then, the intergral in this interval is approximated with $$\int_{x_i}^{x_{i+1}}f(x)dx \approx f(x_i)dx = (x_{i+1} - x_i)f(x_i)$$
+
+In other words, the intergral is approximated as the area of the rectangle formed by the width of the subinterval $(x_{i+1} - x_i)$ multiplied by the height of the rectangle $f(x_i)$.
+
+Then, the total approximation is set by summing over the individual intervals.  If the lengths of each interval are the same, then this ocerall sum simplifies to $h\sum_{i=0}^{n-1}f(a+ih)$, where $h = \frac{b-a}{n}$, the width of each equally spaced interval.  Note that we did not have to use $f(x_i)$ as the constant function, $f(x_{i+1})$ could be uses as well in the above figure. 
+
+As $n\rightarrow \infty$, the approximatiom approaches the true value of the intergral.  The approximate is also exact, as one would imaging, when $f(x)$ itself is constant on the interval.  Since it is not known in advance what $n$ would be best to use, we can sequentially increase $n$ and repeat the approximation.  
+
+Similar to the approaches discussed in the first lecture of this module, we can examine when the approximation tends to converge with respect to $n$, stopping the number of intervals at that particular point.  It is recommended to use $n_{k+1} = 2n_k$, doubling the number of intervals relative to the prior evaluation so that half the subinterval endpoints at the next step correspond to the old endpoints from the previous step. This avoids redundant calculations of the function of interest.   
+
+Drawbacks of this approximation is that it is slow to converge with respect to $n$, in that you may need to increase the number of intervals greatly to achieve a good approxmation.  This is not surprising given that the approximation on the sub interval itself is a constant function, so shorter intervals will provide better approximation to the function of interest. On advantage of this approach is that it is quite easy to calculate, particularly when the length of each subinterval is the same. 
+
+### Application to GLMM example
+
+## Trapezoidal Rule
+
+The rule can be written as the following
+
+$$\int_a^bf(x)dx \approx \sum_{i=0}^{n-1}\frac{(x_{i+1} - x_{i})}{2}(f(x_i) + f(x_{i+1})$$
+which you may recognize as the area of a trapezoid, which in this case has the width of the subinterval, left side height as $f(x_i)$ and right side height as $f(x_{i+1})$.  The approximating polynomial here is linear, as can be seen in the figure above pertaining to $m = 1$, two nodes over the interval (left and right bounds).  
+
+With this linear function, the area under the curve is a trapezoid.  We may also derive this expression from the integral of the "fundamental polynomials"  (GH, Section 5.1.2) pertaining to order $m = 1$ (linear).  We wont get into this in too much detail but we note it here in case you are interested in learning more. 
+
+Simpsons rule is similar with $m = 2$, we will skip it now for time purposes. 
+
+In general, these approaches may require a large number of intervals of shorter length to converge, particularly with smaller $n$.  The convergence increases as the order of the polynomial approximation within each interval increases, however this may be at the expense of greater computational burden relative to lower orders [check this].  Another downside of this approach is the the bulk of the area under the original function to be integrated may be concentrated in a certain region, and therefore many of these intervals may not be contribute meaningfully to the overall integral.
+
+### Application to GLMM example
+
+# Gaussian Quadrature
+
+One obvious downside of the previous approach is when the mass under the integrand is concentrated mostly in just a few intervals.  Then, the majority of the intervals, and then computation, will contribute little to the overall approximation.  In addition, the intervals that do span the area of relevance may not be fine enough to approximate the integral in this area.  
+
+For example, in the GlMM example, lets take a look at just the liklihood pertailing to the first subject.  If we create a set of disjoint intervals spanning the range of $\gamma_1$, then we can see that most of the mass underneath the curve is falling into the middle intervals.  We could increase the number of intervals to increase the accuracy, but we are also increasing the number of intervals we need to evaluate that do not contribute at all to the integral approximation.  
+
+PLot likelihood for first subject wrt to gamma1
+
+Instead of having intervals with equally spaced nodes, what if we instead got rid of intervals entirely and just placed the nodes in the range of $x$ where the bulk of the mass is under the curve?  Say, like in the following:
+
+Plot likelihood for second subject wrt gamma 1
+
+This is the general intuition behind gaussian quadrature, where the trick is to determine two quantities:  the locations of each node where the function will be evaluated, as well as the weights that are associated with each node.  With these two values in hand, we can approximate a given interval with relatively good accuracy compared to the methods from the prior section.  
+Gaussian quadrature is very effective for integrals of the following form: $$ \int_a^b f(x)w(x)dx$$ and  $$ \int_a^b x^kw(x)dx < \infty$$.  You may recall that the former may be relevent in bayesian applications where we have a density function $f(x)$ and some prior $w(x)$.  
+
+You might notice that the former is similar to the original integrand at hand, where in place of $f(x)$ we have $\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})$ and in place of $w(x)$ we have $\phi(\gamma_i| 0, \sigma^2_\gamma)$ and we wish to integrate with respect to $\gamma_i$.
+
+The latter is relevant to computing finite moments (such as the expectation $k = 1$) with respect to some pdf $w(x)$.  More generally, we can use quadrature to integrate any generic function $f(x)$ via  $$ \int_a^b f^*(x)w(x)dx$$, where $f*(x) = \frac{f(x)}{w(x)}$.  
+
+**In the previous section, we choose nodes and associated weights in each subinterval that allowed exact integration of the approximating polynomial in that subinterval.**  For gaussian quadrature, the question is how do we pick the nodes and the weights for the function of interest that we wish to integrate?  We do this through the use of orthogonal polynomials.
+
+## Orthogonal Polynomials
+
+Lets say that we can factor our integrand into the form $f(x)w(x)$.  Depending on the form of $w(x)$ in this expression, a set of corresponding orthogonal polynomials may be chosen (see Table 5.6 in GH).  Clearly, the various forms of $w(x)$ listed in this table would be advantageous to factor out of the existing joint density to give $f(x)w(x)$ to enable application of gaussian quadrature. 
+
+After choosing $w(x)$, standard software can solve for the roots of the corresponding orthogonal polynomial as well as the weights pertaining to each root.  These values can then we utilized for integration.  For time purposes we will not get into more detail into how these orthogonal polynomials are solved, but for all practical purposes many R-based functions exist to do this once the choice of Polynomial in Table 5.6 has been made. 
+
+More generally, given that $w(x)$ is non-negative over the range of integration $[a,b]$, there exists a sequence of polynomials that are "orthogonal"  with repect to $w(x)$ over the range $[a^*,b^*]$, a transformed version of the original range of integration.  In practical applications, the choice of polynomial may be easily recognizable from the form of $w(k)$, sometimes requiring some factoring or rearranging of terms. 
+
+### Circling back to the Alzheimers example
+
+For example, if we expand the expression for $\phi(\gamma_i| 0, \sigma^2_\gamma)$, we can see that we can rewrite the likelihood for the first sample as the following:  
+
+$$\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right) \times \frac{1}{\sqrt{2\sigma_{\gamma}^2}}e^{-\frac{\gamma_i^2}{2\sigma_{\gamma}^2}} d\gamma_i
+$$
+
+
+We can see that we can fact the latter portion of the above into the form $w(x) = e^{-\frac{x^2}{2}}$, which pertains to Gauss-Hermite Quadrature.  If the assumed distribution for $\gamma_i$ was instead standard normal, we would not have to do any sort of extra work regarding factorization.  Since this is not the case here, we can achieve this form in a few ways.  The first is a change of variable to $\gamma_i^* = \frac{\gamma_i}{\sigma_{\gamma}^2}$, integrating now with respect to $\gamma_i^*$.  A more general approach would be to simply do the following:
+
+
+$$\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right) \times \frac{1}{\sqrt{2\sigma_{\gamma}^2}}\left[\frac{e^{-\frac{\gamma_i^2}{2\sigma_{\gamma}^2}}}{e^{-\frac{\gamma_i^2}{2}}}\right]e^{-\frac{\gamma_i^2}{2}} d\gamma_i = \int f(\gamma_i)w(\gamma_i) d\gamma_i
+$$
+
+where $w(\gamma_i) = e^{-\frac{\gamma_i^2}{2}}$ and $f(\gamma_i) = \frac{1}{\sqrt{2\sigma_{\gamma}^2}}\left[\frac{e^{-\frac{\gamma_i^2}{2\sigma_{\gamma}^2}}}{e^{-\frac{\gamma_i^2}{2}}}\right]$.  With this in hand, now we can apply Gauss Hermite Quadrature.  But how to do this?
+
+
+## Gaussian Quadrature Rule 
+
+Once the weights and nodes have been determined, the integral is approximated simply using $$\sum_{k=1}^m A_kf(x_k)$$, where $x_k$ is the $k$th quadrature node and $A_k$ is the weight associated with that node.  In general, the more nodes that we select the more accurate the approximation becomes, however at the expense of more computing time.  
+
+Lets start with $m = 5$ nodes.  Note that the total number of nodes here is much much smaller than in the previous approach.  We will see that we can achieve much better accuracy relative to the previous approaches despite the smaller number of nodes.  
+
+In our current example we have selected Gauss-Hermite Quadrature, which has the advantage of being able to approximate the integral in question over the entire real line.  Lets first start by determing the set of orthogonal polynomials and associated weights for $k = 5$ nodes. Available R functions will either calculate these directly or will simple look them up in precomputed tables.  Here we use the gaussquad package to print the nodes and associated weights for $m = 1,\ldots, 10$:
+
+```{r, echo=TRUE}
+# load the gaussquad library
+library(gaussquad)
+
+# get the nodes and associated weights up tto m = 10
+gh = ghermite.h.quadrature.rules(n = 10, mu = 1)
+
+# print out the resulting list object
+print(gh)
+```
+
+Setting Mu = 1 here indicates the standard form for $w(x)$ in GH quadrature.  Now, lets write a function for $f(\gamma_i)$ as we defined earlier, and then use this function to calculate the integral approximation with the nodes and weights associated with $
+
+```{r, echo=TRUE}
+# gamma_i is the random effect we are integrating over, assumed to be a scalar here
+# y_i is the vector of observations for the ith subject of length 5 (1 obs per month)
+# beta is length 2 vector of fixed effects coefficients in the model
+# sigma2_gammai is the value of the variance of the random effect
+# X_i is the ith row of the n times 2 covariate matrix 
+
+f = function(x_i,y_i, beta,X_i, sigma2_gammai ){
+  
+  # calculate lambda_i, the linear predictor and mean of y_i
+  lambda_i = exp(X_i %*% beta + x_i)
+  
+  # now calculate f
+  val = prod(ppois(y_i,lambda = lambda_i)) * (1/sqrt(2*sigma2_gammai)) * (exp(-x_i^2/(2*sigma2_gammai))) / (exp(-x_i^2/(2)))
+  
+  # return value
+  return(val)
+}
+```
+
+Now that we have that out of the way, lets approximate the intergral for the first observation
+
+```{r, echo=TRUE}
+# set node number
+m = 5
+
+# get the nodes for m = 5
+#x = gh[[m]]$x
+
+# get the weights associated with each node for m = 5
+#w = gh[[m]]$w
+
+# now approximate the intergral using GH quadrature
+#integral_approximation = sum(w*f(x_i = x,y_i = y_i, beta = beta,X_i = X[i,], sigma2_gammai = sigma2_gammai))
+
+#print(integral_approximation)
+```
+
+Lets say that the true value for this integral is xxx.  Then, we can see that if we increase $m$, we get closer to this true value, and if we decrease $m$ we get further away:
+
+```{r, echo=TRUE}
+for(i in 1:length(gh)){
+    # set node number
+  m = i
+  
+  # get the nodes for m = 5
+  #x = gh[[m]]$x
+  
+  # get the weights associated with each node for m = 5
+  #w = gh[[m]]$w
+  
+  # now approximate the intergral using GH quadrature
+  #integral_approximation = sum(w*f(x_i = x,y_i = y_i, beta = beta,X_i = X[i,], sigma2_gammai = sigma2_gammai))
+  
+  #print(integral approximation)
+}
+```
+
+### Great, but now how do I do optimization?
+
+As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to apply NR, BFGS, etc to optimize the likelihood.  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
+
+
+## Extensions to Multidimensional integrals
+Keep in mind that so far, we are dealing with one dimensional intergrals.  With multidimensions integrals, alternate approaches relative to the this approach as well as the previous one may be preferred.  For example, for Newton-Cotes type methods, we would need to define a two-dimensional grid to approximate the integral with respect to each variable in each subinterval.  
+
+For Gaussian Quadrature, we would have to determine the nodes and weights with respect to each variable, and the integral is then approximated with a double summation if the dimension of the integral is 2.  In one dimensional integration, if $m$ was chosen to be 5, then we would have 5 evaluations of the function $f$.  For a two dimensional integral, this would jump to 25 evaluations of $f$.  
+
+Clearly, as the dimension increases the above approaches become more and more computationally difficult.  Software implementations for estimating GLMM's typically use the Laplace approximation (equivalent to using $m=1$ in GQ) to ease some of the burden.  The lme4 package in r contains the function glmer to do this for GLMM's, and uses some additional tricks to improve accuracy.  
+
+
+Adaptive Quadrature is another approach to get around some of these issues, where the intervals are adjusted such that they are places in portions of the integrand where more of the mass is located. There are veriosn of adaptive GQ that rescale the nodes given the posterior mode of the variable(s) to be integrated over, as well as the 2nd derivative of the integrand around this posterior mode.  Such approaches should be considered when using multidimensional integrals.  
+
+
+# Monte-Carlo Integration
+
+So far we have talked about several approaches that are node-based, where we fix points of evaluation and then approximate the area under the curve between these points.  We have found that quadrature based integration methods offer much faster integration and higher accuracy than the Newton-Cotes methods, but take a little bit more work to set up.  
+
+However, both approaches will become computationally expensive as the dimension of the integral to be evaluated increases.  For example, if we instead assumed in our current example that we have a random intercept and a random slope (with respect to month), the dimension of the random effect increases from 1 to 2, and now we have to integrate out both to obtain the likelihood.  The amount of computation needed will increase exponentially with the number of integrals and the number of nodes needed to approximate each integral.  We will get to an example of how these methods fare with multidimensional intergrals this at the end of this section.  An alternative approach to the methods that we have introduced is called Monte Carlo integration.  
+## The general idea
+
+Here, instead of evaluating the function of interest over a number of nodes  at pre-determined positions, we instead randomly sample these points from a probability distribution.  That is, we approximate the integral over a set of randomly drawn nodes that are sampled over the support of the function to be integrated. Dimensionality of the intergral is less of an issue here provided that there is a means to sample nodes from a multivariate pdf instead. 
+
+Lets assume again that we can factor our function of interest and wish to carry out the following integral:  
+
+$$ \int h(\x)f(\x)dx$$
+
+If we assume that $f(\x)$ is the density for a random variable $\X$, then we can approximate this integral such that:
+
+$$ \int h(\x)f(\x)dx \approx \frac{1}{n}\sum_{m = 1}^M f(\X_i),$$ where $X_1,\ldots,\X_M$ are an iid samples drawn from $f(\x)$. As $M \rightarrow \infty$, $\frac{1}{n}\sum_{m = 1}^M f(\X_i) \rightarrow  \int h(\x)f(\x)dx$ by the strong law of large numbers.  
+
+This is helpful for integrating joint probability distributions, such as in our GLMM examples ($f(\x)$ in this setting is $\phi(\gamma_i)$, or in calculating expectations of functions of $x$ emprically ($E[h(\x)]$).  
+
+Due to the random nature of the nodes, some variance in the approximation is expected.  This is called Monte Carlo Variance (MCV) and is larger at smaller $M$.  If we let $\hat{\mu}_{MC} = \frac{1}{n}\sum_{m = 1}^M f(\X_i)$ and assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\x)f(\x)dx$, and $var(\x) = E[(h(\x) - \mu)^2] = \sigma^2$, then using results from BIOS 760 we know that the sample variance for $\hat{\mu}_{MC} = \sigma^2/n$.  Here $\mu$ is the expectation of $h(\X)$.
+
+Given this, we can calculate the MCV using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{var(\x)} = \sum_{m = 1}^M (h(\X_i) - \hat{\mu}_{MC})^2$$.
+
+If we assume that $\sigma^2$ exists, then we know that the asymptotic distribution for $\hat{\mu}_{MC}$ is approximately normal, so we can derive approximate confidence bounds for $\mu$ and perform statistical inference later. 
+
+## Simple example
+
+Lets say that some random variable $Y \sim Po(5)$ and we want to calculate $E[Y]$.  Normally we would just use the fact that the expected value of a $Po(\lambda)$ random variable is simply $\lambda$, but we can also obtain this through MCI.  
+
+Here we wish to compute the following $$\int yf(y)dy.$$
+
+Using what we have already discussed, we know that we can approximate the expected value by generating $M$ samples $Y_1,\ldots,Y_M$ from the $Po(5)$ distrbution, and then calculating $\frac{1}{n}\sum_{m=1}^M h(y_i) = \frac{1}{n}\sum_{m=1}^M y_i$.
+
+Using the following, we can do this easily:
+
+```{r, echo=TRUE}
+# set the seed
+set.seed(1)
+
+# set the number of MC samples to draw
+M = 100
+
+# draw the samples
+y = rpois(M, lambda = 5) 
+
+# since h(y) = y, we can simply take the mean of y 
+print(mean(y))
+
+# estimate the MCV
+print(var(y)/M)
+```
+
+This is pretty intuitive in that we are simply drawing samples from the known distribution for $Y$ and taking the mean to estimate $\hat{\lambda}$, where in this case the true value for $\lambda = 5$. 
+
+We can see that this estimate is not exactly equal to 5 and is estimated with some error. The MCV in this case is relatively large at 0.0391.  So, to increase the accuracy of the integral, lets bump up $M$:
+
+```{r, echo=TRUE}
+
+# set the number of MC samples to draw
+M = 10000
+
+# draw the samples
+y = rpois(M, lambda = 5) 
+
+# since h(y) = y, we can simply take the mean of y 
+print(mean(y))
+
+# estimate the MCV
+print(var(y)/M)
+```
+
+Now we can see that the error is much lower, at the cost of many more samples. 
+
+Given that we know that the expectation is simply 5 in this session this does not seem very impressive.   Let us instead calculate the values of higher order moments using MCI:
+
+```{r, echo=TRUE}
+
+# set the number of MC samples to draw
+M = 10000
+
+# draw the samples
+y = rpois(M, lambda = 5) 
+
+#  h(y) = y^2
+print(mean(y^2))
+
+#  h(y) = y^3
+print(mean(y^3))
+
+#  h(y) = y^3
+print(mean(y^4))
+
+```
+
+We know that the second moment of $Y$ is $\lambda + \lambda^2 = 5 + 25 = 30$. 
+
+## Application to Alzheimers GLMM example
+
+Lets try to evaluate the integral for the first subject in the model using MCI and then compare the approach to quadrature in terms of computational time and accuracy.  We will see that in unidimensional integrals quadrature holds an advantage.  
+
+## Extension to higher dimensional integrals
+
+Now lets assume that in the GLMM model that we utilize in the Alzheimers example that we wish to use a subject-level random slope (with repected to month) and a subject-level random intercept. Then, we have the following likelihood 
+
+$$L(\betab, \Sigma_\gamma | \y) = \prod_{i = 1}^{22}\int\int  \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi_2(\gamma_i| 0, \Sigma_\gamma) \right] d\gamma_{i1}\gamma_{i2}$$
+
+where $\lambda_{ij} = \x_{ij}^T\betab + Z_i\gamma_i$, $\gamma_i = (\gamma_{i1},\gamma_{i2})^T$, and $\gamma ~ \phi_2(\gamma_i| 0, \Sigma_{\gamma}) $, a Multivariate Normal distribution with mean 0 and covariance matrix $\Sigma_{\gamma}$.
+
+For reference, lets apply glmer to this data and then obtain a set of estimates that we will plug into the later functions for intregration:
+
+Then, lets set up the GQ based approach to integrating this likelihood and evaluate the computation time:
+
+Finally, lets apply MCI
+
+We see that the integral approximation is much simpler and more accurate for MCI. Rather than explicitly evaluating over each combination of nodes in GQ, we simply draw from the two-dimensonal pdf for $\gamma$.  It is apparent that as the dimension of this integral increases, so does the relative gain in speed over GQ methods.  
+
+In general, it is not a good idea to use GQ for anything more than double integrals.  This is of course if the joint likelihood for $\gamma$ does not factor neatly into each of its individual elements ()
+
+## Variance Reduction: Importance Sampling
+
+
+## Final Notes
+
+Monte Carlo Integration (MCI) is quite general and can be applied to many functions.  The drawbacks are the number of points that may be needed to sample in order to obtain similar accuracy as say gaussian quadrature.  For example, the order of convergence to the true area with respect to the number of nodes in GQ is $o(n^{-2})$, however for MCI it is $o(n^{-\frac{1}{2}})$.  
+
+In addition, since the nodes are being randomly sampled from some distribution, there will be random variability in the estimate for the integral.  That is, if one were to repeat the procedure and resample the nodes, the value of the integral may change.  Therefore, one may have to sample  more nodes in order to obtain similar accuracy as GQ and also to reduce the variance of the integral approximation.
+
+As a result, one may prefer to use MCI in situations for complex or non-smooth integrands or for multidimentional integrals.  
+
+So to summarize:
+
+*  Pro
+    *  Applicable to generic functions
+    *  Easy to implement (randomly sampling nodes)
+    *  Easy to extend to multidimensional integrals
+    *  Computational time does not scale exponentially with dimension of integral
+
+
+
+
