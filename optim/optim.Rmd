@@ -932,7 +932,8 @@ However, for very large sample size problems the computation may become prohibit
 
 Stochastic gradient descent instead randomly subsamples the data and performs an update for $\betab$ with a random observation drawn from the data.  Rather than updating $\betab$ with a full pass over the data, we instead update $\betab$ with each draw from the data, such that now $$\betab^{s+1} = \betab^{(s)} - \alpha l_i'(\betab^{(s)}),$$ where $s>0$ is the subsample index, $i$ is the index of the sample that is randomly drawn from the data, and $l_i'(\betab^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\betab^{s+1}$, which may take multiple loops over the entire data set.  Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
 
-Lets try it out on our poisson regression example.  Here is regular gradient ascent with just a fixed $alpha^{(t)}$:
+## Application of GD and SGD to our Poisson Regression Example
+Lets try it out on our poisson regression example.  Here is regular gradient ascent with just a fixed $\alpha^{(t)}$:
 
 
 ```{r, echo=TRUE}
@@ -973,7 +974,7 @@ end = Sys.time()
 print(end - start)
 ```
 
-Takes more iterations and time than the prior methods, but is not surpising since it does not utilized or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
+Takes more iterations and time than some of the prior methods, but is not surpising since it does not utilized or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
 
 Now here is a mini batched version of stochastic gradient descent, taking samples of 10
 
