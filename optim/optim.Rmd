@@ -52,9 +52,9 @@ Let us further assume that the distribution of these heights is distributed norm
 
 A common question in this situation is what is the "best" estimate of $\mu$ given the data, and how do we obtain it?   Answering this question can depend on the domain of the question being asked.
 
-From introductory statistical courses, one may remember that an estimator for $\mu$, say $\hat{\mu}$ , in this setting may be $\bar{\mathbf{y}}$, or the mean of the observed heights.  In more advanced statistical courses, you may have shown why this is the case via **analytically** deriving the maximum likelihood estimator for $\mu$, and proving its optimality relative to other potential estimators.  
+From introductory statistical courses, one may remember that an estimator for $\mu$, say $\hat{\mu}$ , in this setting may be $\bar{\y}$, or the mean of the observed heights.  In more advanced statistical courses, you may have shown why this is the case via **analytically** deriving the maximum likelihood estimator for $\mu$, and proving its optimality relative to other potential estimators.  
 
-We can also rexpress the original form of this problem as an intercept-only linear regression model:  $$y_i = \X\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X$ is simply a column vector of ones, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
+We can also rexpress the original form of this problem as an intercept-only linear regression model:  $$y_i = \X_i\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X_1$ is simply one, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
 
 Regardless of the approach used here, we can show that we can obtain $\hat{\mu}$ analytically via optimizing some function of the data with respect to the parameters of interest $\mu$.  In the linear regression case, we are minimizing the residual sum of squares of the model with respect to $\beta$ ($\mu$), and in the latter, we are maximizing the likelihood function assumed for the data with respect to $\mu$.  
 
@@ -199,14 +199,14 @@ In this module we will discuss some fundamental methods for the optimization of 
 
 Let us consider the numerical optimization of the following function $f(\theta)$, which we seek to maximize with respect to $\theta$: $$f(\theta) = \frac{\log(\theta)}{1+\theta}.$$  The traditional approaches to maximizing $f(\theta)$, such as the approach described in the previous example, are difficult to apply in this case where the analytical solution for $\theta$ after setting $f'(\theta) = 0$  is not easy to determine.  
 
-Here,  $$f'(\theta) = \frac{1+x - x\log(x)}{x(1+x)^2}.$$ So...not easy to solve for.
+Here,  $$f'(\theta) = \frac{1+\theta - \theta\log(\theta)}{\theta(1+\theta)^2}.$$ So...not easy to solve for.
 
 Lets first plot this function to determine its shape:
 
 ```{r, echo=TRUE}
 # define function 
-f1 = function(x){
-  log(x)/(1+x)
+f1 = function(theta){
+  log(theta)/(1+theta)
 }
 
 # make a plot with this function, where the x-axis ranges from 0 to 10
@@ -355,7 +355,7 @@ There may be situations where the algorithm may not converge or do so in a suita
 ### Rationale and Derivation
 Let us suppose that $f'(\theta)$ is continually differentiable, $f''(\theta)$ exists, and that $f''(\theta) \neq 0$ (suggesting that the derivative is non-constant).  At a given iteration $t$, $f'(\theta^*)$ can be approximated by a linear Taylor Series Expansion about $\theta^*$, the unknown true value of $\theta$ that maximized $f(\theta)$.  Yes, we do not know what $\theta^*$ is in reality, but this term is important when we talk about the conditions that may impact the performance of this approach later on. 
 
-Under this approximation, we have $$0 = f'(\theta^*)  \approx f'(\theta^*) + (\theta^* - \theta^{(t)})f''(\theta^{(t)}).$$  Lets unpack what this means for one second.  If you recall, most analytic approaches to optimizing algorithms start with setting the 1st derivative to 0 and solving for the value of $\theta$ satisfying this equality.  In this setting, we assume that such an analytic solution does not exist, and therefore we utilize numerical optimization approaches to arrive at an approximate solution.  In addition, we can see that we that in using this linear Taylor Series approximation, $f'(\theta^*)$ is approximated by its tangent line at $\theta^{(t)}$ (see figure below).  
+Under this approximation, we have $$0 = f'(\theta^*)  \approx f'(\theta^*) + (\theta^* - \theta^{(t)})f''(\theta^{(t)}).$$  Lets unpack what this means for one second.  If you recall, most analytic approaches to optimizing algorithms start with setting the 1st derivative to 0 and solving for the value of $\theta$ satisfying this equality.  In this setting, we assume that such an analytic solution does not exist.  Therefore, we approximate this derivative using this linear Taylor Series approximation around $\theta^*$, and then set this approximation to zero.  Here, $f'(\theta^*)$ is approximated by its tangent line at $\theta^{(t)}$ (see figure below).  
  
 ![*Example of Newton Raphson in the context of the previous illustration.  The algorithm approximates $g'$ by its tangent line at $\theta^{(t)}$, whose root $\theta^{(t+1)}$ serves as the next approximation of the true root $\theta^{*}$.*](chap2figgoodnewt.jpg){width=65%}
 
