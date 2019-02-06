@@ -793,7 +793,7 @@ We get the same thing
 
 Now lets try IRLS.  We can show $\theta_i = g(\mu_i) = g(\lambda_i)  = \log(\lambda_i)$, $a(\phi) = 1$, and $b(\theta_i) = e^\theta_i = \lambda_i$.   Here, $g(\mu_i)$ is the chosen link function for this case, where $g^{-1}(\eta_i) =e^\eta_i$.  We can show that this link function, often called the log link function, is also the canonical link function: $$b'(\theta_i) = e^\theta_i = g^{-1}(\theta_i),$$  and therefore $\theta_i = \eta_i = \X_i\beta$.
 
-The IRLS update here can be written in general as the following: $$e_i^{(t)} = g'\left(\mu_i^{(t)}\right)(Y_i - \mu_i^{(t)}) = e^{-X_i\betab^{(t)}\left(Y_i - X_i\betab^{(t)}\right)},$$ $$z_i^{(t)} = \X_i\betab^{(t)} + e_i^{(t)},$$ and a weight value $$w_i^{(t)} =   \left(g'\left(\mu_i^{(t)}\right)^2b''(\theta^{(t)})\alpha(\phi^{(t)})\right)^{-1} =  \left(e^{-2X_i\betab^{(t)}}e^{X_i\betab^{(t)}}\right)^{-1} = e^{-X_i\betab^{(t)}}$$. Then, we can solve for $\betab^{(t+1)}$ such that $$\betab^{(t+1)} = (\X^T\W^{(t)}\X)^{-1}\X^T\W^{(t)}z^{(t)},$$ where $\W^{(t)} = diag(w_1^{(t)},\ldots,w_n^{(t)})$ and $z^{(t)} = (z_1^{(t)},\ldots,z_n^{(t)})^T$. 
+The IRLS update here can be written in general as the following: $$e_i^{(t)} = g'\left(\mu_i^{(t)}\right)(Y_i - \mu_i^{(t)}) = e^{-X_i\betab^{(t)}}\left(Y_i - e^{X_i\betab^{(t)}}\right),$$ $$z_i^{(t)} = \X_i\betab^{(t)} + e_i^{(t)},$$ and a weight value $$w_i^{(t)} =   \left(g'\left(\mu_i^{(t)}\right)^2b''(\theta^{(t)})\alpha(\phi^{(t)})\right)^{-1} =  \left(e^{-2X_i\betab^{(t)}}e^{X_i\betab^{(t)}}\right)^{-1} = e^{-X_i\betab^{(t)}}$$. Then, we can solve for $\betab^{(t+1)}$ such that $$\betab^{(t+1)} = (\X^T\W^{(t)}\X)^{-1}\X^T\W^{(t)}z^{(t)},$$ where $\W^{(t)} = diag(w_1^{(t)},\ldots,w_n^{(t)})$ and $z^{(t)} = (z_1^{(t)},\ldots,z_n^{(t)})^T$. 
 
 
 
@@ -816,7 +816,7 @@ while(eps > tol & iter < maxit){
   e = exp(-eta_t)*(y - exp(eta_t))
   w = exp(eta_t)
   W = diag(as.vector(w))
-  z = eta_t + e # since us
+  z = eta_t + e 
   
   # solve for beta(t+1)
   beta = solve(t(X) %*% W %*% X)%*% t(X)%*%W %*% z
@@ -857,7 +857,7 @@ In general, one may try to avoid calculation of the Hessian matrix by approximat
 
 ### Quasi-Newton Methods:  BFGS
 
-Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $\f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$\f'(\theta^{(t+1)}) - \f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   
+Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   
 
 The question is how do we obtain an $\M^{(t+1)}$ that satisfies this condition and is computable in a manner that is efficient?  Quasi-Newton (or "variable step") methods are one such approach that can do this when approximating the Hessian at each iteration  The update to the Hessian has the following form $$\M^{(t+1)} = \M^{(t)} - \frac{\M^{(t)}\z^{(t)}(\M^{(t)}\z^{(t)})^T}{(\z^{(t)})^T\M^{(t)}\z^{(t)}} + \frac{\y^{(t)}(\y^{(t)})^T}{(\z^{(t)})^T\y^{(t)}} + \delta^{(t)}(\z^{(t)})^T\M^{(t)}\z^{(t)})\d^{(t)}(\d^{(t)})^T,$$ where $$\d^{(t)} = \frac{\y^{(t)}}{(\z^{(t)})^T\y^{(t)}} - \frac{\M^{(t)}\z^{(t)}}{(\z^{(t)})^T\M^{(t)}\z^{(t)}},$$  
 
