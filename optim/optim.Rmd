@@ -210,7 +210,7 @@ f1 = function(theta){
 }
 
 # make a plot with this function, where the x-axis ranges from 0 to 10
-plot(f1, from = 0, to = 10, ylab = "g(theta)", xlab = "theta")
+plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
 ```
 
 Plotting this function, the maximum of $f(\theta)$ appears to be between 3 and 4. So how exactly do we find the maximum of this function, and the value of $\theta$ that pertains to the maximum, $\hat{\theta}$?  
@@ -232,14 +232,14 @@ To illustrate an application of numerical optimization to $f(\theta)$ (introduce
 ```{r chunk-label, fig.show='animate', ffmpeg.format='gif', dev='jpeg', echo = F}
   th = 0.25
     i = h = 0
-  plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+  plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
   points(th, f1(th), pch = 19, cex = 2)
   abline(v = 3.6)
   text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
   for(i in 1:12){
     h = ((th + 1)*(1+1/th - log(th)))/(3+4/th+1/th^2-2*log(th))
      th = th + h
-     plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+     plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
      points(th, f1(th), pch = 19, cex = 2)
      abline(v = 3.6)
      text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
@@ -266,14 +266,14 @@ Lets now examine the impact of a different starting point for the algorithm, $\t
 ```{r chunk-label2, fig.show='animate', ffmpeg.format='gif', dev='jpeg', echo = F}
   th = 1
     i = h = 0
-  plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+  plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
   points(th, f1(th), pch = 19, cex = 2)
   abline(v = 3.6)
   text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
   for(i in 1:12){
     h = ((th + 1)*(1+1/th - log(th)))/(3+4/th+1/th^2-2*log(th))
      th = th + h
-     plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+     plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
      points(th, f1(th), pch = 19, cex = 2)
      abline(v = 3.6)
      text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
@@ -285,7 +285,7 @@ Now lets lets try $\theta^{(0)} = 4$.
 ```{r chunk-label22, fig.show='animate', ffmpeg.format='gif', dev='jpeg', echo = F}
   th = 4
   i = h = 0
-  plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+  plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
   points(th, f1(th), pch = 19, cex = 2)
   abline(v = 3.6)
   text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
@@ -293,7 +293,7 @@ Now lets lets try $\theta^{(0)} = 4$.
   for(i in 1:12){
     h = ((th + 1)*(1+1/th - log(th)))/(3+4/th+1/th^2-2*log(th))
      th = th + h
-     plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+     plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
      points(th, f1(th), pch = 19, cex = 2)
      abline(v = 3.6)
      text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
@@ -306,14 +306,14 @@ Now lets try something further away, $\theta^{(0)} = 8$.
 ```{r chunk-label3, fig.show='animate', ffmpeg.format='gif', dev='jpeg', echo = F}
   th = 8
     i = h = 0
-  plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+  plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
   points(th, f1(th), pch = 19, cex = 2)
   abline(v = 3.6)
   text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
   for(i in 1:12){
     h = ((th + 1)*(1+1/th - log(th)))/(3+4/th+1/th^2-2*log(th))
      th = th + h
-     plot(f1, from = 0, to = 10, ylab = "g(x)", xlab = "theta")
+     plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
      points(th, f1(th), pch = 19, cex = 2)
      abline(v = 3.6)
      text(x = 7, y = -1.5,labels = sprintf("Iteration %d\n theta_(t) %f \n Difference from prior %f", i, th, h), cex = 1.25)
@@ -524,7 +524,7 @@ while(eps > tol & iter < maxit){
  
 
 ## Fisher Scoring
-Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$ is simply an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptopic properties for NR and FS are similar. For likelihoods, if the distribution assumed is a member of the exponential family with canonical link NR and FS are equivalent, as $I(\theta^{(t)})$
+Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$ is simply an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptopic properties for NR and FS are similar. 
 
 The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(t)})^{-1}l'(\theta^{(t)}).$$ Given the particular problem at hand, NR or FS may be easier to derive analytically, where the latter only needs knowledge of the 1st derivatives and avoids computation of the 2nd derivatives. According to GH, FS may be used in early iterations for rapid improvements, and NR can be used to make better refinements near the end.  
 
@@ -558,7 +558,7 @@ E[l'(\theta)^2] &=E\left[\left(-n + \left(\sum_{i = 1}^{n} y_i \right)/\lambda\r
 &= n/\lambda  \\
 \end{aligned}
 
-We can see this is a nice form and avoids having to analytically determine a second derivative.  
+We can see this has a nice form and avoids having to analytically determine a second derivative.  
 ```{r, echo=TRUE}
 # now lets apply FS using same framework as before
 # the start
@@ -681,8 +681,8 @@ In summary, we have the following pro's and cons for using IRLS
 * Pros
     + Single implementation for wide range of models belonging to the exponential family (update form of $\W$ and $\e$ and given distribution)
     + Can handle arbitrary link functions
-    + Easy to extend certain methods developed for the linear model to the GLM setting (diagnostics, penalization, etc)
-    + Can use off the shelf applications of weighted least squares
+    + Easy to extend certain methods developed for the linear model to the GLM setting (penalization, etc)
+    + Can use off the shelf applications of weighted least squares to fit
 * Cons
     +  Can be slow and unreliable, unless the model fits the data well
 
@@ -779,7 +779,9 @@ while(eps > tol & iter < maxit){
 end = Sys.time()
 print(end - start)
 ```
-Looks like the starting point was not good, but it recovered.  Now lets check the result against R's glm function
+
+Now lets check the result against R's glm function
+
 ```{r, echo=TRUE}
 print(beta)
 print(glm(y ~ X -1, family = poisson()))

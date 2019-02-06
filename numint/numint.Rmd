@@ -333,6 +333,7 @@ Adaptive Quadrature is another approach to get around some of these issues, wher
 So far we have talked about several approaches that are node-based, where we fix points of evaluation and then approximate the area under the curve between these points.  We have found that quadrature based integration methods offer much faster integration and higher accuracy than the Newton-Cotes methods, but take a little bit more work to set up.  
 
 However, both approaches will become computationally expensive as the dimension of the integral to be evaluated increases.  For example, if we instead assumed in our current example that we have a random intercept and a random slope (with respect to month), the dimension of the random effect increases from 1 to 2, and now we have to integrate out both to obtain the likelihood.  The amount of computation needed will increase exponentially with the number of integrals and the number of nodes needed to approximate each integral.  We will get to an example of how these methods fare with multidimensional intergrals this at the end of this section.  An alternative approach to the methods that we have introduced is called Monte Carlo integration.  
+
 ## The general idea
 
 Here, instead of evaluating the function of interest over a number of nodes  at pre-determined positions, we instead randomly sample these points from a probability distribution.  That is, we approximate the integral over a set of randomly drawn nodes that are sampled over the support of the function to be integrated. Dimensionality of the intergral is less of an issue here provided that there is a means to sample nodes from a multivariate pdf instead. 
@@ -345,9 +346,11 @@ If we assume that $f(\x)$ is the density for a random variable $\X$, then we can
 
 $$ \int h(\x)f(\x)dx \approx \frac{1}{n}\sum_{m = 1}^M f(\X_i),$$ where $X_1,\ldots,\X_M$ are an iid samples drawn from $f(\x)$. As $M \rightarrow \infty$, $\frac{1}{n}\sum_{m = 1}^M f(\X_i) \rightarrow  \int h(\x)f(\x)dx$ by the strong law of large numbers.  
 
-This is helpful for integrating joint probability distributions, such as in our GLMM examples ($f(\x)$ in this setting is $\phi(\gamma_i)$, or in calculating expectations of functions of $x$ emprically ($E[h(\x)]$).  
+This is helpful for integrating joint probability distributions, such as in our GLMM examples ($f(\x)$ in this setting is $\phi(\gamma_i)$, or in calculating expectations of functions of $x$ emprically ($E[h(\x)]$). Here, $f$ is often called the "target distribution", the density that we wish to sample from.  
 
-Due to the random nature of the nodes, some variance in the approximation is expected.  This is called Monte Carlo Variance (MCV) and is larger at smaller $M$.  If we let $\hat{\mu}_{MC} = \frac{1}{n}\sum_{m = 1}^M f(\X_i)$ and assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\x)f(\x)dx$, and $var(\x) = E[(h(\x) - \mu)^2] = \sigma^2$, then using results from BIOS 760 we know that the sample variance for $\hat{\mu}_{MC} = \sigma^2/n$.  Here $\mu$ is the expectation of $h(\X)$.
+In later lectures, we will talk situations where we cannot exactly sample from the target distribution in question (common in bayesian applications).  In other situations, the evaluation of the target function may be very difficult (integration/optimization needed), and therefore we would want to go the simulation route to avoud evaluating $f$ as much as possible.  In either case, we will use simulation strategies to approximately sample from such distributions, in contrast to the approaches in this lecture where we can example sample from the parametric densities in question.   
+
+Due to the random nature of the nodes, some variance in the approximation is expected.  This is called Monte Carlo Variance (MCV) and is larger at smaller $M$.  If we let $$\hat{\mu}_{MC} = \frac{1}{n}\sum_{m = 1}^M f(\X_i)$$ and assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\x)f(\x)dx$, and $var(\hat{\mu}_{MC}) = E[(h(\x) - \mu)^2] = \sigma^2$, then using results from BIOS 760 we know that the sample variance for $\hat{\mu}_{MC} = \sigma^2/n$.  Here $\mu$ is the expectation of $h(\X)$.
 
 Given this, we can calculate the MCV using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{var(\x)} = \sum_{m = 1}^M (h(\X_i) - \hat{\mu}_{MC})^2$$.
 
@@ -424,6 +427,10 @@ print(mean(y^4))
 
 We know that the second moment of $Y$ is $\lambda + \lambda^2 = 5 + 25 = 30$. 
 
+## Another simple example:  calculating the area of a circle
+
+
+
 ## Application to Alzheimers GLMM example
 
 Lets try to evaluate the integral for the first subject in the model using MCI and then compare the approach to quadrature in terms of computational time and accuracy.  We will see that in unidimensional integrals quadrature holds an advantage.  
@@ -447,6 +454,54 @@ We see that the integral approximation is much simpler and more accurate for MCI
 In general, it is not a good idea to use GQ for anything more than double integrals.  This is of course if the joint likelihood for $\gamma$ does not factor neatly into each of its individual elements ()
 
 ## Variance Reduction: Importance Sampling
+So far, we have introduced the MC estimator for the integral  $\hat{\mu}_{MC} = \frac{1}{n}\sum_{m = 1}^M f(\X_i)$.  However, alternative strategies may be employed to reduce the variance of the MC estimator.  The side benefit of these approaches is that one may be able to achieve sufficient accuracy with a fewer number of samples. 
+
+### The general idea
+
+The main idea behind importance sampling is oversampling in regions of $\x$ where most of the mass under $h(\x)f(\x)$ is located, and then adjusting for the fact that you are oversampling in these regions relative to the original target density.   
+
+This is helpful in situations where the majority of the mass is concentrated in small region, or in a region that is far away from the mean of the target distribution.  In such situations, the majority of the samples drawn will not meaningfully contribute to the overall intergral, and the one or two samples that hit the regions of high mass will not allow you to accurately estimate the integral and would also subject the MC estimator in this case to have high variance.  
+
+For example, lets say that we want to estimate the probability that some random variable $Y > 2$, where $Y \sim N(0,1)$.  We can estimate this directly in R:
+
+```{r, echo=TRUE}
+p = 1-pnorm(2)
+print(p)
+```
+
+We can see that this probability is small as expected.  We can also use MCI to obtain this estimate as well.  Here, we are trying to compute $E[I[Y > 4]] = \int I[Y > 4]f(Y)dY = p(Y > 2)$, where $f(Y) \sim N(0,1)$.  Here we can approximate the integral such that $int I[Y > 4]f(Y)dY = \sum_{i = 1}^{m}I[Y_i > 2]/m$ Lets try to compute this value using $m = 100$ samples:
+
+```{r, echo=TRUE}
+# Num of MC samples
+m = 10^5
+
+# draw from standard normal
+y = rnorm(m)
+
+# compute MC estimate of p(Y > 2)
+print(mean(y > 2))
+
+# compute MC variance for p(Y > 2)
+print(var(y > 2))
+```
+
+So the variance is still quite large, despite suing 100,000 samples.  To illustrate this variability, just return the code above a couple of times and see how the estimate varies around its true value.  
+
+So, how do we improve the efficiency of this approach?  A similar question is how do we reduce the variance of the MC estimator?
+
+### Importance sampling
+
+To reduce the variance of the estimator, we can instead sample from a different distribution $g(\x)$ that will oversample in the portion of $\x$ where most of the mass $h(\x)f(\x)$ is located, where this area tends to have low probability of recieving samples from $f(\x)$.  By turning our ability to hit this region from rare event scenario to a common one, we are essentially reducing our MC variance and also improving our efficiency in accurately estimating $\int h(\x)f(\x)d\x$.  However, since we are no longer sampling from $f(\x)$, we must adjust for this. 
+
+Here, we are rewriting the original integral as the following:  
+
+$$ \mu = \int h(\x)f(\x)d\x =\int h(\x) \frac{f(\x)}{g(\x)}f(\x)d\x$$
+
+where $g(\x)$ is the alternative distribution that we are sampling from, sometimes called the importance sampling function of envelope.  Using similar argument as before, we can estimate $\mu$ in this case via $$\hat{mu}_{IS}^* = \sum_{i = 1}^m h(\X_i)w^*(\X_i)$$, where  $w^*(\X_i) = \frac{f(\X_i)}{g(\X_i)}$ can be thought of as weights, and $X_1,\ldots,X_n$ are an iid sample from $g$.   For this approach to work well, it must be easy to samples from $g$, and $f$ must be easy to evaluate, otherwise you are just adding more computational work to evaluate this integral.  
+
+We may also use the estimator $$\hat{mu}_{IS} = \sum_{i = 1}^m h(\X_i)w(\X_i)$$ where $w^*(\X_i) = \frac{ w^*(\X_i)}{\sum_{i = 1}^m w^*(\X_i)}$ are standardized weights. We may chose to use standardized weights when $f$ is only known up to a proportionality constant, as is typical in bayesian applications (only the kernel of a posterior is known).
+
+Some note
 
 
 ## Final Notes
