@@ -24,9 +24,9 @@ include-before:
 - '$\def \x \bfm{x}$'
 - '$\def \X \bfm{X}$'
 - '$\def \z \bfm{z}$'
-- '$\def \thetab \bdm{\theta}$'
-- '$\def \betab \bdm{\beta}$'
-- '$\def \pib \bdm{\pi}$'
+- '$\def \thetab \boldsymbol{\theta}$'
+- '$\def \betab \boldsymbol{\beta}$'
+- '$\def \pib \boldsymbol{\pi}$'
 ---
 
 
@@ -651,9 +651,9 @@ Given the wide range of distributions that may be covered by the exponential fam
 ### Logistic Regression Example
 If we take the example of logistic regression, we assume that the response variable $Y_i$ is distributed Bernoulli with parameter $\pi_i$, where $E[Y_i |\x_i] = \mu_i = \pi_i$ and $i =  1,\ldots,n$.  We wish to model the probability of success for each individual $i$, $\pi_i$,  with respect to an $1 \times p$ vector of predictors $\X_i$ and a set of unknown regression coefficients $\betab$, a $p\times 1$ vector. The log likelihood can be written as $$\mathcal{l}(\pi_i) = \sum_{i=1}^n y_i\log\left(\frac{\pi_i}{1-\pi_i}\right) + \log(1-\pi_i)$$. 
 
-Since this distribution is part of the exponential family, we can factor the PDF into exponential family form such that the natural parameter is $\theta_i = log(\frac{\pi_i}{1-\pi_i})$, $a(\phi) = 1$, and $b(\theta_i) = log(1+exp(\theta_i))$.  If we choose $g(\mu_i) = log(\frac{\pi_i}{1-\pi_i})$, we can show that this link function, often called the logit function, is also the "canonical"" link function: $$b'(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i = g^{-1}(\theta),$$  and therefore $\theta_i = \eta_i = X_i\betab$. We will see why this is convenient when we rewrite the likelihood below.  The inverse link function here is  $g^{-1}(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i$.  
+Since this distribution is part of the exponential family, we can factor the PDF into exponential family form such that the natural parameter is $\theta_i = \log(\frac{\pi_i}{1-\pi_i})$, $a(\phi) = 1$, and $b(\theta_i) = \log(1+exp(\theta_i))$.  If we choose $g(\mu_i) = \log(\frac{\pi_i}{1-\pi_i})$, we can show that this link function, often called the logit function, is also the "canonical"" link function: $$b'(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i = g^{-1}(\theta),$$  and therefore $\theta_i = \eta_i = X_i\betab$. We will see why this is convenient when we rewrite the likelihood below.  The inverse link function here is  $g^{-1}(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i$.  
 
-We can  show that the likelihood for this model can then be wrtten in the form $$l(\betab) = \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) = \sum_{i = 1}^n Y_i\X_i\betab - b(\theta_i) = \Y^T\X\betab - \textbf{b}^T(\theta)\mathbf{1},$$ where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\betab$ through the use of the canonical link function. 
+We can  show that the likelihood for this model can then be written in the form $$l(\thetab) = \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) = \sum_{i = 1}^n Y_i\X_i\betab - b(\theta_i) = \Y^T\X\betab - \textbf{b}^T(\theta)\mathbf{1},$$ where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\betab$ through the use of the canonical link function. 
 
 ## NR-based approach to maximization
 Using similar logic as before to maximize the likelihood with respect to $\betab$, let us try to find $\betab$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\betab) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with repect to each element of $\betab$, which is also $p$-dimensional.  
