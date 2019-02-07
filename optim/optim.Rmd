@@ -5,6 +5,8 @@ date: "9/3/2018"
 output: 
   html_document:
     number_sections: true
+    toc: true
+    toc_float: true
 header_includes:
 - \usepackage{amsmath}
 - \usepackage{amssymb}

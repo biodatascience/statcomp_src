@@ -5,6 +5,8 @@ date: "1/6/2019"
 output: 
   html_document:
     number_sections: true
+    toc: true
+    toc_float: true
 header_includes:
 - \usepackage{amsmath}
 - \usepackage{amssymb}
@@ -491,17 +493,17 @@ So, how do we improve the efficiency of this approach?  A similar question is ho
 
 ### Importance sampling
 
-To reduce the variance of the estimator, we can instead sample from a different distribution $g(\x)$ that will oversample in the portion of $\x$ where most of the mass $h(\x)f(\x)$ is located, where this area tends to have low probability of recieving samples from $f(\x)$.  By turning our ability to hit this region from rare event scenario to a common one, we are essentially reducing our MC variance and also improving our efficiency in accurately estimating $\int h(\x)f(\x)d\x$.  However, since we are no longer sampling from $f(\x)$, we must adjust for this. 
+To reduce the variance of the estimator, we can instead sample from a different distribution $g(\x)$ that will oversample in the portion of $\x$ where most of the mass under $h(\x)f(\x)$ is located.  This location in $x$ tends to have low probability of recieving samples from $f(\x)$.  By making the hitting of this region a rare event scenario to a common one, we are essentially reducing our MC variance and also improving our efficiency in accurately estimating $\int h(\x)f(\x)d\x$.  However, since we are no longer sampling from $f(\x)$, we must adjust for this. 
 
 Here, we are rewriting the original integral as the following:  
 
 $$ \mu = \int h(\x)f(\x)d\x =\int h(\x) \frac{f(\x)}{g(\x)}f(\x)d\x$$
 
-where $g(\x)$ is the alternative distribution that we are sampling from, sometimes called the importance sampling function of envelope.  Using similar argument as before, we can estimate $\mu$ in this case via $$\hat{mu}_{IS}^* = \sum_{i = 1}^m h(\X_i)w^*(\X_i)$$, where  $w^*(\X_i) = \frac{f(\X_i)}{g(\X_i)}$ can be thought of as weights, and $X_1,\ldots,X_n$ are an iid sample from $g$.   For this approach to work well, it must be easy to samples from $g$, and $f$ must be easy to evaluate, otherwise you are just adding more computational work to evaluate this integral.  
+where $g(\x)$ is the alternative distribution that we are sampling from, sometimes called the "importance sampling function"" or "envelope".  Using similar argument as before, we can estimate $\mu$ in this case via $$\hat{mu}_{IS}^* = \sum_{i = 1}^m h(\X_i)w^*(\X_i)$$, where  $w^*(\X_i) = \frac{f(\X_i)}{g(\X_i)}$ can be thought of as weights, and $X_1,\ldots,X_n$ are an iid sample from $g$.   For this approach to work well, it must be easy to sample from $g$, and $f$ must be easy to evaluate, otherwise you are just adding more computational work to evaluate this integral.  
 
-We may also use the estimator $$\hat{mu}_{IS} = \sum_{i = 1}^m h(\X_i)w(\X_i)$$ where $w^*(\X_i) = \frac{ w^*(\X_i)}{\sum_{i = 1}^m w^*(\X_i)}$ are standardized weights. We may chose to use standardized weights when $f$ is only known up to a proportionality constant, as is typical in bayesian applications (only the kernel of a posterior is known).
+We may also use the estimator $$\hat{mu}_{IS} = \sum_{i = 1}^m h(\X_i)w(\X_i)$$ where $w^*(\X_i) = \frac{ w^*(\X_i)}{\sum_{i = 1}^m w^*(\X_i)}$ are standardized weights. We may chose to use standardized weights when $f$ is only known up to a proportionality constant, as is typical in bayesian applications (only the kernel of a posterior is known). Using a similar rationale as the standard MC estimator, the IS MC estimator will similar converge to the true value of the intergral as the number of drawn samples tends to infinity. 
 
-Some note
+Some notes regarding the choice of $g(\x)$:  twe want to ensure that the support for 
 
 
 ## Final Notes
