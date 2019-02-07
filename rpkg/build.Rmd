@@ -2,7 +2,10 @@
 title: "Building R packages"
 author: "Michael Love"
 date: 10/25/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 # Why put your code into a package?

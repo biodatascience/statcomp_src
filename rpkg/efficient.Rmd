@@ -2,7 +2,10 @@
 title: "Readable and efficient R code"
 author: "Michael Love"
 date: 10/19/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 # Why write readable and efficient code?

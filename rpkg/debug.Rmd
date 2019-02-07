@@ -2,7 +2,10 @@
 title: "Debugging in R"
 author: "Michael Love"
 date: 10/25/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 # Many approaches to debug code in R
@@ -69,6 +72,8 @@ obj <- list(x=1:10,
 high(obj)
 ```
 
+# Traceback
+
 We can call `traceback()` which gives the series of function calls
 that produced the latest error:
 
@@ -83,6 +88,8 @@ This gives:
 2: analyze(obj.sub) at #3
 1: high(obj)
 ```
+
+# Browser
 
 My favorite strategy is to put `browser()` inside of one of the
 functions, for example, here:
@@ -117,6 +124,8 @@ Browse[2]>
 ```
 
 To exit, type `Q`.
+
+# Recover on error 
 
 Another option to debug on error is to set a global option:
 
@@ -159,6 +168,8 @@ browser prompt upon error with:
 ```{r eval=FALSE}
 options(error=NULL)
 ```
+
+# Debug and undebug
 
 Other options for debugging in R are the `debug`/`undebug` or `debugonce`
 functions. These are similar to `browser` but they step through a function
