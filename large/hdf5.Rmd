@@ -2,8 +2,13 @@
 title: "Working with rhdf5"
 author: "Michael Love"
 date: 11/7/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
+
+# Introduction
 
 In previous lectures, we have discussed reading in large data tables,
 and working with large databases via *SQLite*. Here, we discuss a
@@ -70,6 +75,8 @@ h5file <- "myDB.h5"
 h5createFile(h5file)
 ```
 
+# Groups are like directories
+
 *HDF5* containers have a hierarchy built around *groups* which act and
 look a bit like directories:
 
@@ -102,6 +109,8 @@ df <- data.frame(a=1L:5L,
 h5write(df, h5file, "B/df")
 h5ls(h5file)
 ```
+
+# Reading objects
 
 We can read out these objects using `h5read`. Note that the column
 names of the *data.frame* have been preserved:

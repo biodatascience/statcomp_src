@@ -2,7 +2,10 @@
 title: "Sparse data manipulation"
 author: "Michael Love"
 date: 11/7/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 In this last lecture note on large data manipulation in R, we change
@@ -59,7 +62,7 @@ as.numeric(object.size(m)/object.size(mm))
 The sparse version takes up less than 1/6 of the space of the *dense*
 version. 
 
-# How we actually construct sparse matrices
+# How to construct sparse matrices
 
 This coercion above, of a dense matrix into a sparse one doesn't make
 any sense: we would never want to first build the memory-intensive

@@ -2,8 +2,13 @@
 title: "Working with RSQLite"
 author: "Michael Love"
 date: 11/7/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
+
+# Introduction
 
 In the previous lecture note, we introduced the *data.table* package
 and showed how it can be used to read in large datasets into R (so
@@ -43,6 +48,8 @@ If we wanted to try out the *RQLite* package without writing a file to
 disk we could have also used `":memory:"` instead of writing a
 filename, which creates an in-memory database.
 
+# Write tables
+
 Let's write a table from R to the database. Typically you would most
 likely just be *reading* very large databases from *SQLite* rather
 than writing tables, but we do so as an example anyway:
@@ -52,6 +59,8 @@ data(mtcars)
 dbWriteTable(con, "cars", mtcars)
 dbListTables(con)
 ```
+
+# Queries
 
 We can then pull rows of data from the table using standard SQL-style
 queries. If you've never performed SQL queries before, it's pretty
@@ -74,6 +83,8 @@ rows <- dbGetQuery(con, "SELECT * FROM cars WHERE cyl=6")
 head(rows)
 nrow(rows)
 ```
+
+# Fetch chunks of data
 
 However, the whole motivation in this lecture note was that we
 potentially have more data than can fit in memory, and so we can also

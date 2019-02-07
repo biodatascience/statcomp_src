@@ -2,7 +2,10 @@
 title: "Writing package tests"
 author: "Michael Love"
 date: 10/25/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 # Why write tests?
@@ -126,7 +129,7 @@ If we wanted to test for a message or error, we would use
 `expect_message` or `expect_error` with the `message` or `stop`
 function respectively.
 
-# Testing individual files or whole packages
+# Testing files or packages
 
 We can check all the tests for individual files with the following
 call to `test_file`, from within the package root:

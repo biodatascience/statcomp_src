@@ -2,10 +2,13 @@
 title: "Calling C++ with Rcpp"
 author: "Michael Love"
 date: 10/25/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
-# Calling languages from R: nothing new here
+# Calling other languages from R
 
 Calling languages like C and C++ from R can be a very powerful
 framework, and you'll see that many successful R packages will use C

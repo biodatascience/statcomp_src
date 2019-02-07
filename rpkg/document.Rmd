@@ -2,7 +2,10 @@
 title: "Documenting an R package"
 author: "Michael Love"
 date: 10/25/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 # Types of documentation in R

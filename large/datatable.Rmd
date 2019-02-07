@@ -2,8 +2,13 @@
 title: "Working with data.table"
 author: "Michael Love"
 date: 11/5/2018
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
+
+# Introduction
 
 In this first lecture note on dealing with large datasets in R, we
 will introduce a specialized package for manipulating large tables of
@@ -67,24 +72,33 @@ descriptive paragraph from their website:
 
 We will discuss this dataset in more detail later, when we begin to
 model and find associations in the data, but for now just consider it
-as a large dataset (1.3 Gb uncompressed) in a comma-separated value
-format. 
+as a large dataset (4.5 Gb uncompressed) in a series of
+comma-separated value (CSV) files.
 
-We have downloaded the dataset from the website, and now have a file
-`Scorecard.csv` on our machine. This is a file with 124,700 rows
-(including a column header) and 1731 columns. To demonstrate the speed
-of `fread`, we will try just reading a subset of the full dataset.
-We can see that just on the first 25,000 rows, `fread` is about 5x
-faster than *read.csv*:
+We have downloaded the dataset from the website, and combined a number
+of the CSV files into a single file `Scorecard_2009-2016.csv`. This
+file is constructed via the following shell commands:
+
+```
+for i in `ls MERGED201*`; do echo $i; tail -n +2 $i > ${i/.csv}_nohead.csv; done
+cp MERGED2009_10_PP.csv MERGED2009_head.csv
+cat MERGED*head.csv > Scorecard_2009-2016.csv
+```
+
+The merged file has 60,307 rows (including a column header) and 1899
+columns. To demonstrate the speed of `fread`, we will try just reading
+a subset of the full dataset.  We can see that just on the first
+10,000 rows, `fread` is more than 3x faster than *read.csv*:
 
 ```{r cache=TRUE}
 library(data.table)
-n <- 25000
+n <- 10000
+file <- "CollegeScorecard_Raw_Data/Scorecard_2009-2016.csv"
 system.time({
-  scores <- fread("Scorecard.csv", nrows=n)
+  scores <- fread(file, nrows=n)
 })
 system.time({
-  scores2 <- read.csv("Scorecard.csv", nrows=n)
+  scores2 <- read.csv(file, nrows=n)
 })
 ```
 
@@ -119,23 +133,25 @@ scores[NUMBRANCH > 25, .N]
 We can also pull out rows by matching on a string:
 
 ```{r}
-scores[INSTNM == "UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL",1:20]
+scores[INSTNM == "University of North Carolina at Chapel Hill",1:20]
 ```
 
-We can also specify a column to be a *key* for the *data.table*. This
-allows very fast subsetting based on the column you specify:
+We can also specify a column to be a *key* for the *data.table*. 
+Specifying a key allows very fast subsetting based on the column you
+specify. Here, because the key is an integer, we wrap up the key in
+`.()`, otherwise it would interpret our request as a row number:
 
 ```{r}
-setkey(scores, Id)
-scores[23230,1:20]
+setkey(scores, UNITID)
+scores[.(199120),1:20]
 ```
 
 It happens that the *Id* column of this dataset is an integer, but we
-could also have made a string into the key: 
+could also have made a string into the key:
 
 ```{r}
 setkey(scores, CITY)
-scores["CHAPEL HILL",1:20]
+scores["Chapel Hill",1:20]
 ```
 
 As you can see the key does not have to be unique (unlike row names in 
@@ -155,9 +171,19 @@ differ across these packages. But the main takeaway should be that
 using *data.frame* and base R functions for subsetting or grouping and
 summarization.
 
-We can put functions inside of the square brackets. Here a trivial
-example, to calculate the mean of the tuition per FTE (full-time
-equivalent) student:
+# Functions inside the brackets
+
+We can put functions inside of the square brackets. 
+
+We first convert `TUITFTE` to numeric, which gives a warning about NAs
+introduced in the coercion step:
+
+```{r}
+scores$TUITFTE <- as.numeric(scores$TUITFTE)
+```
+
+Here a trivial example, to calculate the mean of the tuition per FTE
+(full-time equivalent) student.
 
 ```{r}
 scores[,mean(TUITFTE,na.rm=TRUE)]
@@ -180,12 +206,14 @@ scores[,mean2(TUITFTE)]
 mean2(scores$TUITFTE)
 ```
 
+# Grouping operations
+
 The power of putting the function inside the square brackets is that
 it can be combined easily with subsetting and grouping operations. For
 example:
 
 ```{r}
-scores[CONTROL=="Public",mean2(TUITFTE)]
+scores[CONTROL==1,mean2(TUITFTE)]
 ```
 
 Or with a grouping operation:
@@ -206,7 +234,7 @@ scores[,.(median=q50(TUITFTE),q25=q25(TUITFTE),q75=q75(TUITFTE)),by=CONTROL]
 library(ggplot2)
 dat <- scores[,.(median=q50(TUITFTE),q25=q25(TUITFTE),q75=q75(TUITFTE)),by=CONTROL]
 ggplot(dat, aes(CONTROL, median, ymin=q25, ymax=q75)) + geom_pointrange() +
-  xlab("category") + ylab("TUITION / FTE") + ylim(0,12000)
+  xlab("category") + ylab("TUITION / FTE")
 ```
 
 Again, there are other complex functionality that can be performed
