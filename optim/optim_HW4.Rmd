@@ -1,0 +1,187 @@
+---
+title: "Homework 5 - Optimizations"
+author: "Naim Rashid"
+date: "2/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1:  Simple Univariate Optimization
+
+Use Newton-Raphson to maximize the following function:  $$f(x) = 7\log(x) + 3\log(1-x).$$  Fill in the R functions below pertaining to $f(x)$, $f'(x)$ and $f''(x)$.  Utilize the values below to initialize and run the algorithm (analogous to how they were defined in class).  Repeat the method for several starting values for $x$ given below, picking the best $\hat{x}$ in terms of the final objective function value for each. Make sure you print your final value for $\hat{x}$
+
+```{r}
+# f(x)
+f = function(x){
+  ## solution
+ 
+  ## end solution
+}
+
+# first derivative
+f1 = function(x){
+  ## solution
+
+  ## end solution
+}
+
+# second derivative
+f2 = function(x){
+  ## solution
+
+  ## end solution
+}
+
+# to start the model
+tol = 10^-4
+x = 0.01 # also try 0.5 and 0.99
+maxit = 50
+iter = 0
+eps = Inf
+
+## solution
+
+## end solution
+```
+
+Bonus:  $f(x)$ pertains to the likelihood/PDF for which distribution(s)?  Two answers are possible.  Given this, what would be a closed form estimate for $\hat{x}$?
+
+
+# Question 2:  Not So Simple Univariate Optimization
+
+Repeat question 1 for the function below, using the same template for your answer.  Choose a range of starting values between 0 and 5 and report the best $\hat{x}$ based on the final objective function value:
+
+$$f(x) = 1.95 − e^{−2/x} − 2e^{−x^4}.$$
+
+```{r}
+# f(x)
+f = function(x){
+  ## solution
+
+  ## end solution
+}
+
+# first derivative
+f1 = function(x){
+  ## solution
+
+  ## end solution
+}
+
+# second derivative
+f2 = function(x){
+  ## solution
+
+  ## end solution
+}
+
+# to start the model
+tol = 10^-4
+x = 1.2 # also try 0.5 and 0.99
+maxit = 50
+iter = 0
+eps = Inf
+
+## solution
+## end solution
+```
+
+What does this say about the stability of NR, especially in this case?  Plot the second derivative of this function and comment on why or why this is supports your observations.
+
+```{r}
+## solution for plot
+
+## end solution
+```
+
+
+## Multivariate optimization:  Zero-inflated Poisson 
+
+Following a chemical spill from a local industrial plant, the city government is attempting to characterize the impact of the spill on recreational fishing at a nearby lake.  Over the course of one month following the spill, park rangers asked each adult leaving the park how many fish they had caught that day. At the end of the month they had collected responses for 4,075 individuals, where the number of fish caught for each individual is summarized in the table below:
+
+```{r, echo=F}
+library(knitr)
+kable(matrix(c(3062, 587, 284, 103, 33, 4, 2), nrow = 1, byrow = T),col.names = as.character(0:6),format = "html", table.attr = "style='width:30%;'",)
+```
+
+Based on an initial examination of this distribution, there appears to be many more zero's than expected.  Upon speaking to the park rangers, they were embarrassed to state that after recording the number of fish each adult had caught, they did not ask or record whether each adult had gone to the park with the intention of fishing in the first place.  
+
+The city statistician surmised that the observed distribution in the table above may be resulting from a mixture of two populations of subjects.  The first population pertains to the subset of visitors that arrived without any intention of fishing (exactly zero fish caught by each member of this population). The second population pertains to the set of visitors that arrived with the intention of fishing (0 or more fish potentially caught in this population).  Therefore, if we fit a standard Poisson model to this data, the estimate for $\lambda$ would be biased downwards.  
+
+To account for the excess zeros in the observed data, the statistician decided to fit a zero-inflated Poisson model.  To simplify things the log likelihood is given below, and we utilized the tabulated values from the table above in place of individual observations: 
+
+$$ 
+\mathcal{l}(\boldsymbol{\theta}) = n_0\log(\pi + (1-\pi)e^{-\lambda}) + (N-n_0)[\log(1-\pi) - \lambda] + \sum_{i=1}^{\infty}in_i\log(\lambda)
+$$
+
+where $\boldsymbol{\theta} = (\pi, \lambda)$, $n_i$ pertains to the number of individuals that caught $i$ fish ($n_i=0$ for $i>6$ here), $N = 4075$, $\pi$ is the probability that an individual did not show up to fish, and $\lambda$ is the mean number of fish caught by those individuals that intended to fish at the park.  From this log-likelihood, we can see that for the individuals that caught 0 fish, we assume those observations come from a mixture of individuals that did not show up to fish ($\pi$ proportion of the time) and those that showed up to fish but did not catch anything ($1-\pi$ proportion of the time with 0 for their catch count).  The remaining individuals that caught more than zero fish are also in the log likelihood and are similarly weighted by $(1-\pi)$. 
+
+
+Lets go ahead and fit this model with Newton-Raphson.  Similar to the previous problems, fill in the code below to fit this model.  Then, fill in the function for the log likelihood and its 1st derivative $$\left(\frac{\partial\mathcal{l}(\boldsymbol{\theta})}{\partial\pi}, \frac{\partial\mathcal{l}(\boldsymbol{\theta})}{\partial\lambda}\right)$$ and second derivative matrix 
+
+$$\left[\begin{array}
+{rr}
+\frac{\partial^2\mathcal{l}(\boldsymbol{\theta})}{\partial\pi^2} & \frac{\partial^2\mathcal{l}(\boldsymbol{\theta})}{\partial\pi \partial\lambda} \\
+\frac{\partial^2\mathcal{l}(\boldsymbol{\theta})}{\partial\lambda \partial\pi } & \frac{\partial^2\mathcal{l}(\boldsymbol{\theta})}{\partial\lambda^2} 
+\end{array}\right] $$  
+
+Given the estimates, interpret the results. Accounting for the excess zero's, on average how many fish were caught among those who intended to go fishing?  What proportion of subjects did not even consider to fish?
+
+
+```{r}
+# f(x)
+logLik = function(theta, y, ny){
+  ## solution
+  # returns scalar
+  
+  ## end solution
+}
+
+# first derivative
+f1 = function(theta,y, ny){
+  ## solution
+  # returns 2x1 vector
+  
+  ## end solution
+}
+
+# second derivative
+f2 = function(theta,y, ny){
+  ## solution
+  # returns 2x2 matrix
+  
+  ## end solution
+}
+
+# data 
+y = 0:6
+ny = c(3062, 587, 284, 103, 33, 4, 2)
+
+# to start the model
+tol = 10^-4
+theta = c(
+          ny[y==0]/sum(ny), # initial value for pi, prop of total 0's
+          sum(ny*y)/sum(ny) # intial value for lambda, mean of y's
+          )
+maxit = 50
+iter = 0
+eps = Inf
+
+## solution
+
+## end solution
+```
+
+
+
+
+
+
+
+
+
+
+

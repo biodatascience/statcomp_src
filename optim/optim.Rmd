@@ -791,7 +791,7 @@ print(glm(y ~ X -1, family = poisson()))
 
 We get the same thing
 
-## Example:  Poisson regression with IRLS
+### Example:  Poisson regression with IRLS
 
 Now lets try IRLS.  We can show $\theta_i = g(\mu_i) = g(\lambda_i)  = \log(\lambda_i)$, $a(\phi) = 1$, and $b(\theta_i) = e^\theta_i = \lambda_i$.   Here, $g(\mu_i)$ is the chosen link function for this case, where $g^{-1}(\eta_i) =e^\eta_i$.  We can show that this link function, often called the log link function, is also the canonical link function: $$b'(\theta_i) = e^\theta_i = g^{-1}(\theta_i),$$  and therefore $\theta_i = \eta_i = \X_i\beta$.
 
@@ -936,7 +936,7 @@ However, for very large sample size problems the computation may become prohibit
 
 Stochastic gradient descent instead randomly subsamples the data and performs an update for $\betab$ with a random observation drawn from the data.  Rather than updating $\betab$ with a full pass over the data, we instead update $\betab$ with each draw from the data, such that now $$\betab^{s+1} = \betab^{(s)} - \alpha l_i'(\betab^{(s)}),$$ where $s>0$ is the subsample index, $i$ is the index of the sample that is randomly drawn from the data, and $l_i'(\betab^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\betab^{s+1}$, which may take multiple loops over the entire data set.  Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
 
-## Application of GD and SGD to our Poisson Regression Example
+### Application of GD and SGD to our Poisson Regression Example
 Lets try it out on our poisson regression example.  Here is regular gradient ascent with just a fixed $\alpha^{(t)}$:
 
 
@@ -1061,7 +1061,7 @@ Relative or absolute convergence criteria may be based upon the objective functi
     + Difficult to implement manually but many off-the-shelf solutions exist (such as optim in R)
     +  Not suitable for high dimensional problems
   
-## Examples 
+### Examples 
 
 ```{r, echo=TRUE}
 # load the optimx librar
