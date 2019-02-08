@@ -54,7 +54,7 @@ Bonus:  $f(x)$ pertains to the likelihood/PDF for which distribution(s)?  Two an
 
 Repeat question 1 for the function below, using the same template for your answer.  Choose a range of starting values between 0 and 5 and report the best $\hat{x}$ based on the final objective function value:
 
-$$f(x) = 1.95 − e^{−2/x} − 2e^{−x^4}.$$
+$$f(x) = 1.95 - e^{-2/x} - 2e^{-x^4}.$$
 
 ```{r}
 # f(x)
@@ -128,7 +128,7 @@ $$\left[\begin{array}
 \frac{\partial^2\mathcal{l}(\boldsymbol{\theta})}{\partial\lambda \partial\pi } & \frac{\partial^2\mathcal{l}(\boldsymbol{\theta})}{\partial\lambda^2} 
 \end{array}\right] $$  
 
-Given the estimates, interpret the results. Accounting for the excess zero's, on average how many fish were caught among those who intended to go fishing?  What proportion of subjects did not even consider to fish?
+Given the estimates, interpret the results. Accounting for the excess zeros, on average how many fish were caught among those who intended to go fishing?  What proportion of subjects did not even consider to fish?
 
 
 ```{r}
