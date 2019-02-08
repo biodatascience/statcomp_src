@@ -1,5 +1,5 @@
 ---
-title: "Homework 5 - Optimizations"
+title: "Homework 5 - Optimization"
 author: "Naim Rashid"
 date: "2/7/2019"
 output: html_document
@@ -107,7 +107,7 @@ library(knitr)
 kable(matrix(c(3062, 587, 284, 103, 33, 4, 2), nrow = 1, byrow = T),col.names = as.character(0:6),format = "html", table.attr = "style='width:30%;'",)
 ```
 
-Based on an initial examination of this distribution, there appears to be many more zero's than expected.  Upon speaking to the park rangers, they were embarrassed to state that after recording the number of fish each adult had caught, they did not ask or record whether each adult had gone to the park with the intention of fishing in the first place.  
+Based on an initial examination of this distribution, there appears to be many more zeros than expected.  Upon speaking to the park rangers, they were embarrassed to state that after recording the number of fish each adult had caught, they did not ask or record whether each adult had gone to the park with the intention of fishing in the first place.  
 
 The city statistician surmised that the observed distribution in the table above may be resulting from a mixture of two populations of subjects.  The first population pertains to the subset of visitors that arrived without any intention of fishing (exactly zero fish caught by each member of this population). The second population pertains to the set of visitors that arrived with the intention of fishing (0 or more fish potentially caught in this population).  Therefore, if we fit a standard Poisson model to this data, the estimate for $\lambda$ would be biased downwards.  
 
