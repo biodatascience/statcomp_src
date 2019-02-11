@@ -539,7 +539,7 @@ The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(
     + May not be as fast for refinement near end 
 
 ## Secant Method
-This approach is similar to NR, except that the second derivative in the updating equation is replaced with a finite-difference approximation, where now the updating equation is $$\theta^{(t+1)}  = \theta^{(t)} - f'(\theta^{(t)})\frac{\theta^{(t)} - \theta^{(t-1)}}{f'(\theta^{(t)}) - f'(\theta^{(t-1)})}.$$ Conditions for convergence are similar to NR, but we can show through similar arguments that that the convergence order for the secant method is 1.62 instead of 2.
+This approach is similar to NR, except that the second derivative in the updating equation is replaced with a finite-difference approximation, where now the updating equation is $$\theta^{(t+1)}  = \theta^{(t)} - f'(\theta^{(t)})\frac{\theta^{(t)} - \theta^{(t-1)}}{f'(\theta^{(t)}) - f'(\theta^{(t-1)})}.$$ Conditions for convergence are similar to NR, but we can show through similar arguments that that the convergence order for the secant method is 1.62 instead of 2.  To initialize this approach, two starting values have to be provided.  Typically the first value is picked in a manner not dissimilar to the other approaches described in this lecture, and the second value is picked relatively close to the first one.  Then we may compute the first update and proposal for $\theta^{(1)}$ and start the algorithm.
 
 * Pros
     + Avoids derivation and computation of the 2nd derivative
@@ -851,7 +851,7 @@ A wide variety of "Newton-Like" or "Quasi-Newton" approaches exist, where the up
 
 This is helpful when the second derivatives may be difficult to derive, have a complicated form, or are computationally expensive to evaluate in practice. 
 
-In this class of methods we may write the updating equation as $$\thetab^{(t+1)} = \thetab^{(t)} - (\M^{(t)})^{-1}f'(\thetab),$$ where $\M^{(t)}$ is a $p\times p$ matrix approximating the Hessian $f''(\thetab)$ (assuming $\thetab$ is a $p$-dimensional vector).  We may choose to do this because either evaluating the Hessian is too computationally expensive, or the steps selected by NR may not go uphill, as it is not guarunteed that $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ when we are maximizing some function $f(\thetab)$.  
+In this class of methods we may write the updating equation as $$\thetab^{(t+1)} = \thetab^{(t)} - (\M^{(t)})^{-1}f'(\thetab),$$ where $\M^{(t)}$ is a $p\times p$ matrix approximating the Hessian $f''(\thetab)$ (assuming $\thetab$ is a $p$-dimensional vector).  We may choose to do this because either evaluating the Hessian is too computationally expensive, or the steps selected by NR **may not go uphill** (if maximizing), as it is not guarunteed that $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ when we are maximizing some function $f(\thetab)$.  We will talk about the the approach of "steepest ascent/descent", sometimes referred to as "gradient ascent/descent" later that tries to ensure improvements in the objective function with each update. 
 
 Alternatively, we can choose an $\M^{(t)}$ that can guarantee $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ (ascent).  Due to time purposes, we will not cover Discrete Newton, Fixed Point Methods or Gauss-Newton in detail.  However, if interested you can find these topics covered in GH 2.2.2.   We will instead cover more commonly used algorithms such as BFGS (which in general has better performance than the aforementioned methods), Nelder-Mead, gradient descent/ascent, and stochastic gradient descent/ascent.   
 
@@ -859,11 +859,13 @@ In general, one may try to avoid calculation of the Hessian matrix by approximat
 
 ### Quasi-Newton Methods:  BFGS
 
-Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   
+Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   Essentially, we need an approach to generate $\M^{(t+1)}$ from $\M^{(t)}$ the minimizes the number of calculations needed and preserves the above condition.  
 
 The question is how do we obtain an $\M^{(t+1)}$ that satisfies this condition and is computable in a manner that is efficient?  Quasi-Newton (or "variable step") methods are one such approach that can do this when approximating the Hessian at each iteration  The update to the Hessian has the following form $$\M^{(t+1)} = \M^{(t)} - \frac{\M^{(t)}\z^{(t)}(\M^{(t)}\z^{(t)})^T}{(\z^{(t)})^T\M^{(t)}\z^{(t)}} + \frac{\y^{(t)}(\y^{(t)})^T}{(\z^{(t)})^T\y^{(t)}} + \delta^{(t)}(\z^{(t)})^T\M^{(t)}\z^{(t)})\d^{(t)}(\d^{(t)})^T,$$ where $$\d^{(t)} = \frac{\y^{(t)}}{(\z^{(t)})^T\y^{(t)}} - \frac{\M^{(t)}\z^{(t)}}{(\z^{(t)})^T\M^{(t)}\z^{(t)}},$$  
 
-where here $\z^{(t)} = \thetab^{(t+1)} - \thetab^{(t)}$ and $\y^{(t)} = f'(\thetab^{(t+1)}) - f'(\thetab^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  We wont worry about the specific details regarding how this update was specifically derived.  Many off-the-shelf methods are available implementing this procedure, given a known likelihood function and 1st derivative (we will give an example of this later), so no manual implementation of this approach is necessary. 
+where here $\z^{(t)} = \thetab^{(t+1)} - \thetab^{(t)}$ and $\y^{(t)} = f'(\thetab^{(t+1)}) - f'(\thetab^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  In general, through the use of backtracking (which we will discuss in more detail in the next section) during the calculation of M^{(t)}, we can ensure ascent.  
+
+We wont worry about the specific details regarding how this update was specifically derived.  Many off-the-shelf methods are available implementing this procedure, given a known likelihood function and 1st derivative (we will give an example of this later), so no manual implementation of this approach is necessary. 
 
 ### Tips for improving performance and stability
 
@@ -910,7 +912,7 @@ fit = optimx(
               trace = 0, # higher number print more detailed output
               maximize = T, # default is to minimize
               abstol= tol
-              # parscale = vector of scaling values to correct for scale differencs in parameters.  Should be the same length as the num of parmaters
+              # parscale = vector of scaling values to correct for scale differencs in parameters.  Should be the same length as the num of parameters
               )
 )
 end = Sys.time()
@@ -922,11 +924,11 @@ print(fit)
 
 Before we discuss gradient descent, we can introduce a related method discussed in GH called "steepest descent" or "steepest ascent", depending on whether the objective function is being minimized or maximized.  
 
-Simply put, this method replaces $M$ in the previous section with the identity matrix $I$, and  does away with using the hessian or any approximation of it completely. In this manner we completely avoid any computational expense computing/approximating/storing/inverting the hessian, which can get prohibitive in high dimension.  
+Simply put, this method replaces $M$ in the previous section with the negative identity matrix $-I$, and  does away with using the hessian or any approximation of it completely. In this manner we completely avoid any computational expense computing/approximating/storing/inverting the hessian, which can get prohibitive in high dimension.  
 
-That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)}f'(x^{(t)}),$$ where $f(x)$ is the function to be minimized.  In this manner, the update takes the direction of steepest descent at $x^{(t)}$.  The step size may be scaled by some value $\alpha{(t)} > 0$, where if the direction taken at $x^{(t)}$ is negative  $\alpha{(t)}$ may be halved repeatedly to decrease the step size until a sufficiently small step size finds an downhill route ($\alpha{(t)}=1$ initially), where "downhill" is determined by the change in the objective function from the original position. This approach is called "backtracking".   
+That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)}f'(x^{(t)}),$$ where $f(x)$ is the function to be minimized.  In this manner, the update takes the direction of steepest descent at $x^{(t)}$.  The step size may be scaled by some value $\alpha{(t)} > 0$, where if the direction taken at $x^{(t)}$ is negative  $\alpha{(t)}$ may be halved repeatedly to decrease the step size until a sufficiently small step size finds an downhill route ($\alpha{(t)}=1$ initially), where "downhill" is determined by the change in the objective function from the original position. This approach is called "backtracking".   A more general version of this approach are "line search" methods, where such methods ensure the change in the objective function is greater than a certain amount and other helpful qualities (detailed in GH 2.2.2.1).  
 
-The intution behind this approach may be described as to trying to find one's way down a hill when blindfolded.  The only information available to you is how steep the hill is at the point where you are standing, and moving in the direction where the slope appears the steepest. We do not have an idea of the curvature (change in the slope) around that point, so we just follow the slope instead. 
+The intuition behind this approach may be described as to trying to find one's way down a hill when blindfolded.  The only information available to you is how steep the hill is at the point where you are standing, and moving in the direction where the slope appears the steepest. We do not have an idea of the curvature (change in the slope) around that point, so we just follow the slope instead. 
 
 Gradient Descent, depending on who you talk to, is either the same thing as steepest descent, or a more general form of steepest descent that fixes $\alpha{(t)}$ rather than letting it vary within each iteration.  Regardless, the idea is similar in that it avoids computing the hession and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems. 
 
@@ -934,7 +936,9 @@ However, for very large sample size problems the computation may become prohibit
 
 ## Stochastic Gradient Descent (SGD)
 
-Stochastic gradient descent instead randomly subsamples the data and performs an update for $\betab$ with a random observation drawn from the data.  Rather than updating $\betab$ with a full pass over the data, we instead update $\betab$ with each draw from the data, such that now $$\betab^{s+1} = \betab^{(s)} - \alpha l_i'(\betab^{(s)}),$$ where $s>0$ is the subsample index, $i$ is the index of the sample that is randomly drawn from the data, and $l_i'(\betab^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\betab^{s+1}$, which may take multiple loops over the entire data set.  Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
+Stochastic gradient descent instead randomly subsamples the data and performs an update for $\betab$ with a random observation drawn from the data.  Rather than updating $\betab$ with a full pass over the data, we instead update $\betab$ with a single draw from the data, such that now $$\betab^{s+1} = \betab^{(s)} - \alpha l_{i(s)}'(\betab^{(s)}),$$ where $s>0$ is the subsample index, $i(s)$ is the index of the sample that is randomly drawn in the $s$th subsample, and $l_{i(s)}'(\betab^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\betab^{s+1}$, which may take multiple loops over the entire data set.  
+
+Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
 
 ### Application of GD and SGD to our Poisson Regression Example
 Lets try it out on our poisson regression example.  Here is regular gradient ascent with just a fixed $\alpha^{(t)}$:
@@ -978,25 +982,26 @@ end = Sys.time()
 print(end - start)
 ```
 
-Takes more iterations and time than some of the prior methods, but is not surpising since it does not utilized or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
+Takes more iterations and time than some of the prior methods in the low dimensional low sample size setting, but is not surpising since it does not utilized or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
 
 Now here is a mini batched version of stochastic gradient descent, taking samples of 10
 
 
 ```{r, echo=TRUE}
 # the start
-tol = 10^-6 # lowered threshold to protect against random convergence
+tol = 10^-9 # lowered threshold to ensure convergence
 beta = c(log(mean(y)),0,0) # multivariate now
-maxit = 50000 # increased iteration limit
+maxit = 60000 # increased iteration limit
 iter = 0
 alpha = 0.00001
 subsample.size = 10
-eps = Inf
+eps = 100000
 epscount = 0
+logL = rep(NA, maxit)
 
 # given this, the result below will be the same as NR
 start = Sys.time()
-while(eps > tol & iter < maxit & epscount <2){
+while(eps > tol & iter < maxit & epscount < 2){
   # save the previous value
   beta0 = beta
   
@@ -1010,10 +1015,13 @@ while(eps > tol & iter < maxit & epscount <2){
   beta = beta + h
   
   # update the log likelihood 
-  logL = logLik(lambda = exp(X%*%beta), y= y)
+  logL[iter] = logLik(lambda = exp(X%*%beta), y= y)
   
-  # calculate the euclidean distance, could also use the log likelihood if we wanted
-  eps  = sqrt(sum((beta - beta0)^2))
+  # use relative change in logL from 1000 iterations prior
+  # this is because randomness between single iterations large, smooths out
+  if(iter > 1000) eps  = abs(logL[iter] -logL[iter-1000])/abs(logL[iter-1000])
+  
+  # we use this count to protect against randomly hitting the convergene limit early
   if(eps < tol) epscount = epscount+1
   
   # update the iteration number
@@ -1021,16 +1029,17 @@ while(eps > tol & iter < maxit & epscount <2){
   if(iter == maxit) warning("Iteration limit reached without convergence")
   
   # print out info to keep track
-  if(floor(iter/1000) == ceiling(iter/1000)) cat(sprintf("Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f\n",iter, logL,beta[1],beta[2],beta[3],eps))
+  if(floor(iter/1000) == ceiling(iter/1000)) cat(sprintf("Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f\n",iter, logL[iter-1],beta[1],beta[2],beta[3],eps))
 }
 end = Sys.time()
 print(end - start)
 ```
 
+Again, it takes longer to achieve sufficient accuracy, but in much higher dimension and sample size this would be faster than alternative approaches. 
 
 ## Nelder-Mead
 
-In certain situations we may find that neither the first nor the second derivative may be easily derived or easy to evaluate computationally.  Nelder-Mead , sometimes called the "Simplex Search Method" is one such algorithm that only requires the specification and evaluation of the function in question $f(\thetab)$ in order to perform optimization. Hence this algorithm falls into the class of iterative "direct search" algorithms as it only depends on the ranks of function search evaluations at possible solutions as it attempts to nominate a better point for the algorithm to move to in the parameter space. 
+In certain situations we may find that neither the first nor the second derivative may be easily derived or easy to evaluate computationally.  Nelder-Mead , sometimes called the "Simplex Search Method" is one such algorithm that **only requires the specification and evaluation of the function in question*** $f(\thetab)$ in order to perform optimization. Hence this algorithm falls into the class of iterative "direct search" algorithms as it only evaluates the function at possible solutions to suggest a better place for the algorithm to move to in the parameter space. 
 
 In the maximum likelihood estimation context, this means that only the likelihood function is evaluated during optimization.  This method may also be applied in more general situations where only some objective function exists that you wish to maximize or minimize but not clear analytical derivatives exists. 
 
@@ -1039,11 +1048,11 @@ Prior descriptions of this algorithm describe it as "amoeba-like", where the alg
 The main ideas behind this approach is similar to the prior two classes of algorithms covered so far, where the algorithm starts from an initial set of guesses for the parameter estimates, and then iteratively updates until some convergence criteria is met.  
 
 ### Updating algorithm
-The basic idea behind this algorithm is based upon the definition of the "simplex", which is essentially a $p +1$ dimensional space based upon the $p$ parameters of a given model.  Each of the $p+1$ elements of the simplex contains a $p$ dimensional vector representing a particular combination of the $p$ parameter values.  Each one of these $p$ combinations represent a "vertex" in the simplex space.  The method begins from set of initial vertices in the simplex based upon $\thetab^{(0)}$ through a predefined algorithm.  The set of vertices is then then modified one by one, keeping modifications that leads to an improvement in the objective function.  
+The basic idea behind this algorithm is based upon the definition of the "simplex", which is essentially a $p+1$ dimensional space based upon the $p$ parameters of a given model.  Each of the $p+1$ elements of the simplex contains a $p$ dimensional vector representing a particular combination of the $p$ parameter values.  Each one of these $p$ combinations represent a "vertex" in the simplex space.  The method begins from set of initial vertices in the simplex based upon $\thetab^{(0)}$ through a predefined algorithm.  These vertices are then ranked from best to worst in terms of their function value, updating the worst rank vertex each time.  In general, the worst vertex is updated towards the direction of the best vertices in the simplex.  
 
 In this iterative fashion, the vertices in the simplex slowly start to move towards regions of higher value until no further updates to the parameters results in an appreciable increase in the objective function.  The simplex may also "shrink" in size to better encapsulate regions of higher values when proposed moves in the simplex do not result in significant improvements in the objective function.  In general, the algorithm in each iteration tries to improve the worst point in the simplex (corresponding to a single parameter in the original model). 
 
-The details of this updating procedure is given in GH, however we illustrate this graphically in the video below pertaining to the optimization of a 2D model (containing two parameters).
+The details of this updating procedure is given in GH 2.2.4, however we illustrate this graphically in the video below pertaining to the optimization of a 2D model (containing two parameters).
 
 <iframe width="420" height="315" src="https://www.youtube.com/embed/HUqLxHfxWqU"></iframe>
 
@@ -1055,11 +1064,12 @@ Relative or absolute convergence criteria may be based upon the objective functi
 ### Pros and Cons
 * Pros
     + Does not require 1st or 2nd derivatives
-    + Robust:  can be applied to a wide range of algorithms
+    + Robust:  can be applied to a wide range of algorithms, rare failures
 * Cons
     + Typically requires many more iterations for convergence, and therefore may not be optimal for large-scale testing problems. 
     + Difficult to implement manually but many off-the-shelf solutions exist (such as optim in R)
-    +  Not suitable for high dimensional problems
+    + Not suitable for high dimensional problems
+    + Does not directly provide Hessian, but can be calculated after convergence
   
 ### Examples 
 
