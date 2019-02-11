@@ -1074,13 +1074,12 @@ Relative or absolute convergence criteria may be based upon the objective functi
 ### Examples 
 
 ```{r, echo=TRUE}
-# load the optimx librar
+# load the optimx library
 library(optimx)
 start = Sys.time()
 fit = optimx(
   par = c(log(mean(y)),0,0), # initial values for the parameters. 
   fn = function(x, X, y){logLik.reg(beta = x,X = X, y= y)}, # log likelihood
-  gr = function(x, X, y){d1.reg(beta = x,X = X, y= y)}, # gradient/1st derivative
   method = "Nelder-Mead",
   y = y,
   X = X,
@@ -1102,7 +1101,7 @@ print(fit)
 
 # For more detail
 
-See Given and Hoeting Chapters 1 and 2
+See Givens and Hoeting Chapters 1 and 2
 
 
 
