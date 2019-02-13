@@ -21,14 +21,7 @@ include-before:
 - '$\def \l \bfm{l}$'
 - '$\def \M \bfm{M}$'
 - '$\def \W \bfm{W}$'
-- '$\def \y \bfm{y}$'
-- '$\def \Y \bfm{Y}$'
-- '$\def \X \bfm{X}$'
-- '$\def \z \bfm{z}$'
-- '$\def \betab \bdm{\beta}$'
 - '$\def \Omegab \bdm{\Omega}$'
-- '$\def \pib \bdm{\pi}$'
-- '$\def \thetab \bdm{\theta}$'
 ---
 
 
@@ -38,102 +31,167 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-Reading:  GH Chapter 4, McCullough Chapter 1
+The EM algorithm is a general-purpose optimization algorithm widely considered as a "workhorse" computing algorithm in statistics.   
 
-The EM algorithm is a general-purpose optimization algorithm widely considered as a "workhorse" computing algorithm in statistics.  While it was originally introduced for the purpose of optimization in the presence of missing data, we will see that it can also be adapted to broader problems in statistics with a reformulation of the original problem at hand.  In such settings, the EM algorithm may offer a convenient alternative to the methods introduced in the previous lecture where the analytical forms of the derivatives may be complex or difficult to evaluate.  
+While it was originally introduced for the purpose of optimization in the presence of missing data, we will see that it can also be adapted to broader problems in statistics by a reformulation of the original problem.  In such settings, the EM algorithm may offer a convenient alternative to the methods introduced in the previous lecture, where the analytical forms of the derivatives may be complex or difficult to evaluate.  
 
-Examples of these broader applications include random effects, finite mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature. 
+Examples of these broader applications include random effect, finite mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature of the EM. 
 
 ## Example:  Finite Mixture Models
 
-### Newton Raphson
+In the previous homework we looked at an example of a finite mixture model.  There we assumed that the number of fish caught $y_1\ldots y_{4075}$ in the park population came from a mixture of two subpopulations, for example, the non-fishing population (with probability $\pi$ when $y_i=0$) and the fishing population (with probability $(1-\pi)$). The PMF was given by $$p(y_i|\pi,\lambda) = (\pi + (1-\pi)e^{-\lambda})^{I[y_i=0]}\left((1-\pi)\frac{e^{-\lambda}\lambda^{y_i}}{y_i!}\right)^{I[y_i>0]}$$
 
-### BFGS
+This model, called a zero-inflated Poisson model, accounts for the excess zeros that are due to the non-fishing population, and, assuming the model correctly represents the observed data, should provide a less biased estimate of $\lambda$ relative to the regular Poisson model.  Here, the probability of observing a zero is simply the sum of probabilities of that individual coming from either the non-fishing population (with probability $\pi$) or from the non-fishing population and catch zero fish (with probability $(1-\pi)e^{-\lambda}$).  
 
-### Nelder-Mead
+Lets take this problem a step further.  Let us assume that at a bass fishing tournament, a statistician took a survey of participants at the end of the week, asking them how many fish they had caught total.  The statistician also noted the age of each individual, the length of their boat in feet, and as well as the approximate volume of the cooler they had brought in liters ($l \times w \times h$).  One of the things that the statistician wanted to determine was how factors such as age, boat size, and size of the cooler were related to the number of fish an individual caught during the week. 
+
+For the purposes of illustration, we simulate this data and list the simulation code in the RMD file pertaining to this lecture in case you want to follow along.  We will come back to this simulation setup later.
+
+```{r, echo=FALSE}
+# generate the data
+set.seed(10)
+
+# sample size
+n = 500
+
+# create design matrix
+cooler = round(rt(n, 15, 35),2)
+boat_length =  round(rt(n,5, 30),2)
+age = round(rt(n,25, 50))
+X = model.matrix(~ 1 + age + boat_length + cooler)
+
+# set coefficients
+pi1 = 0.5 # non-professional proportion
+pi2 = 1-pi1 # professional proportion
+beta_1 = matrix(c(3, 0, 0, -.01),ncol = 1) # NP coefs, larger boat cooler = less fish
+beta_2 = matrix(c(3, 0, 0, .01),ncol = 1) # P coefs, larger boat cooler = more fish
+
+# simulate data
+group_indicators = rbinom(n, 1, pi2) # 1 = P, 0 = NP
+y = rep(0, n)
+y[group_indicators == 0] = rpois(n = sum(group_indicators == 0),lambda = exp(X[group_indicators == 0,]%*%beta_1))
+y[group_indicators == 1] = rpois(n = sum(group_indicators == 1),lambda = exp(X[group_indicators == 1,]%*%beta_2))
+# write.table(cbind(y, X[,-1]), file = './em/fish.txt', quote = F, col.names = T, row.names = F,  sep = "\t")
+```
+
+She ran a Poisson GLM on the data and found that none of the variables except for cooler seemed to correlation with outcome:
+
+```{r}
+summary(glm(y ~ X-1, family = poisson()))
+```
+
+When plotting the data, something seemed a little off with the distribution:
+
+```{r}
+hist(y)
+```
+
+Lets log transform the data to get a better look
+
+```{r}
+hist(log(y+1))
+```
+
+Looks like the distribution is may be bimodal.  Well, this could be due to perhaps the distribution of the covariates themselves, so lets look at each of them with respect to the log number of fish caught.  
+
+```{r}
+pairs(cbind(log(y+1), X[,-1]), panel = function(...) smoothScatter(..., nrpoints = 0, add = TRUE), gap = 0.2)
+```
+
+In the first row we can see evidence that there may be different relationships between the cooler variable (x-axis) and the number of fish caught (y-axis) in two different subgroups of participants.  Each group seems to have a different baseline numbers of fish caught and different trend with cooler.  This could make sense, as both amateur and professional fisherman were allowed to register for the tournament, where we would assume the professional fisherman would catch more than the amateur ones.  
+
+The statistician wanted to go ahead and fit a mixture model to the data, again assuming there are two latent populations at hand.  Lets write the general form of a mixture model with $K$ mixture components, sometimes referred to as "states", where each component corresponds to a particular assumed subpopulation in the data.  We can then write the general form for the density of this mixture as the following: 
+
+$$
+f(y_i|\boldsymbol{\theta}) = \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)
+$$
+
+where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1,\ldots,\boldsymbol{\beta}_K)^T$, and $\boldsymbol{\beta}_k = (\beta_1,\ldots,\beta_{pk})$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\beta_k = \beta_{0k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \exp(\beta_{0k})$. 
+
+The log likelihood can be written as $$l(\boldsymbol{\theta}) = \sum_{i=1}^n \log\left( \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)\right)$$
+
+For the previous homework it was obvious that fitting these type of mixture models using NR was very tedious, as that the first and second derivatives become very complicated.  The sum within the log complicates such derivatives especially.  
+
+We can show however that with the application of the EM algorithm that we can simplify the maximization procedure.  We will show how we can adapt this model to our particular example, and how to fit it with the EM algorithm. 
 
 ## The Basic Idea
-As we can see from the previous example that applying methods such as NR to maximize the finite likelihood can be somewhat tedious, due to the form of the derivatives.  The general intuition behind the EM algorithm involves the maximization of a surrogate function in lieu of the original function/likelihood, which may be more amenable to maximization with standard approaches such as NR or BFGS.  
+The general intuition behind the EM algorithm involves the maximization of a surrogate function in lieu of the original function/likelihood, which may be more amenable to maximization with standard approaches such as NR or BFGS.  
 
 In this manner, the problem at hand is transformed from a missing or "incomplete" data problem to a "complete" data problem, where the missing data is assumed to be known.  
 
-That is, assuming the missing data to be known reduces the complexity of the maximization problem and often times has a much nicer form.  In cases where there is no actual "missing" data in the original likelihood (like in the finite mixure model example), we may introduce some missing data to make it amenable to maximize via EM.  
+Assuming the missing data to be known reduces the complexity of the maximization problem and oftentimes has a much nicer form than the original likelihood. In cases where there is no actual "missing" data in the original likelihood (like in the FMR example), we may introduce some missing data to make it amenable to maximize via EM.  
 
-But how does one actually maximize such a complete data model when obviously there is no way to know the actual values of the missing data?  The answer to this reflects the simplicity of the EM algorithm, and also explains how other disciplines had arrived at similar algorithms (albeit without any formal justification for its performance) prior to the seminal 1977 publication on the EM algorithm by Dempster, Laird, and Rubin (DLR).  
+But how does one actually maximize such a complete data model when obviously there is no way to know the actual values of the missing data?  
 
 ## Algorithm Strategy
 The surrogate function being maximized is the **expectation** of the **complete data log likelihood** with respect to the "missing" or "latent" data, conditional on the observed data and the current estimates of the model parameters.  This function is often simpler in form than the original log likelihood, and is more amenable to maximization.  We will go into more detail on the CDLL in the next section. 
 
-The EM algorithm alternates between two main steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  In a very general sense, during EM we "fill in" the missing data with an educated guess  (E step), and then maximize the complete data log likelihood with the missing data "filled in" using standard optimization methods (M-step). We iterate between the E and M steps until model convergence.  
+The EM algorithm alternates between two main steps, the "Expectation step" or "E-step", and the "Maximization step" or "M-step".  In a very general sense, during EM we "fill in" the missing data with an educated guess  (E step).  We then maximize the complete data log likelihood with the missing data "filled in" using standard optimization methods (M-step). We iterate between the E and M steps until model convergence in terms of the parameters or likelihood.  
 
-This way, we do not directly deal with missing data in the M-step, facilitating the application of existing maximization routines in the M-step. DLR showed that the maximization of this function leads to the maximization of the likelihood, and each iteration is guarunteed to have a non-decreasing change in the likelihood. 
+This way, we do not directly deal with missing data in the M-step, facilitating the application of existing maximization routines in the M-step. DLR showed that the maximization of this function leads to the maximization of the likelihood, and each iteration is guaranteed to have a non-decreasing change in the likelihood. 
 
 In this lecture we will first start with the formulation of the EM approach, its general properties, variants of this approach, and finally finish with some examples. 
 
 # Algorithm Setup
 
 ## General formulation
-Let $\Y$ be the $n$-dimesional random vector pertaining to the vector of the observed data $\y_o$. Let us assume that $\Y$ is distributed with PDF $g(\y ; \thetab)$, where $\thetab = (\theta_1,\ldots,\theta_p)$ is a $d$-dimensional vector of unknown parameters to be estimated and $\thetab \in \Omegab$, $\Omegab$ being some $d$-dimesional space for $\thetab$.  
+Let $\boldsymbol{y}$ be the $n$-dimensional random vector pertaining to the vector of the observed data $\boldsymbol{y}_o$. Let us assume that $\boldsymbol{y}$ is distributed with PDF $g(\boldsymbol{y} ; \boldsymbol{\theta})$, where $\boldsymbol{\theta} = (\theta_1,\ldots,\theta_d)$ is a $d$-dimensional vector of unknown parameters to be estimated and $\boldsymbol{\theta} \in \Omegab$, $\Omegab$ being some $d$-dimensional space for $\boldsymbol{\theta}$.  
 
-To be clear, we are treating $\y_o$ here in the general sense in that it pertains to all the **observed data** for a particular model.  This is exactly how it sounds like, in that it pertains to the data that we can actually collect and have on hand in our problem.  An example of this may be the observed overall survival times for a subset of cancer patients in a clinical trial. 
+To be clear, we are treating $\boldsymbol{y}_o$ here in the general sense in that it pertains to all the **observed data** for a particular model.  This is exactly how it sounds like, in that it pertains to the data that we can actually collect and have on hand in our problem.  
 
-As mentioned earlier, the EM algorithm is helpful in situations where there is missing data.  In other situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  
+In some situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  
 
-In either case, we may term the observed data $\y_o$ as the "incomplete data" in this setting, and the "complete" or "augmented" data as as $\y_c$, where $y_c = (\y_o^T, \z^T)^T$, where $\z$ pertains to the vector of missing or unobservable data. 
+In either case, we may term the observed data $\boldsymbol{y}_o$ as the "incomplete data" in this setting, and the "complete" or "augmented" data as as $\boldsymbol{y}_c$, where $\boldsymbol{y}_c = (\boldsymbol{y}_o^T, \boldsymbol{z}^T)^T$, where $\boldsymbol{z}$ pertains to the vector of missing or unobservable data. 
 
 ### Simple examples of "missing" data in this context
-Examples of $\z$ in the former case may pertain to the actual (unobserved) survival times of patients in the study who were censored in the clinical trial. For example, those patients who did not pass away by the end of the study or were lost to follow up. We only observe their survival time up their last followup ($y_o$). 
+Examples of $\boldsymbol{z}$ in the former case may pertain to the actual (unobserved) survival times of patients in the study who were censored in the clinical trial. For example, those patients who did not pass away by the end of the study or were lost to follow up. We only observe their survival time up until their last follow up ($\boldsymbol{y}_o$). 
 
-However, if we wait long enough, we should be able to observe the survival times for all patients in the trial, without any censoring.  Or, if we were able to track down those patients that were lost to followup, we could observe how long they actually had survived. Here, the data is truly missing in that in some scenarios there is a possibility that we can observe the data. 
+However, if we wait long enough, we should be able to observe the survival times for all patients in the trial, without any censoring.  Or, if we were able to track down those patients that were lost to follow up, we could observe how long they actually had survived. Here, the data is truly missing in that in some scenarios there is a possibility that we can observe the data. 
 
-Examples of $\z$ in the latter case may pertain to the set of class memberships in a finite mixture model, or state-membership in a hidden markov model.  Unlike the survival example, there is no possibility to observe such states in reality. 
+Examples of $\boldsymbol{z}$ in the latter case may pertain to the set of class memberships in a finite mixture model, or state-membership in a hidden markov model.  Unlike the survival example, there is no possibility to observe such states in reality. 
 
-Assuming that each observation in the model belongs to a single class or a single state greatly simplifies the problem and facilitates the maximization of the model.  We will give examples of these types of models in a bit.  
-
-
+Assuming that each observation in the model belongs to a single class/state greatly simplifies the problem and facilitates the maximization of the model.  We will give examples of these types of models in a bit.  Connecting this with the example at the beginning of this lecture, we do not observe whether an individual is from the amateur or profession fishing group. 
 
 ### Defining the Complete Data Log Likelihood
 
-Let us assume that the distribution for the random vector $Y_c$ pertaining to the complete data vector $\y_c$ is given by the pdf $g(\y_c ; \thetab)$.  Given this setup, we can define the *complete data log likelihood* function as $$log L_c(\theta_b) = g(\y_c; \thetab).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(y_o,\theta_b) = \int g(\y_c; \thetab)d\z $$  
+Let us assume that the distribution for the complete data vector $\boldsymbol{y}_c$ is given by the pdf $g(\boldsymbol{y}_c ; \boldsymbol{\theta})$.  Given this setup, we can define the *complete data log likelihood* function as $$\log L_c(\boldsymbol{\theta}) = g(\boldsymbol{y}_c; \boldsymbol{\theta}).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(\boldsymbol{y}_o,\boldsymbol{\theta}) = \int g(\boldsymbol{y}_c; \boldsymbol{\theta})d\boldsymbol{z} $$  
 
 ### Q-function and Initialization
 
-The objective function to be maximized over can be considered a surrogate function of the likelihood,  termed the "Q-function".  This function is defined at the $k$th step as $$Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right],$$ the expection of  the complete data log likelihood with respect to the missing data $\z$, given the observed data and the current value of the parameter estimates. 
+The objective function to be maximized over can be considered a surrogate function of the likelihood, termed the "Q-function".  This function is defined at the $t$th step as $$Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)}) = E\left[ \log L_c(\boldsymbol{\theta}) | \boldsymbol{y}_o,\boldsymbol{\theta}^{(t)}\right],$$ the expectation of  the complete data log likelihood with respect to the missing data $\boldsymbol{z}$, given the observed data and the current value of the parameter estimates. 
 
-Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and begins at some starting value for $\theta$ which we denote as $\thetab^{(0)}$.  Better starting values may result in faster convergence, as well as higher chance of converging to the global maximum as opposed to a local one.  We then proceed to the E-step in the next section. 
+Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and begins at some starting value for $\boldsymbol{\theta}$, which we denote as $\boldsymbol{\theta}^{(0)}$. **Alternatively**, in some cases it may make sense to start with an initial value of the E-step, and then proceed to the M-step.  We will give an example of this situation later in the finite mixture regression model example. 
 
-**Alternatively**, in some cases it may make sense to start with an initial value of the E-step, and then proceed to the M-step.  We will give an example of this situation later in the finite mixture model example. 
+Better starting values may result in faster convergence, as well as higher chance of converging to the global maximum as opposed to a local one. In a later section will be discuss some of the properties of the EM, one of which is that it does not guarantee global but only local convergence. 
 
 ### E-step
-In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values at that step, given the observed data and current parameter estimates from the M-step.  This approach can be thought of a way of substituting an "educated guess" for their unknown values to simplify the application of the methods from the previous lecture.  
+In the E-step, the expected value of the complete data likelihood is updated given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values at that step, given the observed data and current parameter estimates from the M-step.  That is, at iteration $t$, we calculate  $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)})$, where $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)}) = E\left[ \log L_c(\boldsymbol{\theta}) | \boldsymbol{y}_o,\boldsymbol{\theta}^{(t)}\right].$ 
 
-Now, in many examples this analogy of "filling in" the missing data with their conditional expection may hold, however in a more general sense we are computing the conditional expectation of the complete data log likelihood with respect to the missing data, given the observed data at the current parameter estimates. 
+Now, in many cases this analogy of "filling in" the missing data with their conditional expections may be an accurate description.  However, in a more general sense we are simply computing the conditional expectation of the **complete data log likelihood** with respect to the missing data, given the observed data at the current parameter estimates. For example, if say the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appeared, $E[q^2| \boldsymbol{y}, \boldsymbol{\theta}] \neq E[q, \boldsymbol{y}, \boldsymbol{\theta}]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expectation for $q^2$ and fill the value in for that particular terms.
 
-For example, if say the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appeared, $E[Q^2| \y, \thetab] \neq E[q, \y, \thetab]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expection for $q^2$ and fill the value in for that particular terms. 
+Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, given the observed data and current parameter estimates.  If complex functions of the missing data are present in the CDLL this can complicate the evaluation of this integral, and hence the E-step.  
 
-Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, conditional on the observed data and current parameter estimates.  
+Luckily, in many cases this integral (such as in the current example), can reduce to simple forms.  We will show examples of both common simple cases and more complex ones, and how one can address the latter cases with extensions of the EM algorithm later in this lecture.
 
-If complex functions of the missing data are present in the CDLL this can complicate the evaluation of this integral, and hence E-step.  Luckily, in most cases this integral (and thus expectation), can reduce to simple forms.  We will show examples of both common simple cases and more complex ones, and how one can address the latter cases with extensions of the EM algorithm later in this lecture.
-
-In the E-step at iteration $k$, we calculate  $Q(\thetab,\thetab^{(k)})$, where $Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right].$  Therefore, after starting at an initial value $\thetab^{(0)}$, we can proceed to the E-step and begin the algorithm.  
 
 ### M-step
-At step $k$, the M-step  maximizes the Q-function $Q(\thetab,\thetab^{(k)})$ with respect to $\thetab$ over the parameter space $\Omegab$.  In other words, $\thetab^{(k+1)}$ is chosen such that $Q(\thetab^{(k+1)},\thetab^{(k)}) > Q(\thetab,\thetab^{(k)}) \forall \thetab \in \Omegab$.
+At step $t$, the M-step  maximizes the Q-function $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)})$ with respect to $\boldsymbol{\theta}$ over the parameter space $\Omegab$.  In other words, $\boldsymbol{\theta}^{(t+1)}$ is chosen such that $Q(\boldsymbol{\theta}^{(t+1)};\boldsymbol{\theta}^{(t)}) > Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)})$  $\forall \boldsymbol{\theta} \in \Omegab$.
 
-Optimization methods such as those discussed in the prior lecture are now applicable in the M-step, simplifying the optimization procedure relative to before.  In this sense, the EM algorithm is modular, where one can apply existing maximization procedures to maximize the Q-function even in situations where the likelihood is quite complicated, for example necessitating the evaluation of multidimensional integrals or require recursive computation.  
+Optimization methods such as those discussed in the prior lecture are now applicable in the M-step, simplifying the optimization procedure relative to before.  
+
+In this sense, the EM algorithm is modular, where one can apply existing maximization procedures to maximize the Q-function even in situations where the likelihood is quite complicated, for example necessitating the evaluation of multidimensional integrals or require recursive computation.  
 
 ### Convergence Criteria
-The algorithm iterates between the E and M steps until the value of the Q-function or parameter estimates converge.  The same principles regarding choosing informative starting points and convergence criteria apply to the EM algorithm as well.  We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of setting and selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
+The algorithm iterates between the E and M steps until the value of the Q-function or parameter estimates converge.  The same principles regarding choosing informative starting points and convergence criteria apply to the EM algorithm as well.  
+
+We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
 
 ### General comments
-The 1977 paper on the EM algorithm demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guarunteed not to decreases with each EM iteration such that $L(\thetab^{(k+1)}) \leq L(\thetab^{(k)})$.  This is an attractive property as each iteration should improve the likelihood in some sense.  As can be seen above, the algorithm itself is quite modular, where simpler existing methods can be applied to evaluate the E and M-step.  In the E-step only simply needs to know the condition density of the missing data given the observed data.  In cases where this density is unknown or intractable, approaches such as the monte-carlo EM may be utilized to approximate the E-step using sampling-based approaches. 
+The seminal 1977 paper on the EM algorithm by Dempster, Laird, and Rubin demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guaranteed not to decrease with each EM iteration such that $L(\boldsymbol{\theta}^{(k+1)}) \leq L(\boldsymbol{\theta}^{(t)})$.  In the E-step one only needs to know the condition density of the missing data given the observed data.  In cases where this density is unknown or intractable, approaches such as the monte-carlo EM may be utilized to approximate the E-step using sampling-based approaches. 
 
-## Examples (TO DO)
-So we introduced a fair bit of notation here, and to really illustrate how this approach works lets start with two simple examples. 
+## Application of EM to the Poisson Finite Mixture Regression Model Example
 
-In the first example, we show a case where we reformulate a problem by introducing a latent variable that allows for the maximization via EM and simplifies the problem.  
-
-In the second example, we illustrate an application of EM to a missing data scenario that is naturally seen in survival analysis.  
+So we introduced a fair bit of notation here, and to really illustrate how this approach works lets start our original example.  Here we reformulate the problem at the beginning of this lecture by introducing a latent variable that allows for maximization via EM.  
 
 In each case, we will break down the application of the EM algorithm using the same structure introduced above:
 
@@ -142,14 +200,328 @@ In each case, we will break down the application of the EM algorithm using the s
 *    Derive the Q-function
 *    Compute the E-step
 *    Compute the M-step
-*    Define intialization and convergence criteria
+*    Define initialization and convergence criteria
 
-### EM application to the Finite Mixture Model Example
+When you are applying the EM algorithm in process, it is helpful to break down the problem into the above steps to clarify how each portion of the algorithm is being carried out. 
+
+### Log Likelihood
+
+From the general form of the FMR model given earlier, the log likelihood can be written as $$l(\boldsymbol{\theta}) = \sum_{i=1}^n \log\left( \sum_{k =1}^2 \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)\right),$$ where $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$, $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$, and $\sum_{k = 1}^K \pi_k = 1$.  
+
+In this example $\boldsymbol{X}_{ik} = \boldsymbol{X}_i$, where $\boldsymbol{X}_i$ is a $1 \times 4$ vector pertaining to the intercept, age, log boat length in feet, and log cooler size in liters, and $\beta_k = (\beta_0, \beta_1, \beta_2, \beta_3)^T$ are the regression coefficients component $k$ pertaining to $\boldsymbol{X}_i$.  Therefore, we assume that the mean of each mixture component is modeled with different sets of regression coefficients but share the same set of predictors.  This allows for the same predictor to potentially have different effects in each component.  We also assume here that an observation may come from either the amateur or professional fishing populations, however the component membership of each observation is not known or observed. 
+
+### Complete Data Log Likelihood 
+
+Given that the derivatives based on this log likelihood are complicated, the application of NR or even gradient-based methods may be tedious. 
+
+Let us instead construct the CDLL in the following manner, assuming the original component membership of each observation was known: 
+
+$$L_c(\theta_b) = \sum_{i=1}^n \log( \prod_{k =1}^2 \left[\pi_kf_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k)\right]^{I[z_i = k]}) = \sum_{i=1}^n \sum_{k =1}^2 I[z_i = k]\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]$$
+where $\boldsymbol{z} = (z_1,\ldots,z_n)$ and $z_i$, where $z_i=1,2$, represents the component membership pertaining to  observation $i$, $i = 1,\ldots,n$.  By assuming the component membership is known, we can simplify the expression in the CDLL to the above, which no longer contains the log of a sum.  
+
+In reality, we do not know which component an individual came from. Thus, we still have the problem that we do not actually observe $\boldsymbol{z}$, and we need to maximize the above expression. Lets now move on to the E and M-steps. 
+
+### E-step
+
+Now we must evaluate the expectation of the CDLL, $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)}) = E\left[ \log L_c(\boldsymbol{\theta}) | \boldsymbol{y}_o,\boldsymbol{\theta}^{(t)}\right]$.  Here, this simply reduces to
+\begin{aligned}
+Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)}) &=\sum_{i=1}^n \sum_{k =1}^2 E[I[z_i = k] | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}]\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]\\
+&= \sum_{i=1}^n \sum_{k =1}^2 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]
+\end{aligned}
+
+We can show that 
+\begin{aligned}
+p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) &= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{p(\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})} \\
+&= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{\sum_{k =1}^2p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}\\
+&= \frac{\pi_kf_k(y_i|\boldsymbol{X}_i, \betab_k)}{ \sum_{k =1}^2\pi_kf_k(y_i|\boldsymbol{X}_i, \betab_k)}
+\end{aligned}
+
+using the definition of conditional probability.  So, evaluating the Q-function is facilitated by simply computing the expectation above.  It is easy to see here that we are "filling in" the latent data $z_i$ with $p([z_i = k] | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$, making it possible to maximize this function.  This quantity is sometimes referred to as the "posterior probability" of subject $i$ belonging to component $k$ at iteration $t$.  
+
+Upon convergence, we will see that we can actually use these values to classify subjects into components.
+
+### M-step
+
+Here we now maximize $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)}) = \sum_{i=1}^n \sum_{k =1}^2 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]$.  We can simplify this to maximizing  $$\sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))$$ with respect to $\boldsymbol{\beta}_k$, $k = 1,2$, and $$\sum_{i=1}^np(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(\pi_k)$$ with respect to $\pi_k$, $k = 1,2$.  This is because the Q-function nicely separates with respect to each set of parameters.  
+
+For each $\boldsymbol{\beta}_k$, we can regard $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework.  This is to distinguish from the weights that are defined in each IRLS iteration.  Therefore, we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\X$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can defined new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. 
+
+For $\pi_k$, we can show that  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$, that is, the mean of the posterior probabilities of each individual belonging to component $k$.  How do we get this?  We have the constraint that $\sum_{i=1}^{K} \pi_k = 1$, therefore we can compute the Langrangian for this problem and set its partial derivative to zero (don't need to worry about this).  Another way to think about this is that if we actually did observe the states, we could simply calculate $\hat{\pi}_k = \sum_{i = 1}^nI[z_i = k]/n$.  Since they are not observed, we can take the conditional expectation of each $z_i$ to give  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$.  
+
+Therefore, the M-step $\boldsymbol{\beta}_k$ reduces to the problem of computing a weighted GLM for each component, and for $\pi_k$ is simply the mean of the component posterior probabilities.  This is drastically simpler than the alternative approaches that try to maximize the log likelihood directly. Also, as we will see, this also simplifies the coding implementation. 
+
+### Initialization and Convergence
+
+As we will see later, the EM is not guaranteed to converge to a global optimum but to a local optimum or saddle point.  As a result, choosing multiple initializations is helpful, keeping the one with the best final likelihood after convergence.  
+
+In mixture models it may not be clear how to initialize $\boldsymbol{\pi}$ and $\boldsymbol{\beta}$, but it may be easier to initialize $\boldsymbol{z}$ instead.  For example, we may randomly assign the cluster assignment to either component 1 or component 2, and then initialize $p(z_i = 1 | \boldsymbol{y}_o, \boldsymbol{\theta}^{(0)}) = 1$ for subjects assigned to component 1 and 0 otherwise, and set $p(z_i = 2 | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) = 1- p(z_i = 1 | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$.  
+
+If an informative guess may be utilized for an initial partition, for example, assuming those with higher fish counts are more likely to be professional rather than amateur fishers, one may pick an arbitrary count cutoff for the count threshold for initial assignment.  Since we do not know what threshold is best, we can vary this threshold over a range of possible values and rerun the algorithm.  
+
+For convergence, we can use parameter-based criteria as before, or simply use the updated value of the log likelihood at each iteration. 
+
+### And finally, the code implementation
+```{r}
+tol = 10^-5
+maxit = 50
+iter = 0
+eps = Inf
+ll = -10000
+fit = list()
+  
+## create posterior probability matrix
+pp = matrix(0, n, 2)
+colnames(pp) = c("amateur","prof")
+
+## use informative initialization, 
+## assuming lower counts --> amatuer
+## choose prop of samples that are amatuer first
+## should vary this and re-evaluate
+prop_ama = 0.6
+
+## set everything greater than th
+pp[y > quantile(y, prop_ama),2] = 1
+pp[,1] = 1 - pp[,2]
+
+## now start the EM algorithm
+start = Sys.time()
+while(eps > tol & iter < maxit){
+  
+  ## save old ll
+    ll0 = ll
+  
+  ## start M-step
+    # pi, mean of component pp's
+    pi = colMeans(pp)
+    
+    # betak, weighted glm's based on pp
+    for(i in 1:2) fit[[i]] = glm(y ~ X -1, family = poisson(), weights = pp[,i])
+  
+  ## start E-step
+    # calculate numerator
+    for(i in 1:2) pp[,i] = pi[i]*dpois(y,lambda = fit[[i]]$fitted)
+  
+    # divide by denominator, the sum across components in each i
+    pp = pp/rowSums(pp)
+ 
+  ## calculate LL
+    interior_sum = 0
+    for(i in 1:2) interior_sum = interior_sum + pi[i]*dpois(y,lambda = fit[[i]]$fitted) 
+    ll = sum(log(interior_sum))
+    
+  ## calculate relative change in log likelihood  
+    eps  = abs(ll-ll0)/abs(ll0)
+  
+  ## update iterator
+    iter = iter + 1
+    if(iter == maxit) warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+    cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
+}
+
+end = Sys.time()
+print(end - start)
+  
+```
+
+Now lets looks at the results
+
+```{r}
+# print the mixture proportion estimates
+print(pi)
+
+# print the coefficients pertaining to the first mixture component
+print(fit[[1]]$coef)
+
+# print the coefficients pertaining to the second mixture component
+print(fit[[2]]$coef)
+```
+
+Lets also plot the fitted values for each component on a plot looking at fish vs cooler:
+
+```{r}
+plot(cooler, log(y+1), ylab = "Log Fish Caught", xlab = "Cooler Size (L)")
+points(cooler, log(fit[[1]]$fitted+1), col = "blue")
+points(cooler, log(fit[[2]]$fitted+1), col = "red")
+legend(c("Amateur Fisher","Professional Fisher"),col = c("blue","red"),x = "bottomright", lty = c(1, 1)) 
+```
+
+Looks like the relationship of cooler size is inversely related with number of fish caught in the amateur fisherman, but positively related with the number from professional fisherman.  Hmm...
+
+We can also use the final set of posterior probabilities to classify subjects:
+
+```{r}
+par(mfrow = c(1,2))
+boxplot(pp[,2] ~ factor(group_indicators,labels =  c("Amateur","Professional")), ylab= "Post. Prob of Professional", xlab = "True Membership")
+abline(h = 0.5)
+colvec = rep("lightblue", length(y))
+colvec[pp[,2] > .5] = "lightcoral"
+plot(cooler, log(y+1), ylab = "Log Fish Caught", xlab = "Cooler Size (L)", col = colvec)
+points(cooler, log(fit[[1]]$fitted+1), col = "blue")
+points(cooler, log(fit[[2]]$fitted+1), col = "red")
+```
+
+In addition, given a new sample's vector of covariates, say $\boldsymbol{X}_{i,new}$, we can also compute their posterior probability of component membership as well, given the fitted model estimates.  
+
+# General Properties of the EM Algorithm
+
+In this section we will not focus on the proofs behind the results shown but instead highlight their implications on the properties of the EM.  
+
+## Monotone Increase of the Likelihood
+
+In the initial DLR paper on the EM, it was demonstrated that $$L(\boldsymbol{\theta}^{(k+1)}) \geq  L(\boldsymbol{\theta}^{(t)})$$ for each iteration $t \geq 0$, demonstrating that the likelihood at each iteration of the EM does not decrease. Therefore, for some bounded sequence of likelihood values ${L(\boldsymbol{\theta}^{(t+1)})}$, we know that the likelihood at each iteration converges to some likelihood value $L^*$, which may or may be either a local or global maximum.
+
+The "self-consistency" property of the EM comes from this result, where we can show that if the MLE $\hat{\boldsymbol{\theta}}$ is the global maximizer for the likelihood, this implies that it is also the global maximizer for the Q-function (the surrogate for the likelihood).  In order words, if $\hat{\boldsymbol{\theta}}$ is the global maximizer for $L(\boldsymbol{\theta})$, then this implies that $$Q(\hat{\boldsymbol{\theta}};\hat{\boldsymbol{\theta}}) \geq Q(\boldsymbol{\theta};\hat{\boldsymbol{\theta}})$$ and that $\hat{\boldsymbol{\theta}}$ is the solution to the equation $$\frac{d}{d\boldsymbol{\theta}} Q(\boldsymbol{\theta};\hat{\boldsymbol{\theta}})\|_{\boldsymbol{\theta} = \hat{\boldsymbol{\theta}}} = 0.$$  The latter statement translates to that the optimal value for $\boldsymbol{\theta}$ for the likelihood is also the optimal value for the Q-function.
+
+In a more general sense, $\boldsymbol{\theta}^{(t+1)}$ is chosen to maximize $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)})$ at iteration $t$ rather than globally.  Using similar reasoning as the prior result, we can show that this results in a sequence of estimates across iterations satisfying $L(\boldsymbol{\theta}^{(t+1)}) \leq L(\boldsymbol{\theta}^{(t)})$, and therefore the likelihood will not decrease as the algorithm progresses. 
+
+Under certain conditions, such as if the likelihood function is unimodal in $\boldsymbol{\theta}$ (one global maximum with no local maximums), then any sequence ${\boldsymbol{\theta}^{(t)}}$ will converge to the unique MLE of $\boldsymbol{\theta}$, $\boldsymbol{\theta}^*$.  In cases where the parameter space is not unrestricted and may be constrained, such convergence may not be guaranteed but depends on the specific scenario. 
+
+## Convergence Rates 
+Using similar arguments at the last lecture, we can use a Taylor Series Expansion of $\boldsymbol{\theta}^{(t)}$ around $\boldsymbol{\theta}^{(t)}$.  We can show that around $\boldsymbol{\theta}^*$, the rate of convergence of the EM is approximately linear, however the exact rate depends on the problem at hand.  
+
+Theoretically, the rate of convergence can be determined from the eigenvalues of the Jacobian Matrix at $\theta^*$, where the component with the largest eigenvalues (indicating the slowest rate) determines the overall rate of convergence. 
+
+## Computing Standard Errors of Parameter Estimates
+For the NR algorithm, the hessian matrix is estimated with each update of the algorithm, and one nice byproduct of this is that standard errors can be directly computed for the parameter estimates after convergence using the hessian.  For methods such as BFGS where no hessian is computed, its approximation (often used during maximization) can similarly be utilized for standard error computation.  That is, the covariance matrix of the parameter estimates can be determined with relative ease. 
+
+For the EM algorithm, due to the fact that we do not directly take second derivatives of the log likelihood or approximate it, we do not have a ready-made hessian matrix as in the previous methods.  As a result, quantities such as standard errors are harder to obtain.  However, several approaches exist to obtain such estimates post-convergence.  
+
+### Direct evaluation
+Methods for **direct evaluation** of the covariance matrix have been developed, but in some cases may be tedious to derive and implement (Louis' method, Bakers method, etc).  Such approaches require one to derive the second derivatives of the likelihood in question.  This is ironic because the EM may have been chosen simply to avoid taking derivatives of the likelihood in the first place.  Here, after convergence of the EM algorithm, the MLE is utilized to calculate the observed Fisher Information matrix from these forms, which is then inverted to obtain the standard errors. 
+
+We will not go into too much detail on this topic, but further information on this approach in given in McCullough Section 4.2.2, and an approximation for the i.i.d. case is given in Section 4.3, and for non-i.i.d data in 4.5.  Several specific algorithms for implementing these direct calculation approaches are given in McCullough Section 4.7
+
+### Parametric Bootstrap
+A very general and popular approach that can be applied to all models is the bootstrap.  There are multiple versions of this approach, however one approach commonly used is the **parametric bootstrap**.  Essentially, one first fits the model to the data to obtain $\hat{\boldsymbol{\theta}}$, and then simulates generates $B$ bootstrap datasets of size $n$ from the fitted model.    For each of the $B$ datasets, we refit the model and save the parameter estimates for each of the $B$ datasets.  
+
+For the purpose of covariance matrix estimation for the model parameters, we simply calculate the covariance of the parameter estimates from each of the $B$ fitted models. Simple, but also takes some additional computational expense to apply the EM algorithm $B$ times. 
+
+### Non-parametric Bootstrap
+
+An alternative version is the **nonparametric bootstrap**, where instead of simulating $B$ bootstrap samples from the fitted model, we instead resample observations with replacement from the original dataset to get out $B$ bootstrap datasets.  Then, similar to the parameteric approach, we fit our model on each of the $B$ datasets, and then calculate the covariate matrix of the parameter estimates across the cases. 
+
+The nonparametric version may be preferred in cases where we have "true missing" data, as indicated earlier in the lecture. For example, in cases where we have censoring in our dataset.  In such cases it is difficult to know and simulate the mechanism and factors driving the missingness in the data, and resampling the original data is one robust way to avoid making such assumptions.  Overall, it is relatively simpler to implement.  
+
+While we are using this in the context of mixture models fitted with EM, we can use the principle to estimate quantities in many other contexts as the approach is quite general and simple.  More detail on bootstrapping is given in GH Chapter 9.
+
+### Application of nonparametric bootstrap to standard error estimation
+
+Here we created a function that implements the while loop from the prior EM example to simplify the code below.  The function returns the coefficient estimates from a given bootstrap dataset
+
+```{r}
+
+pois.two.mix.reg.em = function(y, X, tol, maxit, prop1, trace = 0){
+  
+  ## initialize 
+  n = length(y)
+  iter = 0
+  eps = Inf
+  ll = -10000
+  fit = list()
+
+  ## create posterior probability matrix
+  pp = matrix(0, n, 2)
+  colnames(pp) = c("amateur","prof")
+  
+  ## use informative initialization, 
+  ## assuming lower counts --> amatuer
+  ## choose prop of samples that are amatuer first
+  ## should vary this and re-evaluate
+  
+  ## set everything greater than th
+  pp[y > quantile(y, prop1),2] = 1
+  pp[,1] = 1 - pp[,2]
+  
+  ## now start the EM algorithm
+  start = Sys.time()
+  while(eps > tol & iter < maxit){
+    
+    ## save old ll
+      ll0 = ll
+    
+    ## start M-step
+      # pi, mean of component pp's
+      pi = colMeans(pp)
+      
+      # betak, weighted glm's based on pp
+      for(i in 1:2) fit[[i]] = glm(y ~ X -1, family = poisson(), weights = pp[,i])
+    
+    ## start E-step
+      # calculate numerator
+      for(i in 1:2) pp[,i] = pi[i]*dpois(y,lambda = fit[[i]]$fitted)
+    
+      # divide by denominator, the sum across components in each i
+      pp = pp/rowSums(pp)
+   
+    ## calculate LL
+      interior_sum = 0
+      for(i in 1:2) interior_sum = interior_sum + pi[i]*dpois(y,lambda = fit[[i]]$fitted) 
+      ll = sum(log(interior_sum))
+      
+    ## calculate relative change in log likelihood  
+      eps  = abs(ll-ll0)/abs(ll0)
+    
+    ## update iterator
+      iter = iter + 1
+      if(iter == maxit) warning("Iteration limit reached without convergence")
+    
+    ## print out info to keep track
+    if(trace >0)  cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
+  }
+  
+  # return coefficients
+  res = c(pi, fit[[1]]$coef, fit[[2]]$coef)
+  names(res) = c("pi1", "pi2", "int1","age1","boat_length1","cooler1", "int2","age2","boat_length2","cooler2")
+  return(res)
+}
+
+# now lets verify it works properly:
+fit = pois.two.mix.reg.em(y=y, X= X,tol = tol,maxit = maxit, prop1 = prop_ama, trace = 0)
+print(fit)
+```
+
+Everything looks correct, so lets move on to implementing the nonparametric bootstrap
+
+```{r}
+# Set number of bootstrap samples of size n to draw
+B = 100
+
+# create matrix to save estimates
+est  = matrix(NA, B, length(fit))
+# start loop
+for(i in 1:B){
+  # get indices for resampled observations with replacement
+  index = sample(1:n,replace = T)
+  
+  # fit EM to resampled data 
+  res = pois.two.mix.reg.em(y=y[index], X= X[index,],tol = tol,maxit = maxit, prop1 = prop_ama, trace = 0)
+  
+  # save values
+  est[i,] = res
+  
+  # print first 5 parameter estimates every 200 just for illustration purposes
+  if(floor(i/20) == ceiling(i/20)) print(est[i,1:5])
+}
+```
+
+Now that we have the coefficient estimates for each nonparametric bootstrap sample, we can calculate the approximate covariance matrix for the parameters.  Obviously, as we increase $B$ we can increase the accuracy of the approximation. 
+
+```{r}
+cov(est)[1:5,1:5]
+```
+
+Given this, we can calculate the standard error of each parameter by square root of the diagonal of the bootstrap covariance matrix.  Prior work as shown $B$ = 50 to 100 is sufficient for standard error estimation.  
+
+```{r}
+print(sqrt(diag(cov(est))))
+```
 
 ## Pros and Cons of EM
 * Pros
     + Numerically stable, each iteration increases likelihood
-    + Reliable global convergence, depending on starting point
+    + Reliable convergence, depending on starting point
     + Easy to implement, modular
     + Avoids direct evaluation of likelihood and derivatives of likelihood
     + In general memory efficient (does not need to store information matrix or its inverse)
@@ -157,65 +529,32 @@ In each case, we will break down the application of the EM algorithm using the s
 * Cons
     + No direct way to obtain covariance matrix of parameter estimates as can be done with NR (strategies to do this later)
     + Slow convergence, especially when there is a lot of missing information
-    + Does not guarantee convergence to the global maximia if multiple maxima are present, but this is the case for other approaches as well. 
-    + In some cases the E-step may be difficult to evaluate or intractable (for example when the evaluation of multidimensional integrals are needed).  The MCEM algorithm that uses Monte Carlo sampling to approximate the E-step is one way around this. 
+    + Does not guarantee convergence to the global maximum if multiple maxima are present, but this is the case for other approaches as well. 
+    + In some cases, the E-step may be difficult to evaluate or intractable (for example when the evaluation of multidimensional integrals are needed).  The MCEM algorithm that uses Monte Carlo sampling to approximate the E-step is one way around this. 
 
-
-# General Properties of the EM Algorithm
-
-In this section we will not focus on the proofs behind the results shown but instead highlight some of their results and their implications on the properties of the EM.  
-
-## Monotone Increase of the Likelihood
-
-In the initial DLR paper on the EM, it was demonstrated that $$L(\thetab^{(k+1)}) \geq  L(\thetab^{(k)})$$ for each iteration $k \geq 0$, demonstrating that the likelihood at each iteration of the EM does not decrease. Therefore, for some bounded sequence of likelihood values ${L(\thetab^{(k+1)})}$, we know that the likelihood at each iteration converges to some likelihood value $L^*$, which may or may be either a local or global maximum (see prior discussion).
-
-The "self-consistency" property comes from this result, where we can show that if the MLE $\hat{\thetab}$ is the global maximizer for the likelihood, this implies that it is also the global maximizer for the Q-function (the surrogate for the likelihood).  In order words, if $\hat{\thetab}$ is the global maximizer for $L(\thetab)$, then this implies that $$Q(\hat{\thetab},\hat{\thetab}) \geq Q(\thetab,\hat{\thetab})$$ and that $\hat{\thetab}$ is the solution to the equation $$\frac{d}{d\thetab} Q(\thetab\hat{\thetab})\|_{\thetab = \hat{\thetab}} = 0.$$  The latter statement translates to that the optimal value for $\thetab$ for the likelihood is also the optimal value for the Q-function.
-
-In a more general sense, $\thetab^{(k+1)}$ is chosen to maximize $Q(\thetab,\thetab^{(k)})$ at iteration $k$ rather than globally.  Using similar reasoning for the prior result, we can show that this results in a sequence of estimates across iterations satisfying $L(\thetab^{(k+1)}) \leq L(\thetab^{(k)})$, and therefore the likelihood will not decrease as the algorithm progresses. 
-
-Under certain conditions, such as if the likelihood function is unimodal in $\thetab$ (one global maximum with no local maximums), then any sequence ${\thetab^{(k)}}$ will converge to the unique MLE of $\thetab$, $\thetab^*$.  In cases where the parameter space is not unrestricted and may be constrained, such covergence may not be guarunteed but depends on the specific scenario. 
-
-## Convergence Rates THIS NEEDS TO BE UPDATED
-Using similar arguments at the last lecture, we can use a Taylor Series Expansion of $\thetab^{(k)}$ around $\thetab^{(k)}$.  We can show that around $\thetab^*$, the rate of convergence of the EM is approximately linear, however the exact rate depends on the problem at hand.  
-
-Theoretically, the rate of convergence can be determined from the eigen,alues of the Jacobian Matrix at $\theta^*$, where the component with the largest eignevalues (indicating the slowest rate) determines the overall rate of convergence. 
-
-## Computing Standard Errors of Parameter Estimates
-For the NR algorithm, the hessian matrix is estimated with each update of the algorithm, and one nice byproduct of this is that standard errors can be directly computed for the parameter estimates after convergence using the hessian.  For methods such as BFGS where no hessian is computed, its approximation (often used during maximization) can similarly be utilized for standard error computation.  That is, the covariance matrix of the parameter estimates can be determined with relative ease. 
-
-For the EM algorithm, due to the surrogate function being used and the modularity of the approach, we do not have a ready made hessian matrix as in the previous methods.  As a result, quantities such as standard errors are harder to obtain.  However, several approaches exist to obtain such estimates post-convergence.  
-
-Methods for direct evaluation of the covariance matrix have been developed, but in some cases may be tedious to derive and implement.  Such approaches require one to derive the second derivatives of the likelihood in question, which may have been one of the reasons why the EM was chosen in the first place to avoid doing.  After convergence of the EM algorithm, the MLE is utilized to calculate the observed information matrix from these forms, which is then inverted to obtain the standard errors. We will not go into too much detail on this topic, but further information on this approach in given in McCullough Section 4.2.2, and an approximation for the i.i.d. case is given in Section 4.3, and for non-i.i.d data in 4.5.  Several specific algorithms for implementing these direct calculation approaches are given in McCullough Section 4.7
-
-A very general and popular approach that can be applied to all models is the bootstrap.  There are multiple versions of this approach, however one approach commonly used is the parametric bootstap.  Essentially, one first fits the model to the data to obtain $\hat{\thetab}$, and then simulates generates $B$ bootstrap datasets of size $n$ from the fitted model.    For each of the $B$ datasets, we refit the model and save the parameter estimates.  Then, for the purpose of covariance matrix estimation for the model parameters, we simply calculate the covariance of the parameter estimates from each of the $B$ fitted models. 
-
-An alternative version is the nonparametric bootstrap, where instead of simulating $B$ bootstrap samples from the fitted model, we instead resample with replacement from the original dataset to get out $B$ bootstrap datasets.  Then, similar to the parameteric approach, we fit our model on each of the $B$ bootstrap datasets, and then calculate the covariate matrix of the parameter estimates across the cases. The nonparametric version may be preferred in cases where we have "true missing" data, as indicated prior in the lecture, for example in cases where we have censoring in our dataset.  In such cases it is difficult to know and simulate the mechanism and factors driving the missingness in the data, and resampling the original data is one robust way to avoid have to make assumptions on that when trying to simluate the data from a fitted model. 
-
-### Example of bootstrap evaluation of standard error for estimated parameters
 
 # Extensions of the EM Algorithm
-Since the initial DLR paper, several extensions of the EM algorithm have been published.  Each approach address potential issues and shortcomings of the EM algorithm in certain settings and aim to speed up its application or get around intractable numerical problems.  As we will see, these modifications may occur in the M-step, where the maximization procedure can be simplified through various approaches, or in the E-step, where the conditional expectation may be difficult or impossible to evaluate analytically. 
+Since the initial DLR paper, several extensions of the EM algorithm have been published.  Each approach addresses potential issues and shortcomings of the EM algorithm in certain settings and aim to speed up its application or get around intractable numerical problems.  As we will see, these modifications may occur in the M-step, where the maximization procedure can be simplified through various approaches, or in the E-step, where the conditional expectation may be difficult or impossible to evaluate analytically. 
 
 ## Expectation Condition Maximization (ECM, M-step Modification)
 
-
-
 ### Why should we consider
 
-In some cases the M-step may be computationally complex or difficult to evaluate.  For example in cases when many parameters exist, or when the off-the-shelf maximization routine for the M-step is computationally intense of difficult to implement.  
+In some cases, the M-step may be computationally complex or difficult to evaluate.  For example, in cases when many parameters exist, or when the off-the-shelf maximization routine for the M-step is computationally intense of difficult to implement.  
 
-One solution to this problem is that instead of maximizing all of the model parameters simultanously, we instead maximize each parameter, or groups or parameters, in sequence, condition on the prior values in the M-step.  In contrast to the regular EM algorithm, we call this approach Expection Conditional Maximization (ECM), as in the M step is now a series of sequential updates in terms of the parameters.  These maximizations may require iterative approaches, such as those discussed in the previous lecture, or have closed forms. 
+One solution to this problem is that instead of maximizing all of the model parameters simultaneously, we instead maximize each parameter, or groups or parameters, in sequence, condition on the prior values in the M-step.  In contrast to the regular EM algorithm, we call this approach Expectation Conditional Maximization (ECM), as in the M step is now a series of sequential updates in terms of the parameters.  These maximizations may require iterative approaches, such as those discussed in the previous lecture, or have closed forms. 
 
 We will see that in many cases this approach may result in more iterations of the EM algorithm, but less overall runtime, as the amount of time spent on each M-step is less. Other benefits include greater stability in maximizing over a simpler parameter space in each CM step.  
 
 ### Formulation
 Let us now consider that we replace the original M-step with $S$ CM steps.  As we mentioned before, this may pertain to the maximization of $S$ individual parameters or $S$ groups of parameters.  
 
-Then, let us define $\thetab^{(k+s/S)}$ as the value of $\thetab$ on the $s$th step of the M-step. Then, at each CM step $s$, we maximize $Q(\thetab,\thetab^{(k+(s-1)/S)})$ defined as the Q-function at the $k$th step following the $(s-1)$th conditional maximization step  with respect to $\thetab$.  
-### Speed of Convergence
-It has been shown that the ECM reduces to a simple CM step in the absence of missing data.  Prior work has shown that if a CM approach is expected to converge in the absence of missing data in a model, then we should expect similar convergence for an ECM approach 
+Then, let us define $\boldsymbol{\theta}^{(k+s/S)}$ as the value of $\boldsymbol{\theta}$ on the $s$th step of the M-step. Then, at each CM step $s$, we maximize $Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(k+(s-1)/S)})$ defined as the Q-function at the $t$th step following the $(s-1)$th conditional maximization step  with respect to $\boldsymbol{\theta}$. 
 
-It has been shown that the total speed of convergence is simply $$s_{ECM} = s_{EM}s_{CM},$$ reflecting the product of the speed of the convergence of the regular EM and the CM step of the function in question in absence of missing data.  Then, it makes sense that $s_{EM}s_{CM} < s_{ECM} < s_{EM}$, where the speed on convergence of the ECM is slower than the EM (in terms of the number of iterations), as the Q-function is being improved conditionally only bit by bit in the M-step of the ECM.  However, given that the each CM in the M-step is much faster than the standard M-step in the EM algorithm, the total time it takes for all $S$ CM steps to complete may be much faster.  
+### Speed of Convergence
+It has been shown that the ECM reduces to a simple CM step in the absence of missing data.  Prior work has shown that if a CM approach is expected to converge in the absence of missing data in a model, then we should expect similar convergence for an ECM approach.
+
+It has been shown that the total speed of convergence is simply $$s_{ECM} = s_{EM}s_{CM},$$ reflecting the product of the speed of the convergence of the regular EM and the CM step of the function in question in absence of missing data.  Then, it makes sense that $s_{EM}s_{CM} < s_{ECM} < s_{EM}$, where the speed on convergence of the ECM is slower than the EM (in terms of the number of iterations), as the Q-function is being improved conditionally only bit by bit in the M-step of the ECM.  However, given that each CM in the M-step is much faster than the standard M-step in the EM algorithm, the total time it takes for all $S$ CM steps to complete may be much faster.  
 
 Therefore, while the ECM may **take more iterations to converge than EM**, the faster and simper CM steps may result in **lower overall run time**, as the M-step will be faster to execture in each iteration. This is reflective of the main reason why one would pursue such an approach over standard EM when the M-step is complicated.  
 
@@ -223,59 +562,512 @@ Therefore, while the ECM may **take more iterations to converge than EM**, the f
 
 This variant is an extension of the ECM algorithm above, except that we perform an E-step update after each CM step.  It can be shown that the ECM retains similar properties as the ECM algorithm in terms of convergence and the ascent property after each EM iteration.  However, in some cases we may see a larger increase in the likelihood per EM iteration due to the Q function being updated more often.  However, this may not always be the case and in some cases the algorithm may converge more slowly than the ECM.
 
-In general, this approach is best applied when the E-step computation is very quick and simple, as the additional computational burdern of multiple E-step evaluations per EM iterations will be relatively low. 
+In general, this approach is best applied when the E-step computation is very quick and simple, as the additional computational burden of multiple E-step evaluations per EM iterations will be relatively low. 
 
 
-## Example
+## Example:  Negative binomial mixture model
+
+As mentioned in the previous lecture, the negative binomial distribution can be considered only part of the exponential family with fixed dispersion parameter.  As a result, approaches based off of IRLS for fitting negative binomial regression models are iterative, first maximizing the set of regression coefficients $\boldsymbol{\beta}$, and then the dispersion parameter $\phi$.  
+
+The PDF for a negative binomial regression model is given below:
+
+$$ $$
+
+We use similar notation as the Poisson regression model, except now we consider and additional parameter $\phi$ which controls the amount of extra-poisson variation (overdispersion) in the model.  We assume the same log link used to model $\lambda_{i}$ as a function of a set of covariates.  Here, $var(y_i) = \lambda_i + \lambda_i^2/\phi$.
+
+Lets generate some data similar to that from the fish example from earlier, but now adding in some overdispersion into each mixture component.  We will then fit a two-component negative binomial mixture model, following the same blueprint of the earlier example.  We will also up the sample size to 10,000 to highlight the runtime differences between regular EM and the ECM version.  
+
+First, lets load up the data.
+
+```{r}
+# generate the data
+set.seed(10)
+
+# sample size
+n = 10000
+
+# create design matrix
+cooler = round(rt(n, 15, 35),2)
+boat_length =  round(rt(n,5, 30),2)
+age = round(rt(n,25, 50))
+X = model.matrix(~ 1 + age + boat_length + cooler)
+
+# set coefficients
+pi1 = 0.5 # non-professional proportion
+pi2 = 1-pi1 # professional proportion
+beta_1 = matrix(c(3, 0, 0, -.01),ncol = 1) # NP coefs, larger boat cooler = less fish
+beta_2 = matrix(c(3, 0, 0, .01),ncol = 1) # P coefs, larger boat cooler = more fish
+phi = 10
+
+# simulate data
+
+group_indicators = rbinom(n, 1, pi2) # 1 = P, 0 = NP
+y = rep(0, n)
+y[group_indicators == 0] = rnbinom(n = sum(group_indicators == 0),mu = exp(X[group_indicators == 0,]%*%beta_1), size = phi)
+y[group_indicators == 1] = rnbinom(n = sum(group_indicators == 1),mu = exp(X[group_indicators == 1,]%*%beta_2), size = phi)
+# write.table(cbind(y, X[,-1]), file = './em/fish_overdispersed.txt', quote = F, col.names = T, row.names = F,  sep = "\t")
+```
+
+
+### Vanilla EM
+Now that we have the data, lets fit a regular EM using the glm.nb function in the M step:
+
+```{r}
+library(MASS)
+tol = 10^-10
+maxit = 1000
+iter = 0
+eps = Inf
+ll = -10000
+fit = list()
+  
+## create posterior probability matrix
+pp = matrix(0, n, 2)
+colnames(pp) = c("amateur","prof")
+
+## use informative initialization, 
+## assuming lower counts --> amatuer
+## choose prop of samples that are amatuer first
+## should vary this and re-evaluate
+prop_ama = 0.6
+
+## set everything greater than th
+pp[y > quantile(y, prop_ama),2] = 1
+pp[,1] = 1 - pp[,2]
+
+## now start the EM algorithm
+start = Sys.time()
+while(eps > tol & iter < maxit){
+  
+  ## save old ll
+    ll0 = ll
+  
+  ## start M-step
+    # pi, mean of component pp's
+    pi = colMeans(pp)
+    
+    # betak, weighted glm's based on pp
+    for(i in 1:2) fit[[i]] = glm.nb(y ~ X -1,  weights = pp[,i],control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+  
+  ## start E-step
+    # calculate numerator
+    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+  
+    # divide by denominator, the sum across components in each i
+    pp = pp/rowSums(pp)
+ 
+  ## calculate LL
+    interior_sum = 0
+    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    ll = sum(log(interior_sum))
+    
+  ## calculate relative change in log likelihood  
+    eps  = abs(ll-ll0)/abs(ll0)
+  
+  ## update iterator
+    iter = iter + 1
+    if(iter == maxit) warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+    if(floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1 iter: %d eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,as.integer(fit[[1]][13]),eps))
+}
+
+end = Sys.time()
+print(end - start)
+```
+
+In the M-step, the following process is being utilized
+
+*  Initialization: Obtain $\beta^{(0)}$ using poisson regression
+*  Obtain $\phi^{(0)}$ given $\beta^{(0)}$ via NR
+*  Obtain $\beta^{(1)}$ given $\phi^{(1)}$ via IRLS
+*  Repeat until convergence in Deviance
+
+### ECM
+
+Lets do an ECM version, where instead of iterating until convergence in glm.nb in the M-step, we just do a single round.  First we grab the function for the NR maximization for $\phi$, phi.ml().  
+
+```{r}
+phi.ml <-
+  function(y, mu, n = sum(weights), weights, limit = 10,
+           eps = .Machine$double.eps^0.25,
+           trace = FALSE,
+           p0 = NULL #  add this option new to pass starting values
+           ){
+    lambda = 1E-50            ### change to phi instead of theta? ###
+    score <- function(n, ph, mu, y, w){
+      sum(w*(digamma((1/ph) + y) - digamma(1/ph) + log(1/ph) +
+               1 - log((1/ph) + mu) - (y + (1/ph))/(mu + (1/ph))))*(-1/ph^2) + 2*lambda*ph
+    }
+    info <- function(n, ph, mu, y, w){
+      sum(w*( - trigamma((1/ph) + y) + trigamma((1/ph)) - ph +
+                2/(mu + (1/ph)) - (y + (1/ph))/(mu + (1/ph))^2))*(1/ph^4) + 2*lambda
+    }
+    if(inherits(y, "lm")) {
+      mu <- y$fitted.values
+      y <- if(is.null(y$y)) mu + residuals(y) else y$y
+    }
+    if(missing(weights)) weights <- rep(1, length(y))
+    #t0 <- n/sum(weights*(y/mu - 1)^2)
+    if(is.null(p0)){ ## added this in new
+      p0 <- sum(weights*(y/mu - 1)^2)/n
+    }
+    it <- 0
+    del <- 1
+    if(trace) message(sprintf("phi.ml: iter %d 'phi = %f'",
+                              it, signif(p0)), domain = NA)
+    while((it <- it + 1) < limit && abs(del) > eps) {
+      p0 <- abs(p0)
+      del <- score(n, p0, mu, y, weights)/(i <- info(n, p0, mu, y, weights))
+      p0 <- p0 + del
+      if(trace) message("phi.ml: iter", it," phi =", signif(p0))
+    }
+    
+    if(p0 < 0) {
+      p0 <- 0
+      warning("estimate truncated at zero")
+      attr(p0, "warn") <- gettext("estimate truncated at zero")
+    }
+    
+    if(it == limit) {
+      warning("iteration limit reached")
+      attr(p0, "warn") <- gettext("iteration limit reached")
+    }
+    attr(p0, "SE") <- sqrt(1/i)
+    res <- list(p0=p0)
+    return(res)
+  }
+```
+
+Then we embed this into the code below for the M step:
+
+```{r}
+tol = 10^-10
+maxit = 1000
+iter = 0
+eps = Inf
+ll = -10000
+fit = list()
+  
+## create posterior probability matrix
+pp = matrix(0, n, 2)
+colnames(pp) = c("amateur","prof")
+
+## use informative initialization, 
+## assuming lower counts --> amatuer
+## choose prop of samples that are amatuer first
+## should vary this and re-evaluate
+prop_ama = 0.6
+
+## set everything greater than th
+pp[y > quantile(y, prop_ama),2] = 1
+pp[,1] = 1 - pp[,2]
+
+## now start the EM algorithm
+start = Sys.time()
+while(eps > tol & iter < maxit){
+  
+  ## save old ll
+    ll0 = ll
+  
+  ## start M-step
+    # pi, mean of component pp's
+    pi = colMeans(pp)
+    
+    # Now only one round of beta
+    for(i in 1:2){
+      if(iter==0){
+      # first EM iteration fit poisson reg
+      fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
+                     family = poisson(),
+                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+      }else{
+        # otherwise fit NB reg using prior theta
+        fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
+                     family = negative.binomial(theta = phi),
+                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+      }
+    }
+    
+    # now one round of phi.ml
+    for(i in 1:2) fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i])$p0
+  
+  ## start E-step
+    # calculate numerator
+    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+  
+    # divide by denominator, the sum across components in each i
+    pp = pp/rowSums(pp)
+ 
+  ## calculate LL
+    interior_sum = 0
+    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    ll = sum(log(interior_sum))
+    
+  ## calculate relative change in log likelihood  
+    eps  = abs(ll-ll0)/abs(ll0)
+  
+  ## update iterator
+    iter = iter + 1
+    if(iter == maxit) warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+    if(floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1 iter: %d eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,as.integer(fit[[1]][13]),eps))
+}
+
+end = Sys.time()
+print(end - start)
+```
+
+
+So, the ECM implementation here where we first maximize each parameter sequentially was much faster. This is because the original maximization routine was quite complex.  The cycling within glm.nb to convergence is necessary to get accurate estimates of $\beta$ and $\phi$ in standard applications, but when embedded within the EM is not entirely necessary.  If we think about it, the estimates for $\beta$ and $\phi$ change so much between the earlier EM iterations that it’s a lot of computational time trying to get accurate estimates for them at those points. 
+
+### Multicycle ECM
+
+Lets if we can speed this up further with the multicycle ECM variant:
+
+
+```{r}
+tol = 10^-10
+maxit = 1000
+iter = 0
+eps = Inf
+ll = -10000
+fit = list()
+  
+## create posterior probability matrix
+pp = matrix(0, n, 2)
+colnames(pp) = c("amateur","prof")
+
+## use informative initialization, 
+## assuming lower counts --> amatuer
+## choose prop of samples that are amatuer first
+## should vary this and re-evaluate
+prop_ama = 0.6
+
+## set everything greater than th
+pp[y > quantile(y, prop_ama),2] = 1
+pp[,1] = 1 - pp[,2]
+
+## now start the EM algorithm
+start = Sys.time()
+while(eps > tol & iter < maxit){
+  
+  ## save old ll
+    ll0 = ll
+  
+  ## start M-step:  pi
+    # pi, mean of component pp's
+    pi = colMeans(pp)
+  
+  ## start E-step 1
+    if(iter > 0){    
+      # calculate numerator
+        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    
+      # divide by denominator, the sum across components in each i
+      pp = pp/rowSums(pp)
+    }
+  
+  ## start M-step:  beta
+    for(i in 1:2){
+      if(iter==0){
+      # first EM iteration fit poisson reg
+      fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
+                     family = poisson(),
+                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+      }else{
+        # otherwise fit NB reg using prior theta
+        # saving prior theta so not lost
+        phi = fit[[i]]$theta
+        fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
+                     family = negative.binomial(theta = phi),
+                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+        fit[[i]]$theta = phi
+      }
+    }
+
+  ## start E-step 2    
+    if(iter > 0){    
+      # calculate numerator
+        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    
+      # divide by denominator, the sum across components in each i
+      pp = pp/rowSums(pp)
+    }
+
+    
+  ## start M-step:  phi
+    for(i in 1:2) fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i])$p0
+  
+  ## start E-step 3
+    # calculate numerator
+    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+  
+    # divide by denominator, the sum across components in each i
+    pp = pp/rowSums(pp)
+ 
+  ## calculate LL
+    interior_sum = 0
+    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    ll = sum(log(interior_sum))
+    
+  ## calculate relative change in log likelihood  
+    eps  = abs(ll-ll0)/abs(ll0)
+  
+  ## update iterator
+    iter = iter + 1
+    if(iter == maxit) warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+  if(floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1 iter: %d eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,as.integer(fit[[1]][13]),eps))
+    
+}
+
+end = Sys.time()
+print(end - start)
+```
+
+### Passing prior M-steps estimates as starting values
+
+One thing that should always be done using EM is to start the next iteration's M-step from the previous iteration's parameter estimates.  This will increase the stability of the fitting of subsequent iterations, and speed up the time to convergence:
+
+```{r}
+tol = 10^-10
+maxit = 1000
+iter = 0
+eps = Inf
+ll = -10000
+fit = list()
+  
+## create posterior probability matrix
+pp = matrix(0, n, 2)
+colnames(pp) = c("amateur","prof")
+
+## use informative initialization, 
+## assuming lower counts --> amatuer
+## choose prop of samples that are amatuer first
+## should vary this and re-evaluate
+prop_ama = 0.6
+
+## set everything greater than th
+pp[y > quantile(y, prop_ama),2] = 1
+pp[,1] = 1 - pp[,2]
+
+## now start the EM algorithm
+start = Sys.time()
+while(eps > tol & iter < maxit){
+  
+  ## save old ll
+    ll0 = ll
+  
+  ## start M-step:  pi
+    # pi, mean of component pp's
+    pi = colMeans(pp)
+  
+  ## start E-step 1
+    if(iter > 0){    
+      # calculate numerator
+        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    
+      # divide by denominator, the sum across components in each i
+      pp = pp/rowSums(pp)
+    }
+  
+  ## start M-step:  beta, now passing prior estimate of beta
+    for(i in 1:2){
+      if(iter==0){
+      # first EM iteration fit poisson reg
+      fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
+                     family = poisson(),
+                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+      }else{
+        # otherwise fit NB reg using prior theta
+        # saving prior theta so not lost
+        phi = fit[[i]]$theta
+        fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
+                     family = negative.binomial(theta = phi),start = fit[[i]]$coefficients,
+                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+        fit[[i]]$theta = phi
+      }
+    }
+
+  ## start E-step 2    
+    if(iter > 0){    
+      # calculate numerator
+        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    
+      # divide by denominator, the sum across components in each i
+      pp = pp/rowSums(pp)
+    }
+
+    
+  ## start M-step:  phi, now passing prior estimate of phi
+    for(i in 1:2){
+      if(iter > 0){
+        fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i],p0 = 1/fit[[i]]$theta)$p0
+      }else{
+        fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i])$p0
+      }
+    }
+  ## start E-step 3
+    # calculate numerator
+    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+  
+    # divide by denominator, the sum across components in each i
+    pp = pp/rowSums(pp)
+ 
+  ## calculate LL
+    interior_sum = 0
+    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
+    ll = sum(log(interior_sum))
+    
+  ## calculate relative change in log likelihood  
+    eps  = abs(ll-ll0)/abs(ll0)
+  
+  ## update iterator
+    iter = iter + 1
+    if(iter == maxit) warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+  if(floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1 iter: %d eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,as.integer(fit[[1]][13]),eps))
+    
+}
+
+end = Sys.time()
+print(end - start)
+```
 
 ## Monte Carlo EM (MCEM)
 
 ### Why should we consider
-In some cases, the E-step may be analytially or computationally intractable.  For example, the expectation does not have a clear closed form (unlike the examples given prior), or hard to evaluate (for example involving multidimensional intergrals).
+In some cases, the E-step may be analytically or computationally intractable.  For example, the expectation does not have a clear closed form (unlike the examples given prior), or hard to evaluate (for example involving multidimensional integrals).
 
 To mitigate this, we replace the expectation in the E-step with an approximation using a "Monte Carlo" E-step, yielding the term MCEM or Monte Carlo EM.  
 
 
 ### Formulation
 
-In a general sense, the modification over the standard EM approach is largely in the E-step, where we approximate the expecation using monte carlo sample-based approaches.  The M-step then maximizes the CDLL with the missing data filled in with these $M$ drawn samples, weighting each filled-in case by $1/M$.  In other words, we are essentially maximizing the M-step as in the regular EM case, except we are averaging over each drawn sample.  This will become clear in the setup below.  
+In a general sense, the modification over the standard EM approach is largely in the E-step, where we approximate the expectation using monte carlo sample-based approaches.  The M-step then maximizes the CDLL with the missing data filled in with these $M$ drawn samples, weighting each filled-in case by $1/M$.  In other words, we are essentially maximizing the M-step as in the regular EM case, except we are averaging over each drawn sample.  This will become clear in the setup below.  
 
-We can rewrite the expectation of the Q-function as an integral, where the integrand can be factored into two parts: $$ Q(\thetab,\thetab^{(k)}) = E\left[ log L_c(\thetab) | \y_o,\thetab^{(k)}\right] = \int g(\y_c; \thetab)d\z = \int f(\y_o; \thetab^{(k)}, z) + f(z ; \thetab^{(k)}, y_o) d\z .$$
+We can rewrite the expectation of the Q-function as an integral, where the integrand can be factored into two parts: $$ Q(\boldsymbol{\theta};\boldsymbol{\theta}^{(t)}) = E\left[ \log L_c(\boldsymbol{\theta}) | \boldsymbol{y}_o,\boldsymbol{\theta}^{(t)}\right] = \int g(\boldsymbol{y}_c; \boldsymbol{\theta})d\boldsymbol{z} = \int f(\boldsymbol{y}_o; \boldsymbol{\theta}^{(t)}, \boldsymbol{z})f(\boldsymbol{z} ; \boldsymbol{\theta}^{(t)}, \boldsymbol{y}_o) d\boldsymbol{z} .$$
 
-That is, the conditional expection of the CDLL can be factored into the form above, where the first part is the pdf of the observed data given the missing data and current parameter estimates. The second part pertains to the posterior distribution of the missing data given the observed data and current parameter estimates.  
+That is, the conditional expectation of the CDLL can be factored into the form above, where the first part is the pdf of the observed data given the missing data and current parameter estimates. The second part pertains to the posterior distribution of the missing data given the observed data and current parameter estimates.  
 
-As one can imagine, this intergral may be difficult to evaluate analytically, especially in cases where $g(\y_c; \thetab)$ does not simplify to some known distribution (and thus would have an known closed form for the integral).  In addition, if the dimension of $z$ is large, it may be difficult to evaluate multiple integrals, expecially if no closed forms for evaluating the integrals exist.  
+As one can imagine, this integral may be difficult to evaluate analytically, especially in cases where $g(\boldsymbol{y}_c; \boldsymbol{\theta})$ does not simplify to some known distribution (and thus would have an known closed form for the integral).  In addition, if the dimension of $\boldsymbol{z}$ is large, it may be difficult to evaluate multiple integrals, especially if no closed forms for evaluating the integrals exist.  
 
-One way to avoid this is issue is to approximate the integral by using numerical integration.  There are multiple approaches to do this, and we cover these approaches in a later lecture.  One flexible approach is to use monte-carlo integration, where if we can say draw $M$ samples from $f(z ; \thetab^{(k)} , y_o)$ $z^{1}\ldots z^{M}$, then it can be shown that $\int f(\y_o; \thetab^{(k)}, z)f(z ; \thetab^{(k)}, y_o) d\z = \frac{1}{M}\sum_{m = 1}^{M}f(\y_o; \thetab^{(k)}, z^{m})$.  That is, we approximate the integral by drawing many samples from the posterior distribution of the missing data at step $k$, and then average over $f(\y_o; \thetab^{(k)}, z^{m})$, filling in the missing data with each draw (weighted by $1/M$).  
+One way to avoid this is issue is to approximate the integral by using numerical integration.  There are multiple approaches to do this, and we cover these approaches in a later lecture.  One flexible approach is to use monte carlo integration, where if we can say draw $M$ samples from $f(\boldsymbol{z} ; \boldsymbol{\theta}^{(t)} , \boldsymbol{y}_o)$ $z^{1}\ldots z^{M}$, then it can be shown that $\int f(\boldsymbol{y}_o; \boldsymbol{\theta}^{(t)}, \boldsymbol{z})f(\boldsymbol{z} ; \boldsymbol{\theta}^{(t)}, \boldsymbol{y}_o) d\boldsymbol{z} = \frac{1}{M}\sum_{m = 1}^{M}f(\boldsymbol{y}_o; \boldsymbol{\theta}^{(t)}, \boldsymbol{z}^{m})$.  That is, we approximate the integral by drawing many samples from the posterior distribution of the missing data at step $t$, and then average over $f(\boldsymbol{y}_o; \boldsymbol{\theta}^{(t)}, z^{m})$, filling in the missing data with each draw (weighted by $1/M$).  
 
-Therefore, in the E-step, we can approximate the Q-function using the approach above.  In application, the majority of the effort in the E-step is drawing samples from $f(z ; \thetab^{(k)} , y_o$, which also may not have a good closed form itself.  If we do not know what the form of this conditional distribution is, how exactly can we draw samples from it?  We cover several of these approaches in our lecture on Numerical Integration and MCMC.  For now, you just need to know that we can sample from this posterior in each step of the MCEM algorithm. 
+Therefore, in the E-step, we can approximate the Q-function using the approach above.  In application, the majority of the effort in the E-step is drawing samples from $f(\boldsymbol{z} ; \boldsymbol{\theta}^{(t)} , \boldsymbol{y}_o$, which also may not have a good closed form itself.  If we do not know what the form of this conditional distribution is, how exactly can we draw samples from it?  We cover several of these approaches in our lecture on Numerical Integration and MCMC.  For now, you just need to know that we can sample from this posterior in each step of the MCEM algorithm. 
 
 One thing that is clear in this case is that the larger the value of $M$ is, the greater accuracy we will have in evaluating this expectation.  Therein lies one of the weaknesses of this approach - many samples may need to be drawn, which increases the computational burden of this approach.  The procedure for obtaining samples from this distribution through monte carlo approaches may also be computationally expensive as well (rejection sampling, metropolis-hastings, etc).  
-In addition, a large number of samples may also be needed for convergence.  Given that the E-step is being approximated, and that this approximation is based upon draws of random (or approximately random in some cases) samples, the Likelihood, Q-function, or model parameters may vary randomly about some value for smaller values of $M$ even if the model has truly converged.  Increasing M descreases the monte carlo error of these values, and the random variability decreases as well, increases your chances of convergence.  Some authors have put forward approaches for estimating this monte-carlo error at each step to determine by how much we may need to increase $M$ by at each step of the MCEM algorithm to facilitate eventual convergence.  Others simply increase $M$ by a predictable amount each step.  In either case, we would like to use a smaller $M$ a the beginning of the MCEM algorithm and a larger $M$ closer to convergence to ensure the model convergences.
 
-Various convergence criteria as defined earlier can be used, but given the random variability in the parameter estimates, likelihood, or Q-function in this case, oftentime one may simply terminate the algorithm if the convergence criteria has been met say three times in a row so that it is likely not due to random chance. 
+In addition, a large number of samples may also be needed for convergence.  Given that the E-step is being approximated, and that this approximation is based upon draws of random (or approximately random in some cases) samples, the Likelihood, Q-function, or model parameters may vary randomly about some value for smaller values of $M$ even if the model has truly converged.  Increasing $M$ decreases the monte carlo error of these values, and the random variability decreases as well, increases your chances of convergence.  Some authors have put forward approaches for estimating this monte carlo error at each step to determine by how much we may need to increase $M$ by at each step of the MCEM algorithm to facilitate eventual convergence.  Others simply increase $M$ by a predictable amount each step.  In either case, we would like to use a smaller $M$ a the beginning of the MCEM algorithm and a larger $M$ closer to convergence to ensure the model convergences.
 
-
-### Example
-To illustrate this application, we use an example from fitting Generalized Linear Mixed Models (GLMMs).  Without loss of generality, let us assume that we are assuming our response $\y$ is binary, and we wish to model the response with some set of predictors $\X$, where the effect of some of these predictions may vary across subjects.  Let us assume here that $\X$ is an $n \times 4$ matrix, pertaining to an intercept and three predictors whose effects we assume to vary randomly across subjects.  Therefore, we can utilize the random effects logistic regression model to fit such a model.
-
-## Rejection-controlled EM
-
-### Formulation
-
-### Why should we consider
-
-## Other Versions
-
-* ECME
-* Alternating ECM   
-
-# Other applications
-
-## Finite Mixture Modeling
-  
-## Hidden Markov Models
+Various convergence criteria as defined earlier can be used, but given the random variability in the parameter estimates, likelihood, or Q-function in this case, oftentimes one may simply terminate the algorithm if the convergence criteria has been met say three times in a row so that it is likely not due to random chance. 
 
 
+# For more detail:  
 
+GH Chapter 4, McCullough Chapter 1
 
