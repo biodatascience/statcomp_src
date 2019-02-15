@@ -1,0 +1,183 @@
+---
+title: "Homework 6 - EM"
+author: "Naim Rashid"
+date: "2/13/2019"
+output: html_document
+header_includes:
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
+include-before:
+- '\newcommand{\bfm}[1]{\ensuremath{\mathbf{#1}}}'
+- '\newcommand{\bdm}[1]{\ensuremath{\boldsymbol{#1}}}'
+- '$\def \d \bfm{d}$'
+- '$\def \e \bfm{e}$'
+- '$\def \g \bfm{g}$'
+- '$\def \I \bfm{I}$'
+- '$\def \l \bfm{l}$'
+- '$\def \M \bfm{M}$'
+- '$\def \W \bfm{W}$'
+- '$\def \y \bfm{y}$'
+- '$\def \Y \bfm{Y}$'
+- '$\def \x \bfm{x}$'
+- '$\def \X \bfm{X}$'
+- '$\def \z \bfm{z}$'
+- '$\def \thetab \boldsymbol{\theta}$'
+- '$\def \betab \boldsymbol{\beta}$'
+- '$\def \pib \boldsymbol{\pi}$'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Question 1:  Not So Simple Univariate Optimization
+
+Let is revisit the problem from the last HW, now using BFGS to fit the model.  Report various the results of the various starting values as the last time, and comment on the convergence for each of the starting values relative the last HW that uses NR.  What properties about BFGS relative to NR could explain this different behavior in this setting? 
+
+$$f(x) = 1.95 - e^{-2/x} - 2e^{-x^4}.$$
+
+```{r}
+# f(x)
+f = function(x){
+  ## solution
+ 
+  ## end solution
+}
+
+# first derivative
+f1 = function(x){
+  ## solution
+ 
+  ## end solution
+}
+
+
+# to start the model
+tol = 10^-4
+x = 1.2 # also try 0.5 and 0.99
+maxit = 500
+
+
+## solution
+
+
+## end solution
+```
+
+
+## EM:  Zero-inflated Poisson 
+
+Revisiting problem 3 from HW5, let us implement an EM-based maximization approach to estimate the model parameters.
+
+Please define the CDLL, E-step, and M-step below as we did in class.   
+
+Then, fill in the relevant portions of the code below. 
+
+Hint for writing the CDLL:  Let $z_i = 1$ represent the true (known) membership to the non-fishing population, and $z_i = 0$ to represent membership to the fishing population.  Start with defining the complete data likelihood based on the non-aggregated likelihood below, then take the log to get the final CDLL form. This will help derive the forms for the E and M-steps.  For the actual fitting, we give some direction in the code below in terms of how to use the table aggregated data by a weighting approach. 
+
+### Expression for Log Likelihood: from the previous HW
+
+Lets rewrite the likelihood for the aggregated form of the data in terms of what it would look like when using the $n$ raw, non-aggregated responses:
+
+$$ 
+L(\boldsymbol{\theta}) = \prod_{i=1}^n (\pi + (1-\pi)e^{-\lambda})^{I[y_i=0]}\left((1-\pi)\frac{e^{-\lambda}\lambda^{y_i}}{y_i!}\right)^{I[y_i>0]}
+$$
+
+This is a simplified form of the PMF that was given at the beginning of the EM lecture. This corresponds to the following log-likelihood
+
+$$\mathcal{l}(\boldsymbol{\theta}) = \sum_{i=1}^n I[y_i=0]\log(\pi + (1-\pi)e^{-\lambda}) + I[y_i>0]\left(\log(1-\pi) -\lambda + {y_i}\log(\lambda) + \log{y_i!}\right)$$
+
+Therefore, if $y > 0$, we know automatically that that individual is from the fishing population.    
+
+
+### Expression for Complete Data Log Likelihood: Solution
+
+Start with the CDL
+
+
+Now take the log
+
+
+### Expression for E-step: Solution
+
+
+
+### Expression for M-step: Solution
+
+
+
+### Code implementation 
+
+```{r}
+
+# data 
+y = 0:6
+ny = c(3062, 587, 284, 103, 33, 4, 2)
+
+## HINT:  to adjust using relative freq of counts in model/calculations when using aggregated data 
+y_weight = ny/sum(ny) 
+## For example
+print(sum(ny*y)/sum(ny)) # mean of y based on aggregated data in table
+## We get the same thing when fitting and intercept only poisson reg model, adjusting for relative freq of counts...
+print(exp(glm(y ~ 1, weight = y_weight)$coef))
+
+# to start the model
+tol = 10^-8
+maxit = 50
+iter = 0
+eps = Inf
+ll = -10000
+
+## create posterior probability matrix
+pp = matrix(0,length(y), 2)
+colnames(pp) = c("non-fisher", "fisher")
+
+## initialize partion, everything  with count 0 is non-fisher, otherwise fisher
+pp[which(y ==0),1] = 1
+pp[,2] = 1 - pp[,1]
+
+## now start the EM algorithm
+while(eps > tol & iter < maxit){
+  
+  ## save old ll
+    ll0 = ll
+  
+  ## start M-step
+    # pi, 1 x 2 vector
+    pi = 
+    
+    # lambda, scalar
+    lambda = 
+  
+  ## start E-step
+    # update pp
+    
+  ## calculate LL
+    ll = 
+      
+  ## calculate relative change in log likelihood  
+    eps  = abs(ll-ll0)/abs(ll0)
+  
+  ## update iterator
+    iter = iter + 1
+    if(iter == maxit) warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+    cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+

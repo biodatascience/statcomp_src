@@ -188,7 +188,7 @@ The algorithm iterates between the E and M steps until the value of the Q-functi
 We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
 
 ### General comments
-The seminal 1977 paper on the EM algorithm by Dempster, Laird, and Rubin demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guaranteed not to decrease with each EM iteration such that $L(\boldsymbol{\theta}^{(k+1)}) \leq L(\boldsymbol{\theta}^{(t)})$.  In the E-step one only needs to know the condition density of the missing data given the observed data.  In cases where this density is unknown or intractable, approaches such as the monte-carlo EM may be utilized to approximate the E-step using sampling-based approaches. 
+The seminal 1977 paper on the EM algorithm by Dempster, Laird, and Rubin demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guaranteed not to decrease with each EM iteration such that $L(\boldsymbol{\theta}^{(k+1)}) \geq L(\boldsymbol{\theta}^{(t)})$.  In the E-step one only needs to know the condition density of the missing data given the observed data.  In cases where this density is unknown or intractable, approaches such as the monte-carlo EM may be utilized to approximate the E-step using sampling-based approaches. 
 
 ## Application of EM to the Poisson Finite Mixture Regression Model Example
 
