@@ -508,7 +508,7 @@ for(i in 1:10){
 }
 ```
 
-We can see that we achieve very high accuracy in just a small number of nodes with no restriction on the range of integration (with Gauss-Hermite Quadrature).  One reason why we see a slightly higher value for the integral approximation in this application relative to the prior approaches is because we are not integrating over the real number line, where the others were limited to a particular range.  
+We can see that we achieve very high accuracy in just a small number of nodes with no restriction on the range of integration (with Gauss-Hermite Quadrature).  One reason why we see a slightly higher value for the integral approximation in this application relative to the prior approaches is because we are now integrating over the real number line, where the others were limited to a particular range.  
 
 ### Great, but now how do I do optimization?
 
