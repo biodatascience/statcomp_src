@@ -309,7 +309,7 @@ Looks like we are able to achieve accuracies similar to the prior approach but w
 
 In general, these approaches may require a large number of intervals of shorter length to converge, particularly with smaller $n$.  In general, the higher the order of the approximating polynomial in each interval, the faster the convergene in the integral approximation with respect to the number of intervals. 
 
-To evaluate over an infinite range, we can perform a change of variable operation on the integral in question, replacing say $\gamma_1$ with variable $y = \frac{\gamma_1}{1-\gamma_1}$ and then integrating over the range of $y$ which is $(-1,1)$.  This may not address the above issues about the mass of the intergral being concentrated in a few intervals.  Of course, such transformations can introduce other types of problems such as singularities.  Other choices of transformations exist, and one may choose the best one based on their problem (GH 5.4.1).  
+To evaluate over an infinite range, we can perform a change of variable operation on the integral in question, replacing say $\gamma_1$ with variable $y = \frac{\gamma_1}{1+\gamma_1}$ and then integrating over the range of $y$ which is $(-1,1)$.  This may not address the above issues about the mass of the intergral being concentrated in a few intervals.  Of course, such transformations can introduce other types of problems such as singularities.  Other choices of transformations exist, and one may choose the best one based on their problem (GH 5.4.1).  
 
 Alternatively, one may use the methods in the next section (particularly gauss-hermite quadrature) to approximate integrals over the entire real line with very good accuracy. 
 
