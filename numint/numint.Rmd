@@ -119,9 +119,7 @@ However, as in all GLMM's, the random effects are actually unobservable in the m
 We perform separate integrals for each $\gamma_i$, 22 in total, which share a common distribution determined by $\sigma^2_gamma$.  In some sense, we can interpret these $\gamma_i's$ was 22 iid draws from $\phi(\gamma_i| 0, \sigma^2_{\gamma})$ which represent the baseline subject-level variability about $\beta_0$.  This likelihood can be represented as the following:
 
 $$L(\boldsymbol{\beta}, \sigma^2_{\gamma} | \y) = \prod_{i = 1}^{22}\int \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_{\gamma}) \right] d\gamma_i$$
-
   
-
 The log-likelihood is therefore $$\mathcal{l}(\boldsymbol{\beta}, \sigma^2_{\gamma} | \y) = \sum_{i = 1}^{22}\log\left[\int \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_{\gamma}) \right] d\gamma_i\right].$$
 
 Remember, the $\lambda_{ij}$ is dependent on $\gamma_i$ as well.  
@@ -148,7 +146,7 @@ To approximate such integrals, we can first split the interval $[a,b]$ into $n$ 
 
 In this sense, we are breaking up the original integral into the sum of integrals on disjoint subintervals spanning the original range of integration.  Then, we then worry about approximating the integral on each individual interval and sum these approximations to obtain the estimate for the original full integral.
 
-On an individual interval $[x_i,x_{i+1}]$, we initiate the approximation by inserting $m+1$ nodes $x_{ij}^*$ for $j = 0, \ldots,m$ across the interval.  Then, we can approximate the intergral in this subinterval in the general form in the following: $$\int_{x_i}^{x_{i+1}}f(x)dx =  \sum_{j=0}^m A_{ij}f(x_{ij}^*)$$ where $A_{ij}$ is some set of constants. 
+On an individual interval $[x_i,x_{i+1}]$, we initiate the approximation by inserting $m+1$ nodes $x_{ij}^*$ for $j = 0, \ldots,m$ across the interval.  Here $m$ is the order of the approximation, which we will discuss in the next section.  Then, we can approximate the intergral in this subinterval in the general form in the following: $$\int_{x_i}^{x_{i+1}}f(x)dx =  \sum_{j=0}^m A_{ij}f(x_{ij}^*)$$ where $A_{ij}$ is some set of constants. 
 
 In other words, we approximate the integral in each subinterval by evaluating the function of interest $f(x)$ at each node in the the subinterval, and then multiplying by some constant prior to summing up over the nodes.  
 
@@ -351,7 +349,7 @@ $$
 
 
 We can see that a rather easy choice for $w(x)$ is $w(x) = e^{-x^2}$, pertaining to Gauss-Hermite Quadrature, expecially since we would like to ideally integrate over the real number line.  If the assumed distribution for $\gamma_i$ was instead standard normal, we would not have to do any sort of extra work here after obtaining our desired number of quadrature nodes and weights. 
-Since this is not the case here, we can achieve this form in a few ways.  The one way is through a change of variable to $\gamma_i^* = \frac{\gamma_i}{\sigma_{\gamma}^2}$, integrating now with respect to $\gamma_i^*$.  A more general approach would be to simply do the following:
+Since this is not the case here, we can achieve this form in a few ways.  The one way is through a change of variable to $\gamma_i^* = \frac{\gamma_i}{\sqrt{2\sigma_{\gamma}^2}$, integrating now with respect to $\gamma_i^*$.  A more general approach would be to simply do the following:
 
 
 $$\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}\left[\frac{e^{-\frac{\gamma_i^2}{2\sigma_{\gamma}^2}}}{e^{-\gamma_i^2}}\right]e^{-\gamma_i^2} d\gamma_i = \int f(\gamma_i)w(\gamma_i) d\gamma_i
@@ -426,7 +424,7 @@ print(x)
 ```{r}
 xv = seq(range[1], range[2],length.out = 1000)
 plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
-     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l', xlim = c(-3.5, 3.5))
+     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l', xlim = c(-2.5, 2.5))
 abline(v = x, lty = 2, col = "grey")
 ```
 
@@ -441,13 +439,13 @@ Here, we want to use $x = \frac{\gamma_1}{\sigma_{\gamma}\sqrt{2}}$, where then 
 With this, we have that
 
 \begin{aligned}
-\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-\frac{\gamma_i^2}{2\sigma_{\gamma}^2}} d\gamma_i &= \int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right) \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-x^2}h'(x)dx\\
-&=\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}} e^{-x^2}\sigma_{\gamma}\sqrt{2}dx\\
-&=\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\frac{1}{\sqrt{\pi}} e^{-x^2}dx\\
-&\approx \sum_{k = 1}^n \frac{1}{\sqrt{\pi}}\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})
+\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-\frac{\gamma_1^2}{2\sigma_{\gamma}^2}} d\gamma_i &= \int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-x^2}h'(x)dx\\
+&=\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right)\frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}} e^{-x^2}\sigma_{\gamma}\sqrt{2}dx\\
+&=\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right)\frac{1}{\sqrt{\pi}} e^{-x^2}dx\\
+&\approx \sum_{k = 1}^n \frac{1}{\sqrt{\pi}}\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})
 \end{aligned}
 
-where now $\log(\lambda_{ij}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + \sigma_{\gamma}\sqrt{2}x_k$.  Lets try it out:
+where now $\log(\lambda_{1j}) = \boldsymbol{x}_{1j}^T\boldsymbol{\beta} + \sigma_{\gamma}\sqrt{2}x_k$.  Lets try it out:
 
 ```{r}
 f_x = function(x, y,beta,s2gamma){
