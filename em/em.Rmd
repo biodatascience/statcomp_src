@@ -237,7 +237,7 @@ We can show that
 \begin{aligned}
 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) &= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{p(\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})} \\
 &= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{\sum_{k =1}^2p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}\\
-&= \frac{\pi_kf_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k)}{ \sum_{k =1}^2\pi_kf_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k))}
+&= \frac{\pi_k^{(t)}f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k)}{ \sum_{k =1}^2\pi_k^{(t)}f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k))}
 \end{aligned}
 
 using the definition of conditional probability.  So, evaluating the Q-function is facilitated by simply computing the expectation above.  It is easy to see here that we are "filling in" the latent data $z_i$ with $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$, making it possible to maximize this function.  This quantity is sometimes referred to as the "posterior probability" of subject $i$ belonging to component $k$ at iteration $t$.  

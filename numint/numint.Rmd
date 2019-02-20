@@ -40,11 +40,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 #  Introduction
-Statisticians often encounter situations where they need to evaluate an integral during the evaluation or fitting of a statistical model.  One may recall that in random effects models, bayesian methods, and in the evaluation of expectations such integral evaluations are necessary.  
+Statisticians often encounter situations where they need to evaluate an integral during the evaluation or fitting of a statistical model.  One may recall that in random effects models, Bayesian methods, and in the evaluation of expectations such integral evaluations are necessary.  
 
 In this section we wish to cover several strategies to evaluate such integrals in practice. In particular, we focus on situations where there is no clear analytical form for the integral.  In such cases we resort to numerical integration to approximate the integral.  
 
-There are a variety of methods to perform numerical intregration, some of which you may have already learned in high school calculus.  We will review these methods plus commonly utilized ones in statistics, such as gaussian quadrature and monte carlo integration.  
+There are a variety of methods to perform numerical integration, some of which you may have already learned in high school calculus.  We will review these methods plus commonly utilized ones in statistics, such as gaussian quadrature and monte carlo integration.  
 
 ## Example
 
@@ -62,23 +62,23 @@ plot(x, x^2, ylab = "f(x)", xlab = "x", type= 'l')
 polygon( c(0,x[x>=0 & x<=1],1),  c(0,(x^2)[x>=0 & x<=1],0), col="grey")
 ```
 
-So how do we evaluate this intergral?  Clearly there is an analytical form of the integral in this situation, and we can fall back to what we learned in high school calculus to evaluate it:
+So how do we evaluate this integral?  Clearly there is an analytical form of the integral in this situation, and we can fall back to what we learned in high school calculus to evaluate it:
 
 $$\int_{0}^1 x^2dx = \frac{x^3}{3}\Big|_0^1 = \frac{1}{3}$$
 
-In statistics there are also situations where nice analytical forms of integrals can be found, for example through the use of conjugate priors in bayesian methods. However, more often than not this will not be the case. 
+In statistics there are also situations where nice analytical forms of integrals can be found, for example through the use of conjugate priors in Bayesian methods. However, more often than not this will not be the case. 
 
 ## A more realistic example
 
 ### Intro and data 
 
-Let us use an example from Givens and Hoeting that illustrates an application of the Generalized Linear Mixed Model (GLMM) to a longitudinal alzheimer's patient study (example 5.1).  
+Let us use an example from Givens and Hoeting that illustrates an application of the Generalized Linear Mixed Model (GLMM) to a longitudinal Alzheimer’s patient study (example 5.1).  
 
-The example described a set of 22 alzheimer's patients that were tracked over a period of 5 months.  Once a month, patients were asked to recall words from a list that was provided at baseline. The outcome variable in this setting is the number of words recalled by each patient in a given month.  These patients were also receiving an experimental therapy during the course of the study.  The investigators sought to determine whether there is any improvement of word recall over time (assumed to be linear) compared to each patient's baseline. Data for 25 control patients was also recorded but not available. 
+The example described a set of 22 Alzheimer’s patients that were tracked over a period of 5 months.  Once a month, patients were asked to recall words from a list that was provided at baseline. The outcome variable in this setting is the number of words recalled by each patient in a given month.  These patients were also receiving an experimental therapy during the course of the study.  The investigators sought to determine whether there is any improvement of word recall over time (assumed to be linear) compared to each patient's baseline. Data for 25 control patients was also recorded but not available. 
 
 Clearly, the repeated word count measurements within each subject are not independent, and that there may be substantial between-patient variation in each patient's baseline recall.  We can utilize a Generalized Linear Mixed Model (GLMM) to account for these issues.  
 
-Lets visualize some of the patient data before going further.  The following spagehetti plot shows the invididual patient trajectories: 
+Lets visualize some of the patient data before going further.  The following spaghetti plot shows the individual patient trajectories: 
 
 ```{r}
 # read in the data
@@ -135,7 +135,7 @@ Well, given that the joint density in the integrand does not simplify to a known
 However, we have the additional complication of the presence of an integral with respect to $\gamma_i$ in the log likelihood. Again, the joint density in the integrand does not simplify to some known distribution, so we must approximate this integral numerically during the maximization process.  We also have to make some assumptions regarding switching the order or integration and derivation when calculating derivatives. 
 
 ### A path forward
-If we assume that we can switch the order of integration and derivation when computing the 1st and 2nd derivatives of the log likelihood, we can obtain analytical forms for first and second derivatives of the likelihood.  Then, we can implement a few of the  optimization schemes discussed in the first lecture of this module. 
+If we assume that we can switch the order of integration and derivation when computing the 1st and 2nd derivatives of the log likelihood, we can obtain analytical forms for first and second derivatives of the likelihood.  Then, we can implement a few of the optimization schemes discussed in the first lecture of this module. 
 
 However, we still have to worry about evaluating these integrals in each iteration of whatever optimization method we choose.  If the evaluation of the integral is complex or computationally burdensome, this may impact the choice of optimizaton method we may want to use practically. For example, NR may not be an efficient choice in such situations, as we will have to integrate in both the score function (1st derivative) and hessian function (2nd derviative) in each iteration.  Some off the shelf software also evaluates the log likelihood by default at each iteration, adding another round of integration.
 
@@ -146,7 +146,7 @@ Lets consider the general problem of evaluating a one dimensional integral of th
 
 To approximate such integrals, we can first split the interval $[a,b]$ into $n$ parts, say $[x_i,x_{i+1}]$ for $i = 0, \ldots, n-1$, where $x_1 = a$ and $x_n = b$.   Then we can write $$\int_a^bf(x)dx = \sum_{i=0}^{n-1}\int_{x_i}^{x_{i+1}}f(x)dx.$$  
 
-In this sense, we are breaking up the original integral into the sum of integrals on disjoint subintervals spanning the original range of integration.  Then, we then worry about approximating the integral on each individual interval, and sum these approximations to obtain the estimate for the original full integral.
+In this sense, we are breaking up the original integral into the sum of integrals on disjoint subintervals spanning the original range of integration.  Then, we then worry about approximating the integral on each individual interval and sum these approximations to obtain the estimate for the original full integral.
 
 On an individual interval $[x_i,x_{i+1}]$, we initiate the approximation by inserting $m+1$ nodes $x_{ij}^*$ for $j = 0, \ldots,m$ across the interval.  Then, we can approximate the intergral in this subinterval in the general form in the following: $$\int_{x_i}^{x_{i+1}}f(x)dx =  \sum_{j=0}^m A_{ij}f(x_{ij}^*)$$ where $A_{ij}$ is some set of constants. 
 
@@ -154,7 +154,7 @@ In other words, we approximate the integral in each subinterval by evaluating th
 
 The length of the intervals in addition to the spacing of the nodes in each integral does not need to be equal as a general rule.  What may be apparent from the above approximation is that the accuracy should improve as we decrease the length of the subintervals and/or increase the number of nodes per subinterval.
 
-For this general class of methods the main differentiator between approximation is the choice of $A_{ij}$.  
+For this general class of methods, the main differentiator between approximation is the choice of $A_{ij}$.  
 
 ## Newton-Cotes Quadrature
 This class of methods is characterized by having nodes equally spaced in $[x_i,x_{i+1}]$ with the name number of nodes used across all subintervals. In a general sense, the function to be intregated in each subinterval is replaced with a polynomial approximation that is easier to intergrate. Three methods in this class include Riemann, trapezoidal, and Simpson's rules.  The main difference in these rules is the order of the polynomial approximation of $f(x)$ in the interval, ranging from 0 (constant, 1 node), 1 (linear, 2 nodes), to 2 (quadratic, 3 nodes), respectively.  This is illustrated in the figure below
@@ -311,7 +311,7 @@ In general, these approaches may require a large number of intervals of shorter 
 
 To evaluate over an infinite range, we can perform a change of variable operation on the integral in question, replacing say $\gamma_1$ with variable $y = \frac{\gamma_1}{1-\gamma_1}$ and then integrating over the range of $y$ which is $(-1,1)$.  This may not address the above issues about the mass of the intergral being concentrated in a few intervals.  Of course, such transformations can introduce other types of problems such as singularities.  Other choices of transformations exist, and one may choose the best one based on their problem (GH 5.4.1).  
 
-Alternatively, one may use the methods in the next section (particularly gauss-hermite quadrature) to approximate intergrals over the entire real line with very good accuracy. 
+Alternatively, one may use the methods in the next section (particularly gauss-hermite quadrature) to approximate integrals over the entire real line with very good accuracy. 
 
 # Gaussian Quadrature
 
@@ -512,10 +512,10 @@ We can see that we achieve very high accuracy in just a small number of nodes wi
 
 ### Great, but now how do I do optimization?
 
-As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to apply NR, BFGS, etc to optimize the likelihood.  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
+As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to apply NR, BFGS, etc. to optimize the likelihood.  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
 
 ## Extensions to Multidimensional integrals
-Keep in mind that so far, we are dealing with one dimensional intergrals.  With multidimensions integrals, alternate approaches relative to the this approach as well as the previous one may be preferred.  For example, for Newton-Cotes type methods, we would need to define a two-dimensional grid to approximate the integral with respect to each variable in each subinterval.  
+Keep in mind that so far, we are dealing with one dimensional integrals.  With multidimensions integrals, alternate approaches relative to this approach as well as the previous one may be preferred.  For example, for Newton-Cotes type methods, we would need to define a two-dimensional grid to approximate the integral with respect to each variable in each subinterval.  
 
 For Gaussian Quadrature, we would have to determine the nodes and weights with respect to each variable, and the integral is then approximated with a double summation if the dimension of the integral is 2.  In one dimensional integration, if $m$ was chosen to be 5, then we would have 5 evaluations of the function $f$.  For a two dimensional integral, this would jump to 25 evaluations of $f$.  
 
