@@ -1,0 +1,51 @@
+---
+title: "HW 7 - Numerical Integration"
+author: "Naim Rashid"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Maximization of poisson GLMM from lecture
+
+Now that we have discussed several approaches for numerical integration, lets now maximize the model given in lecture.  You may choose any maximization approach, as well as any numerical integration procedure, to obtain the MLE's for $\boldsymbol{\beta}$ and $\sigma_{\gamma}^2$.  Hint: You should evaluate a number of intervals/nodes, decreasing the convergence threshold, etc and evaluate its impact before reporting your final result. 
+
+```{r}
+## Solution: place relevant helper functions pertaining to integration here 
+
+## End Solution
+
+
+
+## Solution: place relevant helper functions pertaining to maximization here (likelihood etc)
+
+## End Solution
+
+
+
+## Solution: place primary code for maximization here, calling functions in the above two sections
+## Remember to print your primary results and use the following starting values
+library(statmod)
+beta = c(1.804, 0.165)
+s2gamma = 0.000225
+alz = read.table("alzheimers.dat", header = T)
+
+
+## End Solution
+
+
+
+```
+
+# Plot
+
+Now, plot the fitted line from the fitted GLMM on the spaghetti plot from lecture
+
+```{r}
+## solution
+
+## end solution
+```
