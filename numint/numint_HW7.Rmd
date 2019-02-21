@@ -28,7 +28,6 @@ Now that we have discussed several approaches for numerical integration, lets no
 
 ## Solution: place primary code for maximization here, calling functions in the above two sections
 ## Remember to print your primary results and use the following starting values
-library(statmod)
 beta = c(1.804, 0.165)
 s2gamma = 0.000225
 alz = read.table("alzheimers.dat", header = T)
