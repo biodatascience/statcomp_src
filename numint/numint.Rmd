@@ -867,7 +867,7 @@ p = 1-pnorm(4)
 print(p)
 ```
 
-We can see that this probability is small as expected.  We can also use MCI to obtain this estimate as well.  Here, we are trying to compute $E[I[Y > 2]] = \int I[Y > 4]f(Y)dY = p(Y > 4)$, where $f(Y) \sim N(0,1)$.  Here we can approximate the integral such that $\int I[Y > 4]f(Y)dY = \sum_{k = 1}^{M}I[Y_k > 4]/M$ Let’s try to compute this value using $k = 1,000$ samples:
+We can see that this probability is small as expected.  We can also use MCI to obtain this estimate as well.  Here, we are trying to compute $E[I[Y > 4]] = \int I[Y > 4]f(Y)dY = p(Y > 4)$, where $f(Y) \sim N(0,1)$.  Here we can approximate the integral such that $\int I[Y > 4]f(Y)dY = \sum_{k = 1}^{M}I[Y_k > 4]/M$ Let’s try to compute this value using $k = 1,000$ samples:
 
 ```{r, echo=TRUE}
 # Num of MC samples
@@ -876,10 +876,10 @@ M = 10^4
 # draw from standard normal
 y = rnorm(M)
 
-# compute MC estimate of p(Y > 2)
+# compute MC estimate of p(Y > 4)
 print(mean(y > 4))
 
-# compute MC variance for p(Y > 2)
+# compute MC variance for p(Y > 4)
 print(var(y > 4)/M)
 ```
 
@@ -894,10 +894,10 @@ M = 10^6
 # draw from standard normal
 y = rnorm(M)
 
-# compute MC estimate of p(Y > 2)
+# compute MC estimate of p(Y > 4)
 print(mean(y > 4))
 
-# compute MC variance for p(Y > 2)
+# compute MC variance for p(Y > 4)
 print(var(y > 4)/M)
 ```
 
@@ -929,10 +929,10 @@ y_imp = rnorm(M, 4, 1)
 # compute importance weights
 wstar = dnorm(y_imp, 0, 1)/dnorm(y_imp, 4, 1)
 
-# compute MC estimate of p(Y > 2)
+# compute MC estimate of p(Y > 4)
 print(mean((y_imp > 4)*wstar))
 
-# compute MC variance for p(Y > 2)
+# compute MC variance for p(Y > 4)
 print(var((y_imp > 4)*wstar)/M)
 ```
 
