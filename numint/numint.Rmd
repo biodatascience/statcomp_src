@@ -523,19 +523,19 @@ Here, instead of evaluating the function of interest over a number of nodes  at 
 
 Let’s assume again that we can factor our function of interest and wish to carry out the following integral:  
 
-$$ \int h(\boldsymbol{x})f(\boldsymbol{x})dx$$
+$$ \int h(\boldsymbol{x})f(\boldsymbol{x})d\boldsymbol{x}$$
 
 If we assume that $f(\boldsymbol{x})$ is the density for a random variable $\boldsymbol{x}$, then we can approximate this integral such that:
 
-$$ \int h(\boldsymbol{x})f(\boldsymbol{x})dx \approx \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k),$$ where $\boldsymbol{X}_1,\ldots,\boldsymbol{X}_M$ are an iid samples drawn from $f(\boldsymbol{x})$. As $M \rightarrow \infty$, $\frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k) \rightarrow  \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ by the strong law of large numbers.  
+$$ \int h(\boldsymbol{x})f(\boldsymbol{x})dx \approx \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k),$$ where $\boldsymbol{X}_1,\ldots,\boldsymbol{X}_M$ are an iid samples drawn from $f$. As $M \rightarrow \infty$, $\frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k) \rightarrow  \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ by the strong law of large numbers.  
 
-This is helpful for integrating joint probability distributions, such as in our GLMM example where $f(\boldsymbol{x})$ is $\phi(\gamma_i| 0,\sigma^2_{\gamma})$, or in calculating expectations of functions of $\boldsymbol{x}$,  such as $E[h(\boldsymbol{x})]$. Here, $f$ is often called the "target distribution", the density that we wish to sample from.  
+This is helpful for integrating joint probability distributions, such as in our GLMM example where $f(\boldsymbol{x})$ is $\phi(\gamma_i| 0,\sigma^2_{\gamma})$, or in calculating expectations of functions of random variables. Here, $f$ is often called the "target distribution", the density that we wish to sample from.  
 
 Due to the random nature of the way in which the nodes being drawn, some variance in the approximation is expected.  This is called the Monte Carlo Variance (MCV) of the estimate and is larger at smaller $M$.  That is, if you repeated the integration process, your estimate of the integral would vary more from attempt to attempt with smaller values of $M$ compared to larger values. 
 
-If we let $$\hat{\mu}_{MC} = \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k)$$ and assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ as $M$ \rightarrow \infty, and $var(\hat{\mu}_{MC}) = E[(h(\boldsymbol{x}) - \mu)^2] = \sigma^2$, then using results from BIOS 760 we know that the sampling variance for $\hat{\mu}_{MC} = \sigma^2/M$.  Here $\mu$ is the expectation of $h(\boldsymbol{x})$.
+If we let $$\hat{\mu}_{MC} = \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k)$$ and assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ as $M \rightarrow \infty$, and $v(\boldsymbol{x}) = (h(\boldsymbol{x}) - \mu)^2$, then using results from BIOS 760 we know that the sampling variance for $\hat{\mu}_{MC}$  is given by $E[v(\boldsymbol{X})/M]  = \sigma^2/M$.  Here $\mu$ is the expectation of $h(\boldsymbol{X})$, where $\boldsymbol{X}$ is a random variable with density $f$.
 
-Given this, we can calculate the estimate for $\sigma^2$ using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{var}(\hat{\mu}_{MC}) =\frac{1}{M-1} \sum_{k = 1}^M [h(\boldsymbol{X}_k) - \hat{\mu}_{MC}]^2$$.
+We can calculate the estimate for $\sigma^2$ using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{var}(\hat{\mu}_{MC}) =\frac{1}{M-1} \sum_{k = 1}^M [h(\boldsymbol{X}_k) - \hat{\mu}_{MC}]^2$$.
 
 If we assume that $\sigma^2$ exists, then we know that the asymptotic distribution for $\hat{\mu}_{MC}$ is approximately normal, so we can derive approximate confidence bounds for $\mu$ and perform statistical inference later. 
 
@@ -573,7 +573,7 @@ We can see that this estimate is not exactly equal to 5 and the MCV in this case
 ```{r, echo=TRUE}
 
 # set the number of MC samples to draw
-k = 10^4
+M = 10^4
 
 # draw the samples
 y = rpois(M, lambda = 5) 
@@ -614,9 +614,9 @@ We know for example that the second moment of $Y$ is $\lambda + \lambda^2 = 5 + 
 
 We can use MCI to also estimate the area of a circle below with radius $r = 0.5$.  Let’s say that we did not know the value of $\pi$, or that the area of circle is $\pi r^2$. How do we calculate the area of the circle in this situation? 
 
-Let’s reformulate the problem in the following manner.  First, let’s assume that the circle sits perfectly inside of a square shape that we know how to calculate the area to $(2 \times r)^2 = 1)$.  Given this, we can write the following: $$A_{circle} = A_{square} \left[\frac{A_{circle}}{A_{square}}\right] = 1 \times \left[\frac{A_{circle}}{A_{square}}\right].$$  
+Let’s reformulate the problem in the following manner.  First, let’s assume that the circle sits perfectly inside of a square shape that we know how to calculate the area to $((2 \times r)^2 = 1)$.  Lets also assume that the center of the circle is located at point (0,0) in a two dimensional coordinate plane.  Given this, we can write the following: $$A_{circle} = A_{square} \left[\frac{A_{circle}}{A_{square}}\right] = 1 \times \left[\frac{A_{circle}}{A_{square}}\right].$$  
 
-Let’s say that if we selected a point $\boldsymbol{z} = (z_x,z_y)$ at random over the support of the square, where $z_x$ and $z_y \sim U(-1/2,1/2)$, then we can also write rewrite this problem as the following: $$A_{circle} = 1 \times p(x \in circle) = 1\int I[\boldsymbol{z} \in circle]d\boldsymbol{z} \approx \frac{1}{M}\sum_{k=1}^M I[\boldsymbol{Z_k} \in circle] $$ where $Z_k = (Z_{x,k},Z_{y,k})$, $Z_{x,k}$ and $Z_{y,k} \sim U(-1/2,1/2)$, and $k =1 \ldots M$.  
+Let’s say that if we selected a point $\boldsymbol{z} = (z_x,z_y)$ at random over the support of the square, where $z_x$ and $z_y \sim U(-1/2,1/2)$, then we can also write rewrite this problem as the following: $$A_{circle} = 1 \times p(\boldsymbol{z} \in circle) = 1\int I[\boldsymbol{z} \in circle]d\boldsymbol{z} \approx \frac{1}{M}\sum_{k=1}^M I[\boldsymbol{Z_k} \in circle] $$ where $\boldsymbol{Z}_k = (Z_{x,k},Z_{y,k})$, $Z_{x,k}$ and $Z_{y,k} \sim U(-1/2,1/2)$, and $k =1 \ldots M$.  
 
 Let’s implement this below:
 
@@ -638,7 +638,7 @@ inside = zx^2 + zy^2 < r^2
 print(mean(inside)*(2*r))
 ```
 
-which is similar to $\pi(0.5)^2 = 0.78539$.  The area of the circle here is simply the area of the square $\times$ the proportion of points falling into the circle, which is our MC estimator for $1\times p(x \in circle) = E[I[\boldsymbol{z}]]$.  We can visualize this below:
+which is similar to $\pi(0.5)^2 = 0.78539$.  The area of the circle here is simply the area of the square $\times$ the proportion of points falling into the circle, which is our MC estimator for $1\times p(\boldsymbol{z} \in circle) = E[I[\boldsymbol{z}]]$.  We can visualize this below:
 
 ```{r}
 # color points inside circle red
@@ -817,7 +817,16 @@ val = sum(w*h_t(t = t, y = y1, beta = beta, s2gamma = s2gamma,pm = pm$p1,hess_pm
 print(val)
 ```
 
-Now let’s loop over from 1 to 10 nodes instead: 
+We can visualize the new nodes below:
+
+```{r}
+xv = seq(range[1], range[2],length.out = 1000)
+plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
+     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l', xlim = range)
+abline(v = t, lty = 2, col = "grey")
+```
+
+Looks well centered.  Now let’s loop over from 1 to 10 nodes instead: 
 
 ```{r, echo=TRUE}
 for(i in 1:10){
@@ -867,7 +876,7 @@ p = 1-pnorm(4)
 print(p)
 ```
 
-We can see that this probability is small as expected.  We can also use MCI to obtain this estimate as well.  Here, we are trying to compute $E[I[Y > 4]] = \int I[Y > 4]f(Y)dY = p(Y > 4)$, where $f(Y) \sim N(0,1)$.  Here we can approximate the integral such that $\int I[Y > 4]f(Y)dY = \sum_{k = 1}^{M}I[Y_k > 4]/M$ Let’s try to compute this value using $k = 1,000$ samples:
+We can see that this probability is small as expected.  We can also use MCI to obtain this estimate as well.  Here, we are trying to compute $E[I[Y > 4]] = \int I[Y > 4]f(Y)dY = p(Y > 4)$, where $f(Y) \sim N(0,1)$.  Here we can approximate the integral such that $\int I[Y > 4]f(Y)dY = \sum_{k = 1}^{M}I[Y_k > 4]/M$ Let’s try to compute this value using $M = 10,000$ samples:
 
 ```{r, echo=TRUE}
 # Num of MC samples
@@ -909,7 +918,7 @@ To reduce the variance of the estimator, we can instead sample from a different 
 
 Here, we are rewriting the original integral as the following:  
 
-$$ \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})d\boldsymbol{x} =\int h(\boldsymbol{x}) \frac{f(\boldsymbol{x})}{g(\boldsymbol{x})}f(\boldsymbol{x})d\boldsymbol{x}$$
+$$ \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})d\boldsymbol{x} =\int h(\boldsymbol{x}) \frac{f(\boldsymbol{x})}{g(\boldsymbol{x})}g(\boldsymbol{x})d\boldsymbol{x}$$
 
 where $g(\boldsymbol{x})$ is the alternative distribution that we are sampling from, sometimes called the "importance sampling function" or "envelope".  Using similar arguments as before, we can estimate $\mu$ in this case via $$\hat{\mu}_{IS}^* = \sum_{k =  1}^M h(\boldsymbol{X}_k)w^*(\boldsymbol{X}_k),$$ where  $w^*(\boldsymbol{X}_k) = \frac{f(\boldsymbol{X}_k)}{g(\boldsymbol{X}_k)}$ can be thought of as weights, and $\boldsymbol{X}_1,\ldots,\boldsymbol{X}_M$ are an iid sample from $g$.   For this approach to work well, it must be easy to sample from $g$, and $f$ must be easy to evaluate, otherwise you are just adding more computational work to evaluate this integral.  
 
@@ -941,7 +950,7 @@ So, we are able to achieve relatively good accuracy relative to the original app
 One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))}$$, where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to sampling $\hat{M}(g, f)$ samples from $f(\boldsymbol{x})$ under the original scheme. Here we have
 
 ```{r}
-# if we drew M samples from f, this would be the equivalent number of samples under g
+# if we drew M samples from g, this would be the equivalent number of samples under directly sampling f
 print(M/(1+var(wstar)))
 ```
 
@@ -1000,9 +1009,9 @@ For Gaussian Quadrature (assuming $M>1$), we would have to determine the nodes a
 
 Adaptive Quadrature is another approach to get around some of these issues, where the intervals are adjusted such that they are places in portions of the integrand where more of the mass is located. This allows for fewer nodes to be needed to achieve similar accuracy.  Such approaches should be considered in general, but especially when using multidimensional integrals.  However, this does not avoid the significant increase in computation time for $M > 1$ in general.  
 
-Clearly, as the dimension increases the above approaches become more and more computationally difficult.  Software implementations for estimating GLMM's typically use the Laplace approximation (equivalent to using $M=1$ in GQ) to ease some of the computational burden.  The lme4 package in R contains the function glmer to do this for GLMM’s and uses some additional tricks to improve accuracy.  The parameter nAGQ controls how many quadrature points to use (default $k = 1$, Laplace), but is not available for models where the dimension of the random effects vector is greater than 1.  
+Clearly, as the dimension increases, the above approaches become more and more computationally difficult.  Software implementations for estimating GLMM's typically use the Laplace approximation (equivalent to using $M=1$ in GQ) to ease some of the computational burden.  The lme4 package in R contains the function glmer to do this for GLMM’s and uses some additional tricks to improve accuracy.  The parameter nAGQ controls how many quadrature points to use (default $k = 1$, Laplace), but is not available for models where the dimension of the random effects vector is greater than 1.  
 
-The benefit of using MCI becomes apparent as the dimension of the integral increases.  For the trapezoidal rule for example, the convergence rate in terms of the number of nodes $M$ is simply $o(M^{-2/d})$, whereas for MCI it is $o(M^{-2})$, independent of the dimensions $d$.  For the other methods discussed, a similar reduction in convergence order is observed as $d$ increases.  It is apparent that the overall order of MCI is slower than other approaches, but does not change with the dimensions $d$, making it attractive for problems where  $d \geq 5$, among other benefits.  
+The benefit of using MCI becomes apparent as the dimension of the integral increases.  For the trapezoidal rule for example, the convergence rate in terms of the number of nodes $M$ is simply $o(M^{-2/d})$, whereas for MCI it is $o(M^{-1/2})$, independent of the dimension $d$.  For the other methods discussed, a similar reduction in convergence order is observed as $d$ increases.  It is apparent that the overall order of MCI is slower than other approaches, but does not change with the dimensions $d$, making it attractive for problems where  $d \geq 5$, among other benefits.  
 
 
 ## Segway into the next lecture
