@@ -107,7 +107,7 @@ We can more formally set up with problem with the following.  Let $y_{ij}$ be th
 
 We also let the covariate vector for the $i$th patient in the $j$th month be $\boldsymbol{x}_{ij} = (1, j)$, indicating that we assume an intercept $\beta_0$ and linear slope $\beta_1$ for month ($\boldsymbol{\beta} = (\beta_0,\beta_1)^T$).  
 
-Then, the counts can be modeled with a poisson GLMM sich that $$\log(\lambda_{ij}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + \gamma_i$$, where $\gamma_i$ is the unobserved subject-level random effect such that  $\gamma_i \sim N(0,\sigma_{\gamma}^2)$.  
+Then, the counts can be modeled with a poisson GLMM sich that $$\log(\lambda_{ij}) = \boldsymbol{x}_{ij}\boldsymbol{\beta} + \gamma_i$$, where $\gamma_i$ is the unobserved subject-level random effect such that  $\gamma_i \sim N(0,\sigma_{\gamma}^2)$.  
 
 So, how do we write  the likelihood for this poisson GLMM with random intercept?  If say  $\gamma_i$ was observable and known, we could write the likelihood as the following:
 
@@ -571,7 +571,6 @@ This is pretty intuitive in that we are simply drawing samples from the known di
 We can see that this estimate is not exactly equal to 5 and the MCV in this case is relatively large at 0.0391.  So, to increase the accuracy of the integral, lets bump up $M$:
 
 ```{r, echo=TRUE}
-
 # set the number of MC samples to draw
 M = 10^4
 
@@ -922,7 +921,7 @@ $$ \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})d\boldsymbol{x} =\int h(\boldsym
 
 where $g(\boldsymbol{x})$ is the alternative distribution that we are sampling from, sometimes called the "importance sampling function" or "envelope".  Using similar arguments as before, we can estimate $\mu$ in this case via $$\hat{\mu}_{IS}^* = \sum_{k =  1}^M h(\boldsymbol{X}_k)w^*(\boldsymbol{X}_k),$$ where  $w^*(\boldsymbol{X}_k) = \frac{f(\boldsymbol{X}_k)}{g(\boldsymbol{X}_k)}$ can be thought of as weights, and $\boldsymbol{X}_1,\ldots,\boldsymbol{X}_M$ are an iid sample from $g$.   For this approach to work well, it must be easy to sample from $g$, and $f$ must be easy to evaluate, otherwise you are just adding more computational work to evaluate this integral.  
 
-We may also use the estimator $$\hat{\mu}_{IS} = \sum_{k =  1}^M h(\boldsymbol{X}_k)w(\boldsymbol{X}_k)$$ where $w^*(\boldsymbol{X}_k) = \frac{ w^*(\boldsymbol{X}_k)}{\sum_{k =  1}^M w^*(\boldsymbol{X}_k)}$ are standardized weights. We may choose to use standardized weights when $f$ is only known up to a proportionality constant, as is typical in Bayesian applications (only the kernel of a posterior is known). Using a similar rationale as the standard MC estimator, the IS MC estimator will similar converge to the true value of the integral as the number of drawn samples tends to infinity. 
+We may also use the estimator $$\hat{\mu}_{IS} = \sum_{k =  1}^M h(\boldsymbol{X}_k)w(\boldsymbol{X}_k)$$ where $w(\boldsymbol{X}_k) = \frac{ w^*(\boldsymbol{X}_k)}{\sum_{k =  1}^M w^*(\boldsymbol{X}_k)}$ are standardized weights. We may choose to use standardized weights when $f$ is only known up to a proportionality constant, as is typical in Bayesian applications (only the kernel of a posterior is known). Using a similar rationale as the standard MC estimator, the IS MC estimator will similar converge to the true value of the integral as the number of drawn samples tends to infinity. 
 
 Some notes regarding the choice of $g(\boldsymbol{x})$:  we want to ensure that the support for $g(\boldsymbol{x})$ is the same as the support of $f(\boldsymbol{x})$, and that $f(\boldsymbol{x})/g(\boldsymbol{x})$ is bounded to avoid excess variability in $\hat{\mu}_{IS}$.  This can be remedied by ensuring that $g(\boldsymbol{x})$ has fatter tails than $f(\boldsymbol{x})$ (we will give an example of this later). Otherwise, the importance ratios may become quite large and inflate the variance, which is the opposite of what is intended by this approach.  One simple way of avoiding this issue is simply choosing a $g(\boldsymbol{x})$ that samples in a region where $h(\boldsymbol{x})$ is large, so that in other regions the impact of the importance ratio being large will not matter as much.  
 
@@ -947,7 +946,7 @@ print(var((y_imp > 4)*wstar)/M)
 
 So, we are able to achieve relatively good accuracy relative to the original approach with the same number of samples. 
 
-One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))}$$, where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to sampling $\hat{M}(g, f)$ samples from $f(\boldsymbol{x})$ under the original scheme. Here we have
+One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))}$$, where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to sampling $\hat{M}(g, f)$ samples from $f(\boldsymbol{x})$ under the original scheme. This is one way to measure the loss in precision in approximating $f$ with $g$, and is a useful measure for comparing different importance functions.  Here we have
 
 ```{r}
 # if we drew M samples from g, this would be the equivalent number of samples under directly sampling f
@@ -1016,6 +1015,6 @@ The benefit of using MCI becomes apparent as the dimension of the integral incre
 
 ## Segway into the next lecture
 
-So far, we have discussed ways to perform MCI when the target distribution is known and can be easily simulated from.  Going back to the MCEM example from the prior lecture, the posterior distribution of the missing data, conditional on the obeserved data and the current parameter estimates, may not be a known or simple distribtion.  In most cases, we are not able to directly sample from such distributions with standard statistical software.  In the next lecture, we will discuss several approaches to sample from such distributions.  
+So far, we have discussed ways to perform MCI when the target distribution is known and can be easily simulated from.  Going back to the MCEM example from the prior lecture, the posterior distribution of the missing data, conditional on the obeserved data and the current parameter estimates, may not be a known or simple distribtion.  In most cases, we are not able to directly sample from such distributions with standard statistical software.  In the next lecture, we will discuss several approaches to sample from such distributions.  Later we will compare the approaches discussed in this lecture with those in the following to evaluate an MCEM example in application to our Poisson GLMM and another example with a higher dimensional integral. 
 
 
