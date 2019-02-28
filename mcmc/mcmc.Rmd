@@ -110,7 +110,7 @@ We will show for the two classes of methods in this section, Rejection Sampling 
 
 If the target distribution $f(x)$ can be calculated, at least up to a proportionality constant, then we can use Rejection Sampling to directly obtain a random draw from the target distribution. The general idea behind Rejection Sampling is that we first sample from an alternative distribution $g$ to generate **candidate samples**.  We then correct for the fact that these samples came from another distribution through the random rejection of some of the samples, effectively correcting the original sampling probabilities.  Importance sampling in contrast directly weights samples from $g$ during the computation of the integral, rather than attempting to directly simulate samples from $f$ itself.  
 
-Let us assume that we can calculate $g(x)$ easily and denote $e(cdot)$ as the "envelope" function such that $$e(x) = \frac{g(x)}{\alpha} > f(x)$$ for all $x$ where $f(x) > 0$.  Here $alpha \leq 1$ and is a constant.  That is, for all regions where $f(x)$ is nonzero, $g(x)$ is greater than or equal to $f(x)$ (hence the term "envelope").
+Let us assume that we can calculate $g(x)$ easily and denote $e(\cdot)$ as the "envelope" function such that $$e(x) = \frac{g(x)}{\alpha} > f(x)$$ for all $x$ where $f(x) > 0$.  Here $\alpha \leq 1$ and is a constant.  That is, for all regions where $f(x)$ is nonzero, $g(x)$ is greater than or equal to $f(x)$ (hence the term "envelope").
 
 Then, we implement Rejection Sampling using the following procedure: 
 
@@ -135,7 +135,7 @@ length of the bar ($e(y)$). Therefore, one can view Rejection Sampling as sampli
 two-dimensional region under the curve $e$ and then throwing away any draws falling
 above $f$ and below $e$. Since sampling from $f$ is equivalent to sampling uniformly from the two-dimensional region under the curve labeled $f(x)$ and then ignoring the vertical coordinate, Rejection Sampling provides draws exactly from $f$.
 
-In other words, this procedure is equivalent to first randomly selecting a point from the x-axis above by sampling from $g$, then drawing a sample $U$ from $U(0, e(y))$ along the y-axis.  If $ f(y) < U  < e(y)$ then we reject, otherwise we keep the sample.  In this manner, we are able to obtain an iid sample that is exactly from the target distribution $f$.
+In other words, this procedure is equivalent to first randomly selecting a point from the x-axis above by sampling from $g$, then drawing a sample $U$ from $U(0, e(y))$ along the y-axis.  If $f(y)<U<e(y)$ then we reject, otherwise we keep the sample.  In this manner, we are able to obtain an iid sample that is exactly from the target distribution $f$.
 
 The shaded region in the figure above $f$ and below $e$ indicates the waste. Intuitively, 
 a candidate draw is  likely to be rejected when $e(y) >> f (y)$, whereas envelopes
@@ -164,7 +164,7 @@ another function called the "squeezing function" are iteratively updated with th
 
 ### Example:  Sampling from a posterior distribution
 
-Lets suppose we have 10 independent observations from GH Example 6.2 are observed from the model $X_i|\lambda ∼ $Poisson($\lambda$). We assume a lognormal prior distribution for $\lambda$, where  $\log(\lambda) \sim N(\log(4), 0.52)$. Here, we want to sample from the posterior distribution of $\lambda$ given the data.  
+Lets suppose we have 10 independent observations from GH Example 6.2 are observed from the model $X_i| \lambda \sim$  Poisson($\lambda$). We assume a lognormal prior distribution for $\lambda$, where  $\log(\lambda) \sim N(\log(4), 0.52)$. Here, we want to sample from the posterior distribution of $\lambda$ given the data.  
 
 Lets start with a histogram of the data and calculating $\bar{x}$ below.
 
@@ -174,8 +174,8 @@ hist(x)
 print(mean(x))
 ```
 
-Denote the likelihood as $L(\lambda|\boldsymbol{x})$ and the lognormal prior as $f(\lambda)$. We know that  $\hat{\lambda}  = \bar{x}$ maximizes the likelihood $L(\lambda|\boldsymbol{x})$ with respect to $\lambda$.   As a result, the unnormalized posterior, $q(\lambda|\boldsymbol{x}) = f (\lambda)L(\lambda|\boldsymbol{x})$
-is bounded above by $e(lambda) = f (\lambda)L(4.3|\boldsymbol{x})$. We can show this below:
+Denote the likelihood as $L(\lambda|\boldsymbol{x})$ and the lognormal prior as $f(\lambda)$. We know that  $\hat{\lambda}  = \bar{x}$ maximizes the likelihood $L(\lambda|\boldsymbol{x})$ with respect to $\lambda$.   As a result, the unnormalized posterior, $q(\lambda|\boldsymbol{x}) = f(\lambda)L(\lambda|\boldsymbol{x})$
+is bounded above by $e(\lambda) = f (\lambda)L(4.3|\boldsymbol{x})$. We can show this below:
 
 ```{r}
 # unormalized posterior function
@@ -195,10 +195,10 @@ lambda = seq(0, 20,,1000)
 plot(lambda, sapply(lambda, e, x = x),col = "black", type = 'l')
 # q
 lines(lambda, sapply(lambda, q, x = x), col = "red")
-legend(c("q(x)","e(x)"), col = c(1, 2), lty = c(1,1) ,x = "topright")
+legend(c("e(x)","q(x)"), col = c(1, 2), lty = c(1,1) ,x = "topright")
 ```
 
-One nice thing to note about the chosen envelope is that the prior is proportional to $e$. Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ fro the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}:
+One nice thing to note about the chosen envelope is that the prior is proportional to $e$. Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ fro the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
 
 ```{r}
 set.seed(100)
@@ -293,7 +293,7 @@ First, lets set up the rejection sampler:
 rejection.sample.gamma.posterior = function(yi, M, maxit, betat, s2gammat, trace = 0 ){
   
   ## yi is a 5 x 1 vector containing the observations for sample i
-  ## n is the total number of iid samples desired from the posterior
+  ## M is the total number of iid samples desired from the posterior
   ## maxit is the max number of iterations (to prevent runaway looping)
   ## betat is  the estimate for beta at EM iteration t
   ## s2gammat is the estimate for s2gamma at EM iteration t
@@ -358,18 +358,18 @@ alz = read.table("alzheimers.dat", header = T)
 
 ## initial parameters
   tol = 10^-5
-  maxit = 50
+  maxit = 100
   iter = 0
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
   
 ## starting values
   beta = c(1.804, 0.165)
-  s2gamma =  0.000225 + .1 
+  s2gamma =  0.000225 + .01 
   
 
-## fix at 5000 draws from posterior per observation
-  M = 50
+## fix at 1000 draws from posterior per observation
+  M = 1000
 
 ## For M-step use only: repeat the data from same observation M times 
   # create repeat index vector
@@ -513,238 +513,3 @@ We can also take a look at the final augmented matrix to see what it looks like
 print(head(alz_M_aug, 10))
 ```
 
-# Approximate Sampling:  MCMC 
-
-When a target density f can be evaluated but not easily sampled, the methods from
-Chapter 6 can be applied to obtain an approximate or exact sample. The primary use
-of such a sample is to estimate the expectation of a function of X ∼ f (x). The Markov
-chain Monte Carlo (MCMC) methods introduced in this chapter can also be used to
-generate a draw from a distribution that approximates f , but they are more properly
-viewed as methods for generating a sample from which expectations of functions of
-X can reliably be estimated. MCMC methods are distinguished from the simulation
-techniques in Chapter 6 by their iterative nature and the ease with which they can be
-customized to very diverse and difficult problems. Viewed as an integration method,
-MCMC has several advantages over the approaches in Chapter 5: Increasing problem
-dimensionality usually does not slow convergence or make implementation more
-complex.
-A quick review of discrete-state-space Markov chain theory is provided in
-Section 1.7. Let the sequence X(t) denote a Markov chain for t = 0, 1, 2, . . . , where X(t) =
-X(t)1 , . . . , X(t)p
-
-and the state space is either continuous or discrete. For the
-types of Markov chains introduced in this chapter, the distribution of X(t) converges
-to the limiting stationary distribution of the chain when the chain is irreducible and
-aperiodic. The MCMC sampling strategy is to construct an irreducible, aperiodic
-Markov chain for which the stationary distribution equals the target distribution f. For
-sufficiently large t, a realization X(t) from this chain will have approximate marginal
-distribution f . A very popular application ofMCMCmethods is to facilitate Bayesian
-inference where f is a Bayesian posterior distribution for parametersX; a short review
-of Bayesian inference is given in Section 1.5.
-The art of MCMC lies in the construction of a suitable chain. A wide variety of
-algorithms has been proposed. The dilemma lies in how to determine the degree of
-distributional approximation that is inherent in realizations from the chain as well as
-estimators derived from these realizations. This question arises because the distribution
-of X(t) may differ substantially from f when t is too small (note that t is always
-limited in computer simulations), and because the X(t) are serially dependent.
-MCMCtheory and applications are areas of active research interest. Our emphasis
-here is on introducing some basic MCMC algorithms that are easy to implement
-and broadly applicable. In Chapter 8, we address several more sophisticated MCMC
-techniques. Some comprehensive expositions of MCMC and helpful tutorials include
-[70, 97, 106, 111, 543, 633]
-
-## Metropolis-Hastings Algorithm
-
-A very general method for constructing a Markov chain is the Metropolis–Hastings
-algorithm [324, 460]. The method begins at t = 0 with the selection of X(0) = x(0)
-drawn at random from some starting distribution g, with the requirement that
-f
-
-x(0)
-> 0. Given X(t) = x(t), the algorithm generates X(t+1) as follows:
-1. Sample a candidate value X∗ from a proposal distribution g
-
-·| x(t)
-.
-2. Compute the Metropolis–Hastings ratio R
-
-x(t),X∗
-, where
-R(u, v) = f (v) g (u| v)
-f (u) g (v| u)
-. (7.1)
-Note that R
-
-x(t),X∗
-is always defined, because the proposal X∗ = x∗ can
-only occur if f
-
-x(t)
-> 0 and g
-
-x∗| x(t)
-> 0.
-3. Sample a value for X(t+1) according to the following:
-X(t+1) =
-
-X∗ with probability min
-
-R
-
-x(t),X∗
-, 1
-
-,
-x(t) otherwise.
-(7.2)
-4. Increment t and return to step 1.
-We will call the tth iteration the process that generates X(t) = x(t). When the proposal
-distribution is symmetric so that g
-
-x(t)|x∗
-= gß
-
-x∗|x(t)
-, the method is known as the
-Metropolis algorithm [460].
-
-
-Clearly, a chain constructed via the Metropolis–Hastings algorithm is Markov
-since X(t+1) is only dependent on X(t). Whether the chain is irreducible and aperiodic
-depends on the choice of proposal distribution; the user must check these conditions
-diligently for any implementation. If this check confirms irreducibility and aperiodicity,
-then the chain generated by the Metropolis–Hastings algorithm has a unique
-limiting stationary distribution. This result would seem to follow from Equation
-(1.44). However, we are now considering both continuous- and discrete-state-space
-Markov chains. Nevertheless, irreducibility and aperiodicity remain sufficient conditions
-for convergence of Metropolis–Hastings chains
-
-Recall from Equation (1.46) that we can approximate the expectation of a function
-of a random variable by averaging realizations from the stationary distribution of
-a Metropolis–Hastings chain. The distribution of realizations from the Metropolis–
-Hastings chain approximates the stationary distribution of the chain as t progresses;
-therefore E{h(X)} ≈ (1/n)
-	n
-i=1 h
-
-x(i)
-. Some of the useful quantities that can be
-estimated this way include means E{h(X)}, variances E
-
-[h(X) − E{h(X)}]2
-, and
-tail probabilities E
-
-1{h(X)≤q}
-
-for constant q, where 1{A} = 1 if A is true and 0
-otherwise. Using the density estimation methods of Chapter 10, estimates of f itself
-can also be obtained. Due to the limiting properties of the Markov chain, estimates
-of all these quantities based on sample averages are strongly consistent. Note that the
-sequence x(0), x(1), . . . will likely include multiple copies of some points in the state
-space. This occurs when X(t+1) retains the previous value x(t) rather than jumping to
-the proposed value x∗. It is important to include these copies in the chain and in any
-sample averages since the frequencies of sampled points are used to correct for the
-fact that the proposal density differs from the target density.
-In some applications persistent dependence of the chain on its starting value
-can seriously degrade its performance. Therefore it may be sensible to omit some of
-the initial realizations of the chain when computing a sample average. This is called
-the burn-in period and is an essential component of MCMC applications. As with
-optimization algorithms, it is also a good idea to run MCMC procedures like the
-Metropolis–Hastings algorithm from multiple starting points to check for consistent
-results. See Section 7.3 for implementation advice about burn-in, number of chains,
-starting values, and other aspects of MCMC implementation.
-
-Specific features of good proposal distributions can greatly enhance the performance
-of the Metropolis–Hastings algorithm. A well-chosen proposal distribution
-produces candidate values that cover the support of the stationary distribution in a
-reasonable number of iterations and, similarly, produces candidate values that are not
-accepted or rejected too frequently [111]. Both of these factors are related to the spread
-of the proposal distribution. If the proposal distribution is too diffuse relative to the
-target distribution, the candidate values will be rejected frequently and thus the chain
-will require many iterations to adequately explore the space of the target distribution.
-If the proposal distribution is too focused (e.g., has too small a variance), then the
-chain will remain in one small region of the target distribution for many iterations
-while other regions of the target distribution will not be adequately explored. Thus
-a proposal distribution whose spread is either too small or too large can produce a
-chain that requires many iterations to adequately sample the regions supported by the
-target distribution. Section 7.3.1 further discusses this and related issues.
-Below we introduce several Metropolis–Hastings variants obtained by using
-different classes of proposal distributions.
-
-### Independence Chains
-Suppose that the proposal distribution for the Metropolis–Hastings algorithm is chosen
-such that g
-
-x∗| x(t)
-= g(x∗) for some fixed density g. This yields an independence
-chain, where each candidate value is drawn independently of the past. In this
-case, the Metropolis–Hastings ratio is
-R
-
-x(t),X∗
-= f (X∗) g
-
-x(t)
-f
-
-x(t)
-g
-
-X∗ . (7.4)
-The resulting Markov chain is irreducible and aperiodic if g (x) > 0 whenever
-f (x) > 0.
-Notice that the Metropolis–Hastings ratio in (7.4) can be reexpressed as the ratio
-of importance ratios (see Section 6.4.1) where f is the target and g is the envelope: If
-w
-∗ = f (X∗) /g (X∗) and w(t) = f
-
-x(t)
-/g
-
-x(t)
-, then R
-
-x(t),X∗
-= w
-∗
-/w(t). This
-reexpression indicates that when w(t) is much larger than typical w
-∗ values, then
-the chain will tend to get stuck for long periods at the current value. Therefore, the
-criteria discussed in Section 6.3.1 for choosing importance sampling envelopes are
-also relevant here for choosing proposal distributions: The proposal distribution g
-should resemble the target distribution f , but should cover f in the tails.
-
-### Random Walk Chains
-A random walk chain is another type of Markov chain produced via a simple variant
-of the Metropolis–Hastings algorithm. Let X∗ be generated by drawing  ∼ h() for
-some density h and then setting X∗ = x(t) + . This yields a random walk chain.
-In this case, g
-
-x∗| x(t)
-= h
-
-x∗ − x(t)
-. Common choices for h include a uniform
-distribution over a ball centered at the origin, a scaled standard normal distribution,
-
-and a scaled Student’s t distribution. If the support region of f is connected and h is
-positive in a neighborhood of 0, the resulting chain is irreducible and aperiodic [543].
-Figure 7.4 illustrates how a random walk chain might progress in a twodimensional
-problem. The figure shows a contour plot of a two-dimensional target
-distribution (dotted lines) along with the first steps of a random walk MCMC procedure.
-The sample path is shown by the solid line connecting successive values in
-the chain (dots). The chain starts at x(0). The second candidate value is accepted to
-yield x(1). The circles around x(0) and x(1) show the proposal densities, where h is
-a uniform distribution over a disk centered at the origin. In a random walk chain,
-the proposal density at iteration t + 1 is centered around x(t). Some candidate values
-are rejected. For example, the 13th candidate value, denoted by ◦, is not accepted,
-so x(13) = x(12). Note how the chain frequently moves up the contours of the target
-distribution, while also allowing some downhill moves. The move from x(15) to x(16)
-is one instance where the chain moves downhill.
-
-### Example, continued
-
-## Gibbs Sampling
-
-# Practical Issues in Implementation
