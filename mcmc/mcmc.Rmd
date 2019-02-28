@@ -47,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 In the previous lecture we discussed Monte Carlo Integration (MCI), where we drew samples from some target distribution $f$ in order to approximate the integral $\int h(\x)f(\x)d\x$.  We also discussed ways to sample from an alternative density $g$ to reduce the variance of the standard MC estimator via importance sampling.  This could be applied even when the target density $f$ cannot be sampled from and is only known up to a multiplicative proportionality constant. Importance sampling can bring enormous gains with a good choice of $g$ by oversampling the "important" regions of the integrand, making an otherwise infeasible problem amenable to MCI. It can also backfire with a bad choice of $g$ , yielding an estimate
 with infinite variance when simple Monte Carlo would have had a finite variance.
 
-In our discussion of importance sampling, we are focused on integration.  But what if need to directly obtain samples from a target distribution $f$ when no software/method is available to do so?  This is common in bayesian applications where sampling from some posterior distribution is required but is not easy to do (the exception is when conjugate priors are used).  The ability to sample exactly (or approximately) from $f$ can also be helpful for applying MCI. We will see later in this lecture that Markov Chain Monte Carlso (MCMC) approaches in particular may be preferable in cases where the dimension of the integral starts to become very large. We will discuss the relative pro's and cons of each approach introduced below, motivated by our Poisson GLMM example from the previous lecture. 
+In our discussion of importance sampling, we are focused on integration.  But what if need to directly obtain samples from a target distribution $f$ when no software/method is available to do so?  This is common in bayesian applications where sampling from some posterior distribution is required but is not easy to do (the exception is when conjugate priors are used).  The ability to sample exactly (or approximately) from $f$ can also be helpful for applying MCI. We will see later in this lecture that Markov Chain Monte Carlo (MCMC) approaches in particular may be preferable in cases where the dimension of the integral starts to become very large. We will discuss the relative pro's and cons of each approach introduced below, motivated by our Poisson GLMM example from the previous lecture. 
 
 # Motivating Example:  MCEM-based estimation of the Poisson GLMM example
 
@@ -130,7 +130,7 @@ A formal proof is given in GH 6.2.3, but we illustrate this graphically below.  
 ![Illustration of Rejection Sampling.](envelope.png){width=65%}
 
 Lets suppose that our particular draw $y$ is at the vertical bar along the support of the target density (x-axis of fig). Then imagine sampling $U|Y = y$ uniformly along the vertical bar. In step 3, we reject this draw
-with probability proportional bar length above $f(y)$ relative to the overall
+with probability proportional to the bar length above $f(y)$ relative to the overall
 length of the bar ($e(y)$). Therefore, one can view Rejection Sampling as sampling uniformly from the
 two-dimensional region under the curve $e$ and then throwing away any draws falling
 above $f$ and below $e$. Since sampling from $f$ is equivalent to sampling uniformly from the two-dimensional region under the curve labeled $f(x)$ and then ignoring the vertical coordinate, Rejection Sampling provides draws exactly from $f$.
@@ -191,14 +191,18 @@ e = function(lambda, x){
 
 # plot setup
 lambda = seq(0, 20,,1000)
-# envelope
+
+# plot the envelope
 plot(lambda, sapply(lambda, e, x = x),col = "black", type = 'l')
-# q
+
+# add plot for q
 lines(lambda, sapply(lambda, q, x = x), col = "red")
+
+# add a legend
 legend(c("e(x)","q(x)"), col = c(1, 2), lty = c(1,1) ,x = "topright")
 ```
 
-One nice thing to note about the chosen envelope is that the prior is proportional to $e$. Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ fro the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
+One nice thing to note about the chosen envelope is that the prior is proportional to $e$. Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ from the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
 
 ```{r}
 set.seed(100)
@@ -206,7 +210,7 @@ set.seed(100)
 M = 100
 
 # specify max number of iterations in case alpha is low (can increase later if needed)
-maxit = 10^4
+maxit = M*10^4
 
 # specify vector to hold samples
 posterior_lambda = rep(0, M)
@@ -241,8 +245,6 @@ while(i <= M & index < maxit){
 print(M/index)
 ```
 
-
-
 Although not terribly efficient with an acceptance rate of about 26%, it is relatively easy to implement.
 
 Lets make a histogram of the samples from the posterior:
@@ -262,7 +264,7 @@ So, to summarize we have the following advantages and disadvantages of Rejection
     *  Many candidate draws may be needed to obtain a sample of size $M$, depends on choice of $e$ 
     *  As the dimension of the integral groups, the above problem gets worse (acceptance rate is lower)
     
-Regarding the last point above, it becomes harder in general to accept multivariate candidate draws in higher dimensions.  One way to think about this is to envision a multivariate version of the prior example where we  samples from the posterior of a function poisson-lognormal mixture.  The envelope function here would be defined similarly, except we would maximize over a multivariate space in the likelihood function rather than a univariate one, and fix the mean of the likelihood to this MLE.  Ideally, each candidate draw, say $\boldsymbol{X}_i$ from the multivariate prior $g$ in this case would be close to the MLE, implying that $f(\boldsymbol{X}_i)$ is close to $e(\boldsymbol{X}_i)$, leading to likely acceptance of this sample.  As we increase the dimension to say $d = 10$, the probability that a drawn vector will be close to the MLE in every dimension becomes harder and harder. 
+Regarding the last point above, it becomes harder in general to accept multivariate candidate draws in higher dimensions.  One way to think about this is to envision a multivariate version of the prior example.  The envelope function would be defined similarly, except that it would be multivariate, and that we would maximize over a multivariate space in the new likelihood function rather than a univariate one.  We would then fix the mean of the likelihood to this MLE.  Ideally, each candidate draw, say $\boldsymbol{X}_i$ from the multivariate prior $g$ in this case would be close to the MLE, implying that $f(\boldsymbol{X}_i)$ is close to $e(\boldsymbol{X}_i)$, leading to likely acceptance of this sample.  As we increase the dimension to say $d = 10$, the probability that a drawn vector will be close to the MLE in every dimension becomes harder and harder. 
 
 In higher dimensional settings we will see that the MCMC approaches discussed in the second half of this lecture are more efficient relative to Rejection Sampling.  
 
@@ -289,18 +291,17 @@ Then, we can carry out the M step using standard optimization routines.  For $\b
 First, lets set up the rejection sampler:
 
 ```{r}
-# function for Rejection Sampling, utilized in E-step of MCEM
+## function for Rejection Sampling, utilized in E-step of MCEM
+  # yi is a 5 x 1 vector containing the observations for sample i
+  # M is the total number of iid samples desired from the posterior
+  # maxit is the max number of iterations (to prevent runaway looping)
+  # betat is  the estimate for beta at EM iteration t
+  # s2gammat is the estimate for s2gamma at EM iteration t
+## Returns list object with samples and acceptance rate
+
 rejection.sample.gamma.posterior = function(yi, M, maxit, betat, s2gammat, trace = 0 ){
   
-  ## yi is a 5 x 1 vector containing the observations for sample i
-  ## M is the total number of iid samples desired from the posterior
-  ## maxit is the max number of iterations (to prevent runaway looping)
-  ## betat is  the estimate for beta at EM iteration t
-  ## s2gammat is the estimate for s2gamma at EM iteration t
-  
-  ## Returns list object with samples and acceptance rate
-  
-  ## envelope function setup
+  ## envelope function setup, done once 
     # obtain gamma_hat for envelope function, optimizing over gammai
     # can use any optimization routine, here using IRLS holding XB fixed as an offset
     gamma_hat = glm(yi ~ 1, family = poisson(), offset = betat[1] + betat[2]*1:5)$coef
@@ -356,7 +357,7 @@ Now that we have that setup, lets now write out the setup for the EM algorithm i
 ## read in the data
 alz = read.table("alzheimers.dat", header = T)
 
-## initial parameters
+## set initial parameters
   tol = 10^-5
   maxit = 100
   iter = 0
@@ -366,12 +367,12 @@ alz = read.table("alzheimers.dat", header = T)
 ## starting values
   beta = c(1.804, 0.165)
   s2gamma =  0.000225 + .01 
-  
 
-## fix at 1000 draws from posterior per observation
-  M = 1000
+## fix at 5000 draws from posterior per observation in E-step
+  M = 5000
 
-## For M-step use only: repeat the data from same observation M times 
+## Repeat the data from same observation M times 
+## This allows for easy vectorization of the sum shown in the Q-function approximation over n and M
   # create repeat index vector
   repeat_index = NULL
   for(i in 1:22) repeat_index = c(repeat_index, rep(which(alz$subject == i), M)) 
@@ -435,8 +436,10 @@ Now that thats out of the way, lets apply EM.
   ## Begin E-step
 
     posterior.rejection.samples = list()
+    
     # looping over subjects
     for(i in 1:max(alz$subject)){
+      
       # draw M samples from the posterior for gamma_i 
       posterior.rejection.samples[[i]] = 
         rejection.sample.gamma.posterior(
@@ -451,35 +454,42 @@ Now that thats out of the way, lets apply EM.
       alz_M_aug$rejection.samples[alz_M_aug$subject == i] =
            rep(posterior.rejection.samples[[i]]$gammai, each = 5)
     
-    } 
-    ## End E-step
-    
-    ## Calculate qfunction
+    }
+      
+    ## evaluate  qfunction given drawn samples, current param estimates
     lambda_M_aug = exp(X_m_aug %*% beta + alz_M_aug$rejection.samples)
     qfunction = dpois(alz_M_aug$words, lambda = lambda_M_aug, log = T) +
                    dnorm(alz_M_aug$rejection.samples, mean = 0, sd = sqrt(s2gamma), log = T)
-    qfunction = sum(qfunction)/M # average over M
+    # average over M
+    qfunction = sum(qfunction)/M 
     
-    ## Calculate relative change in qfunction
+  ## End E-step
+    
+  ## Calculate relative change in qfunction from prior iteration
     eps  = abs(qfunction-qfunction0)/abs(qfunction0)
+    
+  ## Start M-step
+    
+    # s2gamma, MLE for sigma^2 from normal with mean 0, averaged over M
+    # closed form derived from Q function approximation
+    s2gamma = sum(alz_M_aug$rejection.samples[seq(1, nrow(alz_M_aug), by = 5)]^2)/(max(alz$subject))
+    s2gamma = s2gamma/M
+    
+    # beta, poisson glm with gammai's filled in with M posterior draws/subject
+    # averaging over M draws, so weight = 1/M for each repeated row with draw filled in
+    # posterior draws for gamma_i area are filled in as offsets in the glm
+    fit = glm(alz_M_aug$words ~ X_m_aug -1, 
+              family = poisson(), 
+              weights = rep(1/M, nrow(X_m_aug)), 
+              offset = alz_M_aug$rejection.samples,
+              # use starting value from previous step
+              start = beta
+            )
+    beta = as.vector(fit$coefficients)
   
   ## update iterator
     iter = iter + 1
     if(iter == maxit) warning("Iteration limit reached without convergence")
-    
-  ## start M-step
-    # s2gamma
-    s2gamma = sum(alz_M_aug$rejection.samples[seq(1, nrow(alz_M_aug), by = 5)]^2)/(M*max(alz$subject))
-    
-    # beta, poisson glm with gammai's filled in with M posterior draws/subject
-    # averaging over M draws, so weight = 1/M
-    # posterior draws for gamma_i area are filled in offsets
-    fit = glm(alz_M_aug$words ~ X_m_aug -1, 
-              family = poisson(), 
-              weights = rep(1/M, nrow(X_m_aug)), 
-              offset = alz_M_aug$rejection.samples
-            )
-    beta = as.vector(fit$coefficients)
     
   ## print out info to keep track
     cat(sprintf("Iter: %d Qf: %.3f s2gamma: %f beta0: %.3f beta0:%.3f eps:%f\n",iter, qfunction,s2gamma, beta[1],beta[2], eps))

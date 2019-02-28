@@ -1,0 +1,56 @@
+---
+title: "HW 8 - MCMC"
+author: "Naim Rashid"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Importance and Rejection Sampling
+
+Consider finding $\sigma^2 = E[X^2]$ when $X$ has the density that is proportional to $q(x) =\exp({−|x|^3/3})$.  Write the form of the integral pertaining to this expectation below, assuming the normalizing constant for $q(x)$ is $c$.
+
+Solution:
+
+
+## Find the estimate for $\sigma^2$ using importance sampling.  
+
+Write the expression for the integral using an importance sampling scheme, specifying your choice for the importance sampling density $g$ and reexpress the integral in terms of $X^2$, $g(x)$ and $q(x)$.  Then, write the form of the approximation of this integrand based on the importance samples drawn from $g$. Then, carry out this approximation of the expectation in the code below. 
+
+```{r}
+## Solution: write any helper functions here (q(x), etc)
+
+## End Solution
+
+# set M
+M = 10^5
+
+## Solution: place primary code evaluating the expectation here with importance sampling
+
+```
+
+## Repeat the procedure using rejection sampling. 
+
+Similar to before, write out the form of the integral and then its approximation, this time based on sampling from the target density $q(x)$.  Then, carry out this approximation of the expectation in the code below. 
+
+Hint:  We just need to show that $e$ exceeds the target density everywhere, and that the distribution $g$ that we draw samples from only differs from $e$ by a constant $\alpha$.  
+
+
+```{r}
+
+# set M
+M = 10^5
+
+## Solution: place primary code evaluating the expectation here with rejection sampling
+
+
+## End Solution
+
+
+
+```
+
+
