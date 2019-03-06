@@ -551,8 +551,7 @@ One general approach for constructing a Markov chain is the Metropolis–Hasting
 1.  Sample a candidate value $\boldsymbol{X}^{*}$ from a proposal distribution $g(\cdot | \boldsymbol{x}^{(t)})$
 2.  Compute the Metropolis–Hastings ratio $R(\boldsymbol{x}^{(t)},\boldsymbol{X}^{*})$ where
 
-$$R(\boldsymbol{u}, \boldsymbol{v}) = \frac{f(\boldsymbol{v})g(\boldsymbol{u}| \boldsymbol{v})}{f(\boldsymbol{u})g(\boldsymbol{v}| \boldsymbol{u})}.$$  This ratio is always defined because we can only generate the proposal $\boldsymbol{X}^{*} = \boldsymbol{x}^{*}$ to begin with if  $f(\boldsymbol{x}^{(0)}) > 0$ and $g( \boldsymbol{x}^{*} | \boldsymbol{x}^{(t)})>0$.
-3.  Then, we pick the new value for $\boldsymbol{X}^{(t+1)}$ such that
+$$R(\boldsymbol{u}, \boldsymbol{v}) = \frac{f(\boldsymbol{v})g(\boldsymbol{u}| \boldsymbol{v})}{f(\boldsymbol{u})g(\boldsymbol{v}| \boldsymbol{u})}.$$  This ratio is always defined because we can only generate the proposal $\boldsymbol{X}^{*} = \boldsymbol{x}^{*}$ to begin with if  $f(\boldsymbol{x}^{(0)}) > 0$ and $g( \boldsymbol{x}^{*} | \boldsymbol{x}^{(t)})>0$. Then, we pick the new value for $\boldsymbol{X}^{(t+1)}$ such that
 
 \begin{align} 
 \boldsymbol{X}^{(t+1)} &= \begin{cases}
@@ -607,9 +606,9 @@ MCMC methods are popular tools for Bayesian inference, where some data $\boldsym
 A very simple strategy is to use the prior as a proposal distribution in an independence
 chain, as this prior should cover the support of the support of the posterior. In our Metropolis–Hastings notation, $f(\boldsymbol{\theta}) = p(\boldsymbol{\theta}|\boldsymbol{y})$ and $g(\boldsymbol{\theta}^∗) = p(\boldsymbol{\theta}^∗)$. Conveniently, this means that $R(\boldsymbol{\theta}^{(t)}, \boldsymbol{\theta}^∗) = \frac{L(\boldsymbol{\theta}^*, \boldsymbol{y})}{L(\boldsymbol{\theta}^{(t)}, \boldsymbol{y})}$, where the priors $p$ cancel out with the proposal distributions $g$ in the numerator and denominator.  
 
-In other words, we propose from the prior, and the Metropolis–Hastings ratio equals the likelihood ratio. Therefore, we accept a proposal with probability 1 if the proposal improves the likelihood relative to the previous realization.  Otherwise, we accept the proposal with probability equal to the ratio if it is less than 1.  BY repeating this process a large number of times, we will reach the target distribution $f$.  By definition, the support of the prior covers the support of the target posterior, so the stationary distribution of this chain is the desired posterior.
+In other words, we propose from the prior, and the Metropolis–Hastings ratio equals the likelihood ratio. Therefore, we accept a proposal with probability 1 if the proposal improves the likelihood relative to the previous realization.  Otherwise, we accept the proposal with probability equal to the ratio if it is less than 1.  By repeating this process a large number of times, we will reach the target distribution $f$.  By definition, the support of the prior covers the support of the target posterior, so the stationary distribution of this chain is the desired posterior.
 
-Suppose we have observed data from GH Example 7.2, where observations $y_1, y_2,\ldots,y_100$ are sampled iid from the mixture distribution $$f(y | \boldsymbol{\mu}, \sigma^2) = \pi(y| \mu_1, \sigma^2) + (1-\pi)f(y| \mu_2, \sigma^2).$$ Here $\boldsymbol{\mu} = (\mu_1, \mu_2) = (7, 10)$,  $\sigma^2 = 0.52$, and $\pi = 0.7$.  We will use a MH independence sampler to construct a chain whose stationary distribution equals the posterior density of $\pi$, assuming  $\pi \sim U(0,1)$ as a non-informative prior distribution.  Therefore, we would expect the posterior mean for $\pi$ to be concentrated in the area around 0.7. 
+Suppose we have observed data from GH Example 7.2, where observations $y_1, y_2,\ldots,y_{100}$ are sampled iid from the mixture distribution $$f(y | \boldsymbol{\mu}, \sigma^2) = \pi f(y| \mu_1, \sigma^2) + (1-\pi)f(y| \mu_2, \sigma^2).$$ Here $\boldsymbol{\mu} = (\mu_1, \mu_2) = (7, 10)$,  $\sigma^2 = 0.52$, and $\pi = 0.7$.  We will use a MH independence sampler to construct a chain whose stationary distribution equals the posterior density of $\pi$, assuming  $\pi \sim U(0,1)$ as a non-informative prior distribution.  Therefore, we would expect the posterior mean for $\pi$ to be concentrated in the area around 0.7. 
 
 Let’s read in and visualize the data from GH Example 7.2 below:
 
@@ -936,34 +935,35 @@ We can see that for the MH algorithm the generation of each sample is relatively
 For MH independence samplers, the same criteria that we discussed for choosing an importance sampling distribution $g$ are also relevant for choosing proposal distributions in this context. In particular, $g$ should resemble the target distribution $f$ and cover $f$ in the tails.  In general, the efficiency of $g$ will depend on how close $g$ is to the target density $f$. $g$ must be similar to $f$ (particularly in high dimensions).  For Random walk samplers in MH, the choice of $h$ is more “black box”, and just needs to ensure that the support of the target distribution $f$ is well covered.  As a downside they will never be quite as efficient as a well-chosen independence proposal.
 
 ## Gibbs Sampling
-The Gibbs sampler was specifically developed for higher dimensional problems, where again the goal is
-to construct a Markov chain whose stationary distribution is the target distribution $f$ . The Gibbs sampler does this by sequentially sampling from univariate conditional distributions, which are often available in closed
-form. We will talk later about how to handle those situations where such conditional distributions are not available in closed form (Metropolis-within-Gibbs).
+The Gibbs sampler was specifically developed for higher dimensional problems, where again the goal is to construct a Markov chain whose stationary distribution is the target distribution $f$ . Rather than sampling from a multivariate proposal distribution, the Gibbs sampler does this by sequentially sampling from univariate conditional distributions, which are often available in closed form. We will talk later about how to handle those situations where such conditional distributions are not available in closed form (Metropolis-within-Gibbs).
 
 ### Basic Gibbs Sampler
 As defined before, $\boldsymbol{X} = (X_1,\ldots,X_p)^T$.  Also define $\boldsymbol{X}_{-i} = (X_1,\ldots,X_{i-1},,X_{i+1},\ldots,X_p)^T$, the elements of $\boldsymbol{X}$ minus the $i$th component. Suppose that the univariate conditional density of $X_i|\boldsymbol{X}_{-i}$, denoted as $f(X_i|\boldsymbol{X}_{-i})$, is easily
 sampled for $i = 1,\ldots,p$. Then, we can describe a general Gibbs sampling procedure as follows:
 
 1.  Select starting values $\boldsymbol{x}^{(0)}$, and set $t = 0$.
-2.  Generate, in turn, $X_1^{(t+1)} | \cdot  ∼ f(x_1 | x_2^{(t)},\ldots,x_p^{(t)})$, $X_2^{(t+1)} | \cdot  ∼ f(x_2 | x_1^{(t+1)},x_3^{(t)},\ldots,x_p^{(t)})$,$\ldots$,$X_2^{(t+1)} | \cdot  ∼ f(x_p | x_1^{(t+1)},\ldots,x_{p-1}^{(t+1)})$, 
-where $|\cdot$ denotes conditioning on the most recent updates to all other elements
-of $\boldsymbol{X}$.
+2.  Generate sequentially
+
+\begin{align}
+X_1^{(t+1)} &| \cdot  ∼ f(x_1 | x_2^{(t)},\ldots,x_p^{(t)}),\\
+X_2^{(t+1)} &| \cdot  ∼ f(x_2 | x_1^{(t+1)},x_3^{(t)},\ldots,x_p^{(t)}),\\
+X_p^{(t+1)} &| \cdot  ∼ f(x_p | x_1^{(t+1)},\ldots,x_{p-1}^{(t+1)}),
+\end{align}
+where $|\cdot$ denotes conditioning on the most recent updates to $\boldsymbol{X}$. 
 3. Set $t = t+1$ and go to step 2.
 
-One run through all of the components of $\boldsymbol{X}$ is called a cycle. Let’s illustrate this with an example from the book (GH Example 7.5, 7.6).
+One run through all of the components of $\boldsymbol{X}$ in step 2 is called a cycle. Let’s illustrate this with an example from the book (GH Example 7.5, 7.6).
 
 Below, we will often refer to the term $\boldsymbol{x}_{-i} = (x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)})$, representing the components of $\boldsymbol{x}$ except for $x_i$ at their current values. 
 
 ### Example:  Seal Pup Capture-Recapture
 
-The Gibbs sampler is particularly helpful for Bayesian applications when $\boldsymbol{\theta}$ is multidimensional, whereas before  $\boldsymbol{\theta}$ has some prior distribution  $p(\boldsymbol{\theta})$ and likelihood function $L(\boldsymbol{\theta}|\boldsymbol{y})$. Bayesian inference is based upon the posterior of $\boldsymbol{\theta}$, $p(\boldsymbol{\theta}|\boldsymbol{y}) = c L(\boldsymbol{\theta}|\boldsymbol{y})p(\boldsymbol{\theta})$, where $c$ is an unknown constant. The Gibbs sampler can be applied when the conditional posteriors are known and easily sampled from, and
-does not require evaluation of the constant $c$.  That is, at the $i$th step of a given Gibbs cycle, we sample from the univariate conditional posterior of $\theta_i$ given the remaining parameters and the data: $$\theta_i^{(t+1)} | (\theta_{-i}^{(t)}, \boldsymbol{y}) \sim p(\theta_i|\theta_{-i}^{(t)}, \boldsymbol{y})$$.
+The Gibbs sampler is particularly helpful for Bayesian applications when $\boldsymbol{\theta}$ is multidimensional.  In the prior example,  $\boldsymbol{\theta}$ had some prior distribution  $p(\boldsymbol{\theta})$ and likelihood function $L(\boldsymbol{\theta}|\boldsymbol{y})$ and  $\boldsymbol{\theta}$ was unidimensional. Bayesian inference is based upon the posterior of $\boldsymbol{\theta}$, $p(\boldsymbol{\theta}|\boldsymbol{y}) = c L(\boldsymbol{\theta}|\boldsymbol{y})p(\boldsymbol{\theta})$, where $c$ is an unknown constant. The Gibbs sampler can be applied when the conditional posteriors are known and easily sampled from, and does not require evaluation of the constant $c$.  That is, at the $i$th step of a given Gibbs cycle, we sample from the univariate conditional posterior of $\theta_i$ given the remaining parameters and the data: $$\theta_i^{(t+1)} | (\theta_{-i}^{(t)}, \boldsymbol{y}) \sim p(\theta_i|\theta_{-i}^{(t)}, \boldsymbol{y})$$.
 
-In this example, the goal of the study is to is to estimate the number of pups in a fur seal colony using a capture–
+We illustrate this with an example (GH 7.5).  Here, the goal of the study is to estimate the number of pups in a fur seal colony using a capture–
 recapture approach.  Seals that were tagged in a prior census are considered recaptures, and the total population size of the colony can be estimated on the basis of the history of capture and recapture data. That is, high recapture rates suggest that the true population size does not greatly exceed the total number of unique individuals ever captured.
 
-Let $N$ be the unknown fur seal population size to be estimated using $I$ census attempts,
-yielding total numbers of captures (including recaptures) equaling $\boldsymbol{c} = (c_1,\ldots , c_I)$.  The total number of unique animals captured during the study is denoted by $r$. We consider a model with separate, unknown capture probabilities for each census, $\boldsymbol{\alpha} =(\alpha_1,\ldots,\alpha_I)$. 
+Let $N$ be the unknown fur seal population size to be estimated using $I$ census attempts, yielding total numbers of captures (including recaptures) equaling $\boldsymbol{c} = (c_1,\ldots , c_I)$.  The total number of unique animals captured during the study is denoted by $r$. We also assume that population changes due to other sources (migration, births, deaths) are negligible during this period.  We consider a model with separate, unknown capture probabilities for each census, $\boldsymbol{\alpha} =(\alpha_1,\ldots,\alpha_I)$. 
 
 We can write the likelihood for this model as $$L(N,\boldsymbol{\alpha} | \boldsymbol{c},r ) = \frac{N!}{(N-r)!}\prod_{i=1}^I\alpha_i^{c_i}(1-\alpha_i)^{N-c_i}. $$  Let us use a Bayesian approach to estimate the posterior distributions of $N$ and $\boldsymbol{\alpha}$, assuming a non-informative uniform prior for $N$, $N \sim f(N) \propto 1$ and $\alpha_i \sim Beta(\theta_1, \theta_2)$.  Setting $\theta_1 = \theta_2 = 1/2$.  For $I>2$, this leads to a proper posterior distribution with the following conditionals 
 
@@ -1040,13 +1040,9 @@ As we would expect, the population size increases as the mean probability of cap
 
 
 ### Properties of the Gibbs Sampler
-Clearly the chain produced by a Gibbs sampler is a Markov chain based on the updating process, where the stationary distribution of the Gibbs sampler chain is $f$. It also follows that the limiting marginal distribution of $X_i^{(t)}$ equals
-the univariate marginalization of the target distribution along the $i$th coordinate. As with the Metropolis–Hastings algorithm, we can use realizations from the chain to estimate the expectation of any function of $\boldsymbol{X}$.
+Clearly the chain produced by a Gibbs sampler is a Markov chain based on the updating process, where the stationary distribution of the Gibbs sampler chain is $f$. Since $\boldsymbol{X}$ is multidimensional, this also implies that that the  marginal stationary distribution of $X_i^{(t)}$ is the marginal distribution of the target distribution with respect to $X_i$. As with the Metropolis–Hastings algorithm, we can use realizations from the chain to estimate the expectation of any function of $\boldsymbol{X}$.
 
-It is possible to relate the Gibbs sampler to the Metropolis–Hastings algorithm, allowing for a proposal distribution in the Metropolis–Hastings algorithm that varies over time. Then, each Gibbs cycle consists of $p$ Metropolis–Hastings steps.
-To see this, note that the ith Gibbs step in a cycle effectively proposes the candidate
-vector $\boldsymbol{X}^* = (x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},X^*,x_{i+1}^{(t)},\ldots,x_p^{(t)})$
-given the current state of the chain $(x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)})$.  Thus, the $i$th univariate Gibbs update can be viewed as a Metropolis–Hastings step drawing $\boldsymbol{X}^* | x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)} \sim g_i(\cdot|x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)})$,
+We can show that the Gibbs sampler is related to the Metropolis–Hastings algorithm with a proposal distribution that varies over $t$. Following this, we can express each Gibbs cycle in terms of $p$ Metropolis–Hastings steps. That is, the $i$th Gibbs step in a cycle  proposes the candidate vector $\boldsymbol{X}^* = (x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},X^*,x_{i+1}^{(t)},\ldots,x_p^{(t)})$ given the current state of the chain $(x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)})$.  Thus, the $i$th univariate Gibbs update can be viewed as a Metropolis–Hastings step drawing $\boldsymbol{X}^* | x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)} \sim g_i(\cdot|x_1^{(t+1)},\ldots,x_{i-1}^{(t+1)},x_{i+1}^{(t)},\ldots,x_p^{(t)})$,
 where 
 
 \begin{align}
@@ -1056,33 +1052,238 @@ f(x_i^* | \boldsymbol{x}_{-i}^{(t)}) \text{ if } \boldsymbol{X}^*_{-i} = \boldsy
 0 \text{ otherwise.}
 \end{cases}
 \end{align}
-It is easy to show that in this case the Metropolis–Hastings ratio equals 1, which means that the candidate is always accepted. 
 
-The Gibbs sampler should not be applied when the dimensionality of $\boldsymbol{X}$ changes
-(e.g., when moving between models with different numbers of parameters at each
-iteration of the Gibbs sampler). We will discuss later methods for constructing a suitable
-Markov chain with the correct stationary distribution in this case. In the following subsections we describe various strategies that have been developed to improve the performance of the general algorithm described above.
+That is, the proposal density here is exactly the conditional target density (which is known here).  It is easy to show that in this case the Metropolis–Hastings ratio equals 1, which means that the candidate is always accepted. 
+
+The Gibbs sampler should not be applied when the dimensionality of $\boldsymbol{X}$ changes (we will discuss methods for this situation in the next lecture).  Some tips regarding implementing the Gibbs sampler is given below. 
 
 ### Update Ordering
-The ordering of updates made to the components of $\boldsymbol{X}$ in the basic Gibbs sampler
-can change from one cycle to the next. This is called random scan Gibbs sampling. Randomly ordering each cycle can be effective when parameters are highly correlated. For example, a random scan Gibbs sampling approach can yield
-faster convergence rates than the deterministic update ordering given in. In practice
-without specialized knowledge for a particular model,  trying both
-deterministic and random scan Gibbs sampling when parameters are highly correlated
-from one iteration to the next may be helpful.
+The order in which one proceeds through the components of $\boldsymbol{X}$ in a Gibbs cycle can be done deterministically with a fixed order, or in a random order.  The latter is called **random scan Gibbs sampling**, which is effective when the parameters are highly correlated and can yield faster convergence rates. Alternating between deterministic and random scan Gibbs sampling when parameters are highly correlated from one cycle to the next may be helpful.
 
 ### Blocking
-Another modification to the Gibbs sampler is called blocking or grouping. In the
-Gibbs algorithm it is not necessary to treat each element of $\boldsymbol{X}$ individually. 
-Blocking is typically useful when elements of $\boldsymbol{X}$ are correlated, with the algorithm
-constructed so that more correlated elements are sampled together in one block.
-The structured Markov chain Monte Carlo method offers a systematic approach to blocking that is directly motivated by the model
-structure. This method has been shown to offer faster convergence for problems
+
+Blocking is also useful when elements of $\boldsymbol{X}$ are correlated, where the more correlated elements are sampled jointly together as one block.  That is, we update a block by sampling from a multidimensional conditional distribution pertaining to the parameters within the block.  This method has been shown to offer faster convergence for problems
 with a large number of parameters.
 
-### Metropolis-within-gibbs
-For many problems the conditional distributions for one or more elements of X are
-not available **in closed form**. In this case, a hybrid MCMC algorithm can be developed
-where at a given step in the Gibbs sampler, the Metropolis–Hastings algorithm is used
-to sample from the appropriate conditional distribution. We will talk about a specific example of this in a later lecture. 
+### Hybrid Gibbs sample/Metropolis-within-Gibbs
+In many cases we may not know the conditional distributions for one or more elements of $\boldsymbol{X}$  **in closed form**. In this case, a hybrid MCMC algorithm can be developed
+where at a given step in the Gibbs sampler, a Metropolis–Hastings algorithm is used
+to sample from the appropriate conditional distribution. We will talk about a specific example of this in a later lecture, and also the general case where we do not know any of the conditional distributions in closed form (Metropolis-within-Gibbs).  In this case we simply replace each update with a metropolis step.   
+
+## Practical Notes Regarding Implementation of MCMC Algorithms
+
+Unfortunately, MCMC methods can sometimes be quite slow to converge, requiring extremely long runs, especially if the dimensionality of $\boldsymbol{X}$ is large. Further, it is often easy to be misled when using MCMC algorithm output
+to judge whether convergence has approximately been obtained.
+
+As mentioned earlier, the reliability of the estimates built upon realizations from the constructed chain is dependent on the whether or not the chain has converged to its stationary distribution (target distribution $f$).  For example, have we run the chain long enough to allow for this, and how many burn in samples from this run should we discard?  Or, more generally, how do we evaluate whether the chain has converged to its stationary distribution?  MCMC methods can sometimes take a while to converge and therefore it may not be clear when we have approximately reached the stationary distribution.  It also may not be clear whether the starting point of the chain is highly influencing its behavior.  Other questions include 
+
+1.  Should the chain be run from several different starting values?
+2.  Has the chain sampled all of the regions in the support of $f$? 
+3.  Are the realizations of the chain approximate draws from $f$? 
+4.  How do we use the realizations from the chain to compute estimates and how to we assess their accuracy? 
+
+We cover some of these questions below and finish with some advice regarding coding MCMC algorithms. 
+
+### Ensuring Good Mixing and Convergence
+One question is  how efficient is an MCMC algorithm in providing "useful" information, where the term "efficient"" can be defined several ways.  We will focus on a definition of efficiency in terms of how soon the chain forgets its starting value, and how quickly the chain fully explores the support of $f$. Deriving from this, we may also be concerned about how far apart in a sequence observations need to be before they can be considered to be approximately independent. We can consider these qualities as **the mixing properties** of the chain. As mentioned before, we are also be worried about whether the chain has approximately reached its stationary distribution. 
+
+In the following sections we will see that the same diagnostics can be used to evaluate both mixing
+and convergence, and that because no one diagnostic is fail-safe,  we recommend that a variety of diagnostics be evaluated
+
+#### Simple Graphical Diagnostics 
+The following graphical diagnostics assume that you are running an MCMC algorithm from multiple starting points.  The first is one we have discussed earlier:  a sample path plot where one plots $t$ versus the realizations from the chain at $t$, $\boldsymbol{X}^{(t)}$. These are sometimes called trace plots or history plots.  As we have observed earlier, if a chain is exhibiting poor mixing, it will carry over the same value for many iterations. A well mixing chain will quickly move away from its starting value and the sample path vary strongly in the region in the support of $f$.
+
+Another plot is the cumulative sum (cusum) plot, assessing the convergence of an estimator
+of a one-dimensional parameter $\theta = E[h(\boldsymbol{X})]$. For a chain of length $M$, the estimator is given by $\hat{\theta}_M =(1/M) \sum_{t = D}^M h(\boldsymbol{X}^{(t)})$, after dropping the initial $D$ burn-in samples. The cusum diagnostic is a plot of $\sum_{t = D}^t (h(\boldsymbol{X}^{(t)}) - \hat{\theta}_M )$ versus $t$.  Smaller deviances from 0 indicate that the chain is mixing well. Plots that have large deviances from 0 and are smoother suggest slower mixing speeds. For a multimodal distribution where the chain is stuck in one of the modes, the cusum plot may appear
+to indicate good performance when, in fact, the chain is not performing well.
+
+We can implement a cusum plot below for estimating the posterior mean for our first example in the section above:
+
+```{r}
+par(mfrow = c(1,2))
+
+# burn-in, try two values
+burn.in.index = c(200, 7000)
+
+# start loop
+for(i in 1:length(burn.in.index)){
+  
+  # burn-in indices
+  burn.in = 1:burn.in.index[i]
+  
+  # range
+  t = 1:length(x.indep.chain.good)
+  t = t[-burn.in]
+  
+  # good chain posterior mean (on whole change)
+  hx_hat = mean(x.indep.chain.good[-burn.in])
+  
+  # good chain posterior mean (up to step t)
+  hx_hat_cumulative = cumsum(x.indep.chain.good[-burn.in])
+  hx_hat_cumulative = hx_hat_cumulative/1:length(hx_hat_cumulative)
+  
+  # cumulative sum 
+  plot(t, cumsum(hx_hat_cumulative - hx_hat), ylim = c(-1, 10), 
+        ylab = "cusum", xlab = "t after burn-in", main = sprintf("Drop 1st %d samples", burn.in.index[i]))
+  abline(h = 0)
+}
+```
+
+Even for the chain from the good mixing example it looks like we should run the chain for longer and increase the burn-in, as the plot doesn’t bounce around 0 after removing just the 1st 200 samples.  
+
+This is even worst for the bad mixing chain:
+
+```{r}
+par(mfrow = c(1,2))
+
+# burn-in, try two values
+burn.in.index = c(200, 7000)
+
+# start loop
+for(i in 1:length(burn.in.index)){
+  
+  # burn-in indices
+  burn.in = 1:burn.in.index[i]
+  
+  # range
+  t = 1:length(x.indep.chain.bad)
+  t = t[-burn.in]
+  
+  # good chain posterior mean (on whole change)
+  hx_hat = mean(x.indep.chain.bad[-burn.in])
+  
+  # good chain posterior mean (up to step t)
+  hx_hat_cumulative = cumsum(x.indep.chain.bad[-burn.in])
+  hx_hat_cumulative = hx_hat_cumulative/1:length(hx_hat_cumulative)
+  
+  # cumulative sum 
+  plot(t, cumsum(hx_hat_cumulative - hx_hat), 
+        ylab = "cusum", xlab = "t after burn-in", main = sprintf("Drop 1st %d samples", burn.in.index[i]))
+  abline(h = 0)
+}
+```
+
+An autocorrelation plot summarizes the correlation in the sequence of $\boldsymbol{X}^{(t)}$ at
+different iteration lags. The autocorrelation at lag $i$ is the correlation between iterates
+that are $i$ iterations apart. A chain that has poor mixing properties will exhibit
+slow decay of the autocorrelation as the lag between iterations increases. For problems
+with more than one parameter it may also be of use to consider cross-correlations
+between parameters that might be related, since high cross-correlations may also
+indicate poor mixing of the chain.  If one were interested in selecting approximately independent samples, we could use this plot to determine approximately how many iterations apart we should select a sample.  We can do this with the code below:
+
+```{r}
+
+# pick a burn in amount
+burn.in.index = 200
+
+# burn-in indices
+burn.in = 1:burn.in.index
+
+# plot
+plot(acf(x.indep.chain.good[-burn.in]), main = "good chain")$acf
+
+
+```
+
+Now lets check out a bad chain
+
+```{r}
+plot(acf(x.indep.chain.bad[-burn.in]), main = "bad chain")
+```
+
+You can see at the autocorrelation is much higher at all lags for the bad chain, whereas in the good chain the correlation drops below 0.05 at about lag 15.  
+
+#### Burn-in and Run Length 
+
+A commonly used approach for the determination of an appropriate burn-in
+period and run length is based on a statistic motivated by an analysis of variance (ANOVA): The burn-in period or
+MCMC run-length should be increased if the between-chain variance is much larger than the within-chain variance, assuming you are running $J$ chains. The variances are estimated based on the results of $J$ runs of the MCMC algorithm to create separate, equal-length chains $(J \geq 2)$ with starting values that are spread across the support of $f$.  The Gelman-Rubin statistic is one such approach to do this and it relatively easy to implement (GH Section 7.3.1.2).  If the chains are at the stationary distribution $f$, then both the within and between chain variance should be similar.  
+
+#### Choice of Proposal 
+For an MH  independence chain, we mentioned previous that the  proposal distribution $g$ should approximate the
+target distribution $f$ very well, however more importantly, the tail behavior of $g$
+is more important than its similarly to $f$ over regions of high density. That is, if
+$f/g$ is bounded, then chain convergence is much faster overall, implying that it would be better to use a proposal distribution that is similar but somewhat more spread out than $f$.
+
+In practice one can manually set the spread of the proposal distribution. For example, first we start a chain, then monitor the acceptance rate of the algorithm.  We then adjust the spread of the proposal distribution based upon the acceptance rate, making it wider or narrower to get in to the optimal range. Then, we restart the chain after we determine the optimal spread, using the appropriately scaled proposal distribution. For MH using  with normal
+$f$ and $g$, an acceptance rate of
+between 25 and 50$\%$ has been suggested, with the best choice being about 44% for
+one-dimensional problems and decreasing to about 23.4$\%$ for higher-dimensional
+problems. 
+
+Methods for adaptive Markov chain Monte Carlo discussed in the next lecture tune the proposal
+distribution while the chain is running. These methods
+have the advantage that they are automatic and, in some implementations, do not
+require the user perform the manual tuning described above.
+
+#### Comparing Chains: Effective Sample Size 
+If MCMC realizations are highly correlated, then the information gained from each iteration of the MCMC
+algorithm will be much less than suggested by the run length. The reduced information
+is equivalent to that contained in a smaller iid sample whose size is called the effective
+sample size. The difference between the total number of samples and the effective
+sample size indicates the efficiency lost when correlated samples from the Markov
+chain have been used to estimate a quantity of interest instead of an independent and
+identically distributed sample with the same variance as the observed sample.
+To estimate the effective sample size, the first step is to compute the estimated
+autocorrelation time, a summary measure of the autocorrelation between realizations
+and their rate of decay. The autocorrelation time is given by $\tau = 1+ 2\sum_{k =1}^{\infty}\rho(k)$ where $\rho(k)$ is the autocorrelation at lag $k$ in the chain. A common approach is to truncate the summation when the observed autocorrelation at lag $k$ $\hat{\rho}(k) < 0.1$ rather than summing to $\infty$ . The effective sample size for an MCMC run with $L$ iterations
+after burn-in can be estimated using $L/\hat{\rho}(k)$ .
+
+Effective sample size can be used to compare the efficiency of competing
+MCMC samplers for a given problem. For a fixed number of iterations, an MCMC
+algorithm with a larger effective sample size is likely to converge more quickly. 
+
+#### Number of Chains 
+One of the most difficult problems to diagnose
+is whether or not the chain has become stuck in one or more modes of the target
+distribution. In this case, all convergence diagnostics may indicate that the chain has
+converged, though the chain does not fully represent the target distribution. A partial
+solution to this problem is to run multiple chains from diverse starting values and
+then compare the within- and between-chain behavior as described earlier. 
+
+The motivation for trying multiple runs is the hope that all interesting
+features (e.g., modes) of the target distribution will be explored by at least one
+chain, and that the failure of individual chains to find such features or to wash out
+the influence of their starting values can be detected, in which case chains must be
+lengthened or the problem reparametrized to encourage better mixing.
+
+#### Calculating the Monte Carlo Variance of the estimator
+
+The Monte Carlo standard error of an estimator is also of interest.  This was also discussed earlier in a prior lecture regarding monte-carlo integration.  One can think of this as a reflection of the variability in the estimator if the MCMC algorithm were to be run over and over again (clearly this is dependent on chain length $M$).  
+
+Similar to before, a naive estimate of the standard error for an estimator
+like  is the sample standard deviation of the $M$ realizations after burn-in divided
+by $\sqrt{M}$
+
+However, in contrast to before, the MCMC realizations correlated and are not independent draws, leading to an
+underestimate of the MCSE.  We could get around this problem by using a process called "thinning", where we take every $k$th iterate after burn-in. The choice of $k$ can in motivated by an autocorrelation plot of the chain.  
+
+A more efficient approach is simply using the "batch
+method", where we divide up the chain in into sequential groups ("batches") of size  $b$.  We then compute the mean of each batch, and then the standard deviation of these means divided by the square root of the number of
+batches is out estimate of the MCSE. A recommended batch size is $b = round(M^{1/a})$, where $a = 2$ or 3 rounded to the nearest integer.   It has been suggested that, after determining
+that the chain has good mixing and convergence behavior, you should run the
+chain until the Monte Carlo simulation error is less than 5% of the standard deviation
+for all parameters of interest.
+
+### Practical Implementation Advice
+We make the following general suggestions regarding practical implementation below. 
+
+First, create multiple trial runs of the chain from diverse starting values.
+
+Next, carry out a suite of diagnostic procedures like those discussed above to ensure
+that the chain appears to be well mixing and has approximately converged to the
+stationary distribution. 
+
+Lastly, restart the chain for a final long run using a new seed to
+initiate the sampling. A popular, though conservative, choice for burn-in is to throw
+out the first half of the MCMC iterations as the burn-in. When each MCMC iteration
+is computationally expensive, users typically select much shorter burn-in lengths that
+conserve more iterations for inference.
+
+For easier implementation, various software packages have been developed to automate the development of MCMC algorithms
+and the related diagnostics. The most comprehensive software to date is the BUGS
+(Bayesian inference Using Gibbs Sampling) software family with developments for
+several platforms [610]. A popular application mode is to use BUGS within the R statistical
+package. Packages in R like CODA and BOA allow users to
+easily construct the relevant convergence diagnostics.
 
