@@ -420,7 +420,7 @@ Now lets start the EM algorithm
 ```{r}
 ## set initial parameters
   tol = 10^-5
-  maxit = 20
+  maxit = 2
   iter = 0
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
@@ -431,7 +431,7 @@ Now lets start the EM algorithm
   Sigma_gamma =  diag(rep(1, 5))
 
 ## fix chain length at 1000 in E-step
-M = 1000
+M = 10
 
 start = Sys.time()
 while(eps > tol & iter < maxit){
@@ -504,7 +504,7 @@ h.sim = function(){
   rnorm(1)
 }
 
-# new MH ratio function (proposal density cancels out due to symmetry)
+# new MH ratio function (proposal density cancels out due to symmetr\boldsymbol{y})
 R = function(xt,x, f, yi, Xi, betat, Sigma_gammat){
   # log numerator - log denominator
   logR = f(x, yi, Xi, betat, Sigma_gammat) - f(xt,yi, Xi, betat, Sigma_gammat)
@@ -966,9 +966,139 @@ are updated individually. Another variation is to carry out the adaptation in ba
 every iteration. With the batching strategy, the adaptation (step 3 in the adaptive
 Metropolis algorithm) is only implemented at predetermined times.
 
+# Reversible Jump MCMC
+
+So far we have discussed approaches to construct Markov chains where for sufficient large $t$ the realizations from the change are approximately distributed the target distribution $f$.  In each of these cases we assumed that the dimensions of $\boldsymbol{X}^{(t)}$ was fixed for each $t$.  In some situations, it may be of interest to allow for changes in the dimension of $\boldsymbol{X}^{(t)}$ from one iteration to the next.  This would be of interest in situations such as Bayesian model selection problems, where one is considering many possible candidate models, each with parameter spaces of different dimensions. But, how does one implement such an approach?
+
+Reversible Jump MCMC (RJMCMC), introduced by Peter Green in 1995, is one such method to do so, allowing for "transdimensional Markov chain Monte Carlo simulation". Consider constructing a Markov chain to explore a space of candidate models, each of which might be used to fit observed data $\boldsymbol{y}$. Let $\mathcal{M}_1,\ldots,\mathcal{M}_k,$ denote the set of countable models being evaluated, where  $\boldsymbol{\theta}_m$ denotes the parameters in the $m$th model and  $p_m$ denote the number of parameters in the $m$th model. In such a settings we can think of our set of parameters as  $\boldsymbol{X} = (M, \boldsymbol{\theta}_M)$ which indicate the model and the set of parameters that pertain to that model. In the prior Bayesian examples that we have considered, $M$ was essentially fixed and not considered, and our inference mainly concerned just $\boldsymbol{\theta}_M$.  
+
+As with our other Bayesian examples, we can specify prior distributions on each of these parameters, and then seek to simulate from their posterior distribution using MCMC method.  Here, the realization at step $t$ of the chain is now $\boldsymbol{X}^{(t)} = (M^{(t)}, \boldsymbol{\theta}^{(t)}_{M^{(t)}})$, where  $\boldsymbol{\theta}^{(t)}_{M^{(t)}}$,  the parameters drawn for the model indexed $by M^{(t)}$, has dimension $p_M^{(t)}$. 
+
+The target density here is now the **joint** posterior density $$f(m, \boldsymbol{\theta}_m|\boldsymbol{y}) \propto f(\boldsymbol{y}|m,\boldsymbol{\theta}_m)f(\boldsymbol{\theta}_m|m) f(m)$$ where $f(\boldsymbol{y}|m, \boldsymbol{\theta}_m)$ is the density of the observed data conditional on the $m$th model and the model parameters for the $m$th model, $f(\boldsymbol{\theta}_m|m)$ denotes the prior density for the parameters in the $m$th model, and $f(m)$ denotes the prior density of the mth model. The prior weight f(m) for the $m$th model may be assigned such that $\sum_{m = 1}^{K} f(m) = 1$.
+
+We can also factor the posterior into the following form, suggesting two avenues of inference that we can pursue in this setting  $$f(m, \boldsymbol{\theta}_m|\boldsymbol{y}) = f(m|\boldsymbol{y}) f(\boldsymbol{\theta}_m|m, \boldsymbol{y}).$$
+
+Here, $f(m|\boldsymbol{y})$ is the posterior probability for the $m$th model given the data, relative to all models being considered. Also, $f(\boldsymbol{\theta}_m|m, \boldsymbol{y})$ is the posterior pertaining to the parameters in the $m$th model given the data.
+
+What is unique about  RJMCMC is that is allows for the construction of a markov chain for $\boldsymbol{X}$ that allows the chain to jump between models, each with their own parameter spaces and dimensions. This fact is that makes this approach fundamentally different from the methods that we have described already.  However, like the prior approaches, RJMCMC also starts with a proposed step from the
+current value $\boldsymbol{x}^{(t)}$ to $\boldsymbol{X}^{*}$, and the decides whether to accept the proposal vs carry over the prior value.  If the chain is constructed such that $$f(m_1, \boldsymbol{\theta}_{m_1}|\boldsymbol{y})a(m_2, \boldsymbol{\theta}_{m_2}|m_1, \boldsymbol{\theta}_{m_1} , \boldsymbol{y}) = f(m_2, \boldsymbol{\theta}_{m_2}|\boldsymbol{y})a(m_1, \boldsymbol{\theta}_{m_1}|m_2, \boldsymbol{\theta}_{m_2} , \boldsymbol{y})$$
+
+for all $m_1$ and $m_2$, where $a(\boldsymbol{x}_2|\boldsymbol{x}_1,\boldsymbol{Y})$ denotes the density for the chain moving to state $\boldsymbol{x}_2 = (m_2, \boldsymbol{\theta}_{m_2} )$ at time $t + 1$, given that it was in state $\boldsymbol{x}_1 = (m_1, \boldsymbol{\theta}_{m_1})$ at time $t$. Chains that meet this detailed balance condition are termed **reversible** because the direction of time does not matter in the dynamics of the chain.  That is, we can jump back and forth between models in a manner that is not dependent on whats going on currently within the chain (the current model etc). 
+
+But how do we generate proposals in situations where the dimensions between iterations $t$ and $t + 1$ are different?  We do this through the use of *auxiliary* random variables at times with dimensions chosen so that the augmented variables (consisting of the original $\boldsymbol{X}$ and new auxiliary variables) now have equal dimensions at $t$ and $t + 1$.  In doing so, the time-reversibility condition descibed is enabled to be met by using a suitable acceptance probability, and thereby ensuring that the Markov chain converges to the joint posterior for $\boldsymbol{X}$. We can think of these auxiliary variables as extra variables that we invent to facilitate the transitions between parameter spaces of different dimensions in the change. 
+
+To illustrate this, let us consider how one might propose parameters $\boldsymbol{\theta}_2$ corresponding to a proposed move from a model $\mathcal{M}_1$ with $p_1$ parameters to a model $\mathcal{M}_2$ with $p_2$ parameters when $p_2 > p_1$. A simple approach is to generate $\boldsymbol{\theta}_2$ from $\boldsymbol{\theta}_1$ and an auxillary random variable, say
+$\boldsymbol{U}_1$, which we assume to be an independent random variable generated separately. We assume that we can directly write $\boldsymbol{\theta}_2$ as a function of $\boldsymbol{\theta}_1$ and $\boldsymbol{U}_1$ through some invertible deterministic function $q_{1,2}$.  We will see why this is important in a bit. 
+
+Given these pieces, we can now write $\boldsymbol{\theta}_2 = q_{1,2}(\boldsymbol{\theta}_1,\boldsymbol{U}_1)$. Given that $q_{1,2}$ is invertible, we can propose
+parameters for the reverse move via the inverse of this function, where $(\boldsymbol{\theta}_1,\boldsymbol{U}_1) = q^{−1}_{1,2}(\boldsymbol{\theta}_2) = q_{2,1}(\boldsymbol{\theta}_2)$. As with $q_{1,2}$, here $q_{2,1}$ is also an entirely deterministic way to
+propose $\boldsymbol{\theta}_1$ from  $\boldsymbol{\theta}_2$.  So, regardless of the direction, and through the introduction of $\boldsymbol{U}_1$ and choice of $q_{1,2}$, we can propose $\boldsymbol{\theta}_2$ given $\boldsymbol{\theta}_1$ and vice versa.  This is despite the fact that the dimensions of $\boldsymbol{\theta}_1$ and $\boldsymbol{\theta}_1$ are unequal.  
+ 
+Now lets generalize this idea to generate an augmented candidate parameter vector ($\boldsymbol{\theta}^∗_{M^∗}$ and auxiliary variables $\boldsymbol{U}^∗$), given a proposed move to $M^∗$ from the current model, $m^{(t)}$. We can apply an invertible deterministic function $q_{t,∗}$ to $\boldsymbol{\theta}^{(t)}$ and some auxiliary random variables $\boldsymbol{U}$ to generate the proposal  $$(\boldsymbol{\theta}^∗_{M^*} ,\boldsymbol{U}^∗) = q_{t,∗}(\boldsymbol{\theta}^{(t)},\boldsymbol{U}),$$ where $\boldsymbol{U}$ is generated from proposal density $h(\cdot|m^{(t)}, \boldsymbol{\theta}^{(t)},m^∗)$. The auxiliary variables $\boldsymbol{U}^∗$ and $\boldsymbol{U}$ are used so that $q_{t,∗}$ maintains dimensionality during the Markov chain transition at time $t$.  These variables are then regenerated at each iteration of the chain.  
+
+When $p_{M^∗} = p_{M^{(t)}}$ and there is no change in dimension, the approach above allows for the adaption of proposal strategies that we had discussed earlier. For example, a random walk could be obtained using $(\boldsymbol{\theta}^∗_{M^∗},\boldsymbol{U}^∗) = (\boldsymbol{\theta}^{(t)} + \boldsymbol{U},\boldsymbol{U})$ with $\boldsymbol{U} \sim N(0, \sigma^2\boldsymbol{I})$ having dimension $p_M^{(t)}$ . Alternatively, a Metropolis–Hastings chain can be constructed by using $\boldsymbol{\theta}^∗_{M^∗} =q_{t,∗}(\boldsymbol{\theta})$ when $p_\boldsymbol{U} = p_{M^*}$, for an appropriate functional form of $q_{t,∗}$ and suitable $\boldsymbol{U}$. No $\boldsymbol{U^*}$ would be required to equalize dimensions here.
+
+When $p_{M^{(t)}} < p_{M^∗}$ , the $\boldsymbol{U}$ can be used to expand parameter dimensionality in order to match dimensions between iterations. When $p_{M^{(t)}} > p_{M^∗}$ , both $\boldsymbol{U}$ and $\boldsymbol{U}^*$ may be unnecessary: for example, the simplest dimension reduction is deterministically to reassign some elements of $\boldsymbol{\theta}^{(t)}$ to $\boldsymbol{U}^*$ and retain the rest for $\boldsymbol{\theta}^∗_{M^∗}$. We will give an example of this later. In all these cases, the reverse proposal is again obtained from the inverse of $q_{t,∗}$.
+
+Assume that the chain is currently visiting model $m^{(t)}$, so the chain is in the state $\boldsymbol{x}^{(t)} = (m^{(t)}, \boldsymbol{\theta}^{(t)}_{m^{(t)}})$.  The next iteration of the RJMCMC algorithm can be summarized as follows:
+
+1. Sample a candidate model $M^*|M^{(t)}$ from a proposal density with conditional
+density $g(·|m^{(t)})$. The candidate model requires parameters $\boldsymbol{\theta}_{M^∗}$ of dimension
+ $p_{M^∗}$.
+2. Given $M^∗ = m^∗$, generate an augmenting variable $\boldsymbol{U}|m^{(t)}, \boldsymbol{\theta}^{(t)},m^∗)$ from a proposal distribution with density $h(\cdot|m^{(t)}, \boldsymbol{\theta}^{(t)},m^∗)$. Let $$(\boldsymbol{\theta}^∗_{m^∗} ,\boldsymbol{U}^∗) = q_{t,∗}(\boldsymbol{\theta}^{(t)}_{m^{(t)}} ,\boldsymbol{U}),$$
+where $q_{t,∗}$ is an invertible mapping from $(\boldsymbol{\theta}^{(t)}_{m^{(t)}} ,\boldsymbol{U})$ to 
+to $(\boldsymbol{\theta}^∗_{m^∗} ,\boldsymbol{U}^∗)$ and the auxiliary variables have dimensions satisfying $p_{m^{(t)}} + p_{\boldsymbol{U}} = p_{m^{*}} + p_{\boldsymbol{U*}}$.
+
+3. For a proposed model, $M^∗ = m^∗$, and the corresponding proposed parameter values $\boldsymbol{\theta}^∗_{m^∗}$ , compute the Metropolis–Hastings ratio given by
+
+$$\frac{f(m^*, \boldsymbol{\theta}^{*}_{m*}|\boldsymbol{y})g(m^{(t)}) | m^*)h(\boldsymbol{u}^*|m^∗, \boldsymbol{\theta}^{*}_{m^*},m^{(t)})}{f(m^{(t)}, \boldsymbol{\theta}^{(t)}_{m^{(t)}}|\boldsymbol{y})g(m^* | m^{(t)})h(\boldsymbol{u}|m^{(t)}, \boldsymbol{\theta}^{(t)}_{m^{(t)}},m^{*})}|\boldsymbol{J}(t)| $$
+
+where $\boldsymbol{J(t)}$ is the Jacobian matrix where $\boldsymbol{J}(t) =\frac{d\boldsymbol{q}_{t,∗}f(\boldsymbol{\theta}, \boldsymbol{u})}{d(\boldsymbol{\theta}, \boldsymbol{u})}\vert_{(\boldsymbol{\theta}, \boldsymbol{u})  = (\boldsymbol{\theta}^{(t)}_{m^{(t)}}, \boldsymbol{U})}$.
+
+Then, we accept the move to the model $M^∗$ with probability equal to the minimum of 1 and the ratio above. If the proposal is accepted, set $X^{(t+1)} = (M^*, \boldsymbol{\theta}^*_{M^*})$. Otherwise, reject the candidate draw and set $X^{(t+1)} = (M^*, \boldsymbol{\theta}^*_{M^*})= \boldsymbol{x}^{(t)}$. 
+
+The last term in  is the absolute value of the determinant of the Jacobian matrix arising from the change of variables from $(\boldsymbol{\theta}^{(t)}_{m^{(t)}},\boldsymbol{U})$ to $(\boldsymbol{\theta}^{*}_{m^{*}},\boldsymbol{U^*})$. If $p_M^{(t)} = p_{M^*}$ then this ratio simplifies to the standard Metropolis–Hastings ratio. 
+
+4. Discard $\boldsymbol{U}$ and $\boldsymbol{U^*}$. Return to step 1.
 
 
+## Example
 
+We introduce an example of a bayesian model selection problem where we would like to determine whether a Poisson or Negative binomial distribution is more suitable for our data pertaining to a set of counts. That is, we would like to assess whether there is sufficient overdispersion in the counts to merit the use of a negative binomial distribution. Here, we have data pertaining to 1,040 English Premiership soccer matches for the seasons 2005/06 to 2007/08, where for each match we recorded the number of goals that were scored per match.  For illustrations sake we weill assume that we can treat these counts as if they were obtained as a simple random sample.
 
+Lets plot the data 
 
+```{r,echo=F}
+library(MASS)
+n = 1040
+y = rnegbin(n = n,mu = 2.5,theta = 1/0.02)
+```
 
+```{r}
+hist(y, right = F)
+abline(v = mean(y))
+```
+
+Looks like the mean is around 2.5, but visually it is unclear whether there is significant overdispersion. Lets call model $\mathcal{M}_1$ in this situation the poisson model, where $y_i \sim$ Pois($\lambda$) with likelihood $L(\boldsymbol{y} | \lambda) = \prod_{i = 1}^n \frac{\lambda^{y_i}e^{-\lambda}}{y_i!}$, and model $\mathcal{M}_2$ the negative binomial model, where $y_i \sim$ NB($\lambda$,$\phi$) with likelihood $L(\boldsymbol{y} | \lambda) = \prod_{i = 1}^n \frac{\Gamma(1/\phi +y_i)}{y_i!\Gamma(1/\phi )}\left(\frac{\lambda}{\phi + \lambda}\right)^{y_i}(1+\phi\lambda)^{-1/\phi}$.
+
+Using the notation introduced earlier, we can write $\theta_1 = \lambda$ and $\boldsymbol{\theta}_2 = (\lambda,\phi)$. We can assume that the priors on each model $f(m_1) = f(m_2) = 0.5$, where we assume that they are equally likely apriori. For $\lambda$ in both models we will assume a Gamma($\alpha$,$\beta$) prior where $\alpha = 25$ and $\beta= 10$.  We assume a similar prior for $\phi$ (independent from $\lambda$), except we assume that $\alpha = 1$ and $\beta= 10$.  
+
+Clearly the dimensions of the two models are different.  In order to propose transitions between the two models, we need to introduce an auxiliary variable and deterministic invertible function $q$ to facilitate this.  If the chain is currently in state $(1, \theta_1)$ and the model $\mathcal{M}_2$ is proposed, then a random variable $U \sim h(u| 1, \theta_1, 2)$ is generated from some proposal density $h$.  Let us assume here that $U \sim N(0| \sigma^2)$, and therefore $h$ is the normal density with variance $\sigma^2$ in this example.   Then, we can let $\boldsymbol{\theta}_2 = q_{1,2}(\theta_1,U) = (\lambda,\mu e^{U})$ for some fixed $\mu$.  In other words, we assume that $\lambda$ is maintained between models, but the new parameter
+$\phi$ is a log-normal random variable, multiplicatively centred around $\mu$.  
+
+Then,  the jacobian for this move is relatively easy to calculate, it is simply $\mu e^{U}$.  Then, the acceptance probability is simply $\min(1,R)$, where $$R = \frac{p(2, \boldsymbol{\theta}_2 | \boldsymbol{y})}{p(1, {\theta}_1 |\boldsymbol{y})h(u|1,\theta_1, 2)}\mu e^{U}.$$
+
+For the reverse move from $\mathcal{M}_2$ to $\mathcal{M}_1$, we can invert $q_{1,2}$ such that if the chain is in state $(1, \boldsymbol{\theta}_2)$ and $\mathcal{M}_1$ is proposed, $q_{2,1}(\lambda, \phi) = (\lambda,\log(\phi/\mu))$.  Then the acceptance probability is  $\min(1,R)$, where $$R = \frac{p(1, \boldsymbol{\theta}_1 | \boldsymbol{y})h(\log(\phi/\mu)|1,\theta_1, 2)}{p(1, {\theta}_1 |\boldsymbol{y})}\frac{1}{\mu e^{U}}$$ which is essentially the reciprocal of the first ratio. 
+
+For our proposal, $\mu$ and $\sigma^2$ critical, as poorly chosen values may lead to slow convergence. Here $\mu$ can be chosen naturally: by considering $Var(Y)/E(Y )$ as a crude estimate of the overdispersion, we get $\mu = 0.015$  plugging in the mean of $\boldsymbol{y}$ for the expectation and the sample variance for the variance. The choice of $\sigma$ is less sensitive here, and we fix it at 1.5.
+
+Lets use the rjmcmc package to facilitate the sampling [here](https://mran.microsoft.com/snapshot/2017-06-07/web/packages/rjmcmc/vignettes/rjmcmcVignette.pdf):
+
+```{r,eval=F}
+# q
+q12 = function(theta1){ c(theta1[1], mu*exp(theta1[2])) }
+q21 = function(theta2){ c(theta2[1], log(theta2[2]/mu)) }
+
+# poisson priors
+p.prior1 = function(theta1){dgamma(theta1[1], lamprior[1], lamprior[2], log=T) + dnorm(theta1[2], 0, sigma, log=T)}
+
+# NB priors
+p.prior2 = function(theta2){dgamma(theta2[1], lamprior[1], lamprior[2], log=T)+ dgamma(theta2[2], phiprior[1], phiprior[2], log=T)}
+
+# function
+n = length(y)
+mu=0.015; sigma=1.5
+lamprior = c(25,10); phiprior = c(1,10) # hyperparameters for lambda & phi
+goals_post = rjmcmcpost(post.draw = list(draw1, draw2), g = list(g1, q2),
+                        ginv = list(q21, q12), likelihood = list(L1, L2),
+                        param.prior = list(p.prior1, p.prior2),
+                        model.prior = c(0.5, 0.5), chainlength = 10000)
+```
+
+And running this, we get the following posterior model probabability of the poisson model is 0.71, whereas for the NB model it is 0.29, suggesting that the former is a better fit to the data. The estimated posterior distributions are plotted below:
+
+```{r}
+hist(y, right = F, freq = F)
+x = 0:10
+lines(x+.5, dpois(x,lambda = 2.552), col = "red")
+lines(x+.5, dnbinom(x,mu = 2.552, size = 1/0.02), col = "blue")
+```
+
+The NB fit is very similar to the poisson fit. 
+
+# Project instruction/notes
+
+Sources for data:
+
+https://archive.ics.uci.edu/ml/index.php
+https://ai.google/tools/datasets/ 
+https://www.kaggle.com/datasets
+
+Each group of 4 should 
+
+1.  Identifying a question in their selected dataset
+2.  Identify a model to evaluate the question 
+3.  Code up the model from scratch 
+4.  Implement the model in an R package that uses knowledge from Module 1 
+5.  Summarize results in R markdown document 
+6.  Present the results in the last week of class 
