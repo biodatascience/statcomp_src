@@ -1,0 +1,127 @@
+---
+title: "HW 10 - advMCMC"
+author: "Naim Rashid"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# MCMC extension of HW 6
+
+We would like to simulate from the posterior distribution of parameter $\boldsymbol{\theta} = (\pi,\lambda)$ pertaining to the fishing dataset and zero-inflated poisson model described in HW 6, assuming $\pi$ has a Unif(0,1) prior, and $\lambda$ has a Gamma(2,2) prior.  The joint posterior can be written as $f(\pi,\lambda | \boldsymbol{y}) \propto f(\boldsymbol{y} | \pi, \lambda)f(\pi,\lambda) = f(\boldsymbol{y} | \pi, \lambda)f(\pi)f(\lambda)$, where $f(\boldsymbol{y} | \pi,\lambda)$ is the likelihood give in HW 6 except with $\lambda$ unknown, $f(\pi)$ is the specified prior for $\pi$, and $f(\lambda)$ is the specified prior for $\lambda$.  
+
+Implement a MH random walk procedure to sample from the joint posterior of $\boldsymbol{\theta} = (\pi,\lambda)$.  You do not necessarily need to do a change of variable for $\pi$ or $\lambda$, however for proposals that exceed the boundaries of the parameter space of either parameter, the posterior for the propsal should be set = 0 (MH ratio = 0).  You may want to consider a narrower random walk variance in such as setting as well. 
+
+You may use the following code below to get started, using $M = 20000$, random seed (1), starting values ($\pi^{(0)} = 0.3$, $\lambda = 3$), and burn-in period (2000 iterations) for all implementations of the algorithm below. Report the posterior means for $\pi$ and $\lambda$, as well as diagnostics such as trace plots and autocorrelation plots.
+
+```{r}
+### HELPER FUNCTIONS
+
+# log prior for lambda, fill in 
+lplambda = function(lambda){
+  
+  ## start solution
+
+  ## end solution
+  
+}
+
+# log prior for pi, fill in 
+lppi = function(pi){
+  
+  ## start solution
+
+  ## end solution  
+  
+}
+
+# bivariate RW proposal function
+# hint: bivariate proposal same as generating two indep proposals here
+h.sim = function(){
+  
+  ## start solution
+
+  ## end solution  
+  
+}
+
+# returns ll, or log f(y|lambda, pi)
+# compute given y and ny from table
+ll = function(y, ny, x){
+  pi = x[1]
+  lambda = x[2]
+  
+  ## start solution
+
+  ## end solution
+}
+
+# MH ratio
+# Hint; since h symmetric, proposal density cancels out of ratio
+R = function(y, y_weight, x, xt){
+  # x is the proposal, xt is current state
+  # x[1],xt[1] pertain to pi, x[2],xt[2] pertain to lambda
+  ## start solution
+
+  ## end solution
+}
+
+```
+
+Now start the main code for the sampler
+
+```{r}
+# set the seed
+set.seed(1)
+
+# data fro HW 6
+y = 0:6
+ny = c(3062, 587, 284, 103, 33, 4, 2)
+
+# Set chain length
+M = 20000
+
+# initialize the chain vector (alpha, lambda)
+x.rw.chain = matrix(0, M, 2)
+colnames(x.rw.chain) = c("pi","lambda")
+
+# Initialize chain with specified initial values
+# alpha, lambda
+x.rw.chain[1,] = c(0.3, 3) 
+
+# now start chain
+for(i in 1:(M-1)){
+  
+  # set the value at current iteration of the chain to variable xt
+  xt = 
+  
+  # draw a proposal from the proposal density
+  x = 
+  
+  # calculate MH ratio 
+  r = 
+  
+  # Generate draw from bernoulli(p).
+  keep = rbinom(1, 1, r)
+  
+  # if keep = 1, then set next iteration equal to then proposal
+  if(keep == 1){
+    x.rw.chain[i+1,] = x
+  }else{
+    # otherwise, carry over value from the current iteration
+    x.rw.chain[i+1,] = xt
+  }
+}
+
+## print posterior means and diagnostic plots.  Comment on convergence 
+
+
+```
+
+
+
+
+
