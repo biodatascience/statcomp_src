@@ -9,7 +9,7 @@ output: html_document
 
 Run three machine learning models over the following training dataset
 with features `x` and labels `y`. You can use default tuning, e.g.
-bootstrap based resampling for tuning, as set by trainControl.
+bootstrap based resampling for tuning, as set by `trainControl`.
 
 * SVM with radial kernel `"svmRadial"`
 * Random forest `"rf"`
