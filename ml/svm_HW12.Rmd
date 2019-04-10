@@ -1,0 +1,79 @@
+---
+title: "Homework 12 - Support Vector Machines"
+author: "your name here"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+# Credit card dataset
+
+We will be working in this homework with a popular machine learning
+dataset about credit card fraud. Go to the following link and download
+the CSV:
+
+<https://www.openml.org/d/1597>
+
+The data description is 
+
+> The datasets contains transactions made by credit cards in September
+> 2013 by european cardholders. This dataset present transactions that
+> occurred in two days, where we have 492 frauds out of 284,807
+> transactions. The dataset is highly unbalanced, the positive class
+> (frauds) account for 0.172% of all transactions. 
+
+Now we begin by reading into R:
+
+```{r}
+
+library(readr)
+z <- read_csv("phpKo8OWT.csv")
+dim(z)
+table(z$Class)
+y <- gsub("\\'","",z$Class)
+x <- as.data.frame(z[,-31])
+```
+
+We will deal with the class imbalance for this homework just by
+downsampling the non-fraud cases. As we saw in the random forest
+homework there are other approaches including custom cost functions. 
+
+```{r}
+set.seed(1)
+idx <- c(sample(which(y == "0"), sum(y == "1")), which(y == "1"))
+y <- y[idx]
+x <- as.data.frame(scale(x[idx,]))
+table(y)
+```
+
+The homework assignment is to run linear and radial basis function SVM
+on the dataset, and report the Kappa for both models. For RBF, you
+should plot the Kappa over the different values for the cost
+function (`metric="Kappa"`). 
+
+Now, suppose we want to examine plots of the decision boundary in the
+feature space. We can only look at two features at a time in a scatter
+plot. What are the two most important variables for the SVMs (they are
+the same for both SVMs)?
+
+Make a scatterplot that includes: the data points in this two
+dimensional space, the "0" and "1" prediction space, and the decision
+boundary. In class, we simply used `expand.grid` to build the
+`newdata` that was fed to `predict`. Start with this approach, using a
+grid of 40 points from -4 to 4 for the two most important variables,
+but before you attempt to `predict`, read further:
+
+In this case, we have to worry about the other 30 - 2 = 28
+variables. If we put in 0's, this would not be typical observations,
+and we will get strange results.
+
+Instead, you should put `NA` for the other variables, and use
+`preProcess` with KNN imputation (alone, don't re-scale), to impute
+the other values. Then use this to run `predict` and define the
+decision boundary. This is a simpler approach compared to the
+integration approach taken by `plot.gbm` to produce marginal plots
+that we saw when we looked at boosting, but it is sufficient to get a
+sense of the decision boundary in 2D for "typical" values of the other
+covariates. 
+
+Do you see a big difference in the decision boundary for linear vs RBF
+SVM? 
