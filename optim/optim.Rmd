@@ -158,16 +158,19 @@ par(mfrow = c(1,3))
 
 ## likelihood plot
 plot(range, lik(mu = range,sigma2 = sigma2, y = y), type = "l", ylab = "likelihood", xlab = "mu")
+
 # add vertical line at the mean of y
 abline(v = mean(y), lty = 2, col = "grey") 
 
 ## log likelihood plot
 plot(range, loglik(mu = range,sigma2 = sigma2, y = y), type = "l", ylab = "log likelihood", xlab = "mu")
+
 # vertical line at the mean of y
 abline(v = mean(y), lty = 2, col = "grey" ) 
 
 ## RSS plot
 plot(range, RSS(mu = range,sigma2 = sigma2, y = y), type = "l", ylab = "RSS", xlab = "mu")
+
 # vertical line at the mean of y
 abline(v = mean(y), lty = 2, col = "grey" ) 
 ```
@@ -551,14 +554,14 @@ This approach is similar to NR, except that the second derivative in the updatin
 
 Lets apply FS to our simple Poisson problem.  To do this, lets first calculate the expected information $I(\theta)$, which is $I(\theta) = -E[l'(\theta)^2]$ in the univariate setting.  This expression can be calculated by brute force using the following
 
-\begin{aligned}
+\begin{align}
 E[l'(\theta)^2] &=E\left[\left(-n + \left(\sum_{i = 1}^{n} y_i \right)/\lambda\right)^2\right]\\
 &=E\left[\left(\sum_{i = 1}^{n} y_i \right)^2/\lambda^2 - 2n\left(\sum_{i = 1}^{n} y_i \right)/\lambda + n^2\right]\\
 &= E\left[\left(\sum_{i = 1}^{n} y_i \right)^2\right]/\lambda^2 - 2n\left(\sum_{i = 1}^{n} E[y_i] \right)/\lambda + n^2\\
 &= (n\lambda + (n\lambda)^2)/\lambda^2 - 2n\left(\sum_{i = 1}^{n} \lambda \right)/\lambda + n^2\\
 &= n/\lambda + n^2 - 2n^2 + n^2\\
 &= n/\lambda  \\
-\end{aligned}
+\end{align}
 
 We can see this has a nice form and avoids having to analytically determine a second derivative.  
 ```{r, echo=TRUE}
