@@ -1,0 +1,63 @@
+---
+title: "Homework 11 - Machine learning essentials"
+author: "your name here"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+# Use of `caret` with various methods
+
+Run three machine learning models over the following training dataset
+with features `x` and labels `y`. You can use default tuning, e.g.
+bootstrap based resampling for tuning, as set by `trainControl`.
+
+* SVM with radial kernel `"svmRadial"`
+* Random forest `"rf"`
+* Gradient boosting machine `"gbm"` (use `verbose=FALSE`)
+
+Record the time to train, and the best Kappa value for each method
+over the tuning grid (`rf` does not use tuning parameters via
+`train` for this dataset). Which method obtains the best Kappa?
+
+Finally, make a `pointrange` plot (see `geom_pointrange`), with the
+optimal Kappa and the SD for the optimal Kappa. Is there a clear
+winner, or all the methods mostly overlapping?
+
+```{r}
+data(faithful)
+n <- nrow(faithful)
+faithful <- data.frame(lapply(faithful, scale))
+plot(faithful)
+faithful$cl <- factor(kmeans(faithful, centers=2)$cluster)
+plot(faithful[,1:2], col=faithful$cl)
+# make it more challenging
+set.seed(1)
+faithful[,1] <- faithful[,1] + rt(n,df=5)/2
+faithful[,2] <- faithful[,2] + rt(n,df=5)/2
+plot(faithful[,1:2], col=faithful$cl)
+x <- faithful[,1:2]
+y <- faithful[,3]
+```
+
+# Circle classifier
+
+In the lecture notes we found that algorithms *f* which are of the
+form: 
+
+$$ \textrm{sign}(a x_1 + b x_2 + c) $$
+
+with $a,b > 0$, could _not_ shatter a set of two points along the
+NE-SW axis, e.g. $\{(-1,-1), (1,1)\}$.
+
+Using four plots, demostrate that the following algorithm *f* _can_
+shatter these two points, $\{(-1,-1), (1,1)\}$:
+
+$$ \textrm{sign}((x_1 - a)^2 + (x_2 - b)^2 - c^2) $$
+
+with $a,b,c \in \mathcal{R}$.
+
+Now, without drawing the plots, but using geometric intuition, do you
+think *f* can shatter at least one set of three points? Four points?
+Proving that an algorithm *f* cannot shatter a set of points is not
+trivial. Just using geometric intuition, What do you think is the VC
+dimension of *f*? 
