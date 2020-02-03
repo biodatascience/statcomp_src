@@ -56,7 +56,7 @@ A common question in this situation is what is the "best" estimate of $\mu$ give
 
 From introductory statistical courses, one may remember that an estimator for $\mu$, say $\hat{\mu}$ , in this setting may be $\bar{\y}$, or the mean of the observed heights.  In more advanced statistical courses, you may have shown why this is the case via **analytically** deriving the maximum likelihood estimator for $\mu$, and proving its optimality relative to other potential estimators.  
 
-We can also rexpress the original form of this problem as an intercept-only linear regression model:  $$y_i = \X_i\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X_1$ is simply one, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
+We can also rexpress the original form of this problem as an intercept-only linear regression model:  $$y_i = \X_i\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X_i = 1$, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
 
 Regardless of the approach used here, we can show that we can obtain $\hat{\mu}$ analytically via optimizing some function of the data with respect to the parameters of interest $\mu$.  In the linear regression case, we are minimizing the residual sum of squares of the model with respect to $\beta$ ($\mu$), and in the latter, we are maximizing the likelihood function assumed for the data with respect to $\mu$.  
 
@@ -256,11 +256,11 @@ If we define our **tolerance** for convergence, or convergence threshold, at ste
 
 Clearly, larger values of $\epsilon$ will result in convergence in fewer iterations, however the resulting $\hat{\theta}$ may be less accurate (further aware from $\theta^*$).  Depending on the application, a higher or lower convergence threshold may be warranted, where in some cases 10 decimal places of accuracy (and potentially requiring many more iterations for meeting the convergence threshold) may not be necessary.  
 
-Other criteria for determing convergence exist.  You may notice from the definition above that the algorithm converges if the raw difference in $\theta^{(t+1)}$ and $\theta^{(t)}$ becomes small.  However, if  $\theta^*$  is generally large in scale (say, typically > 10000 in value), an $\epsilon$ of $10^{-6}$ may be too restrictive or difficult to reach, whereas if $\theta^*$ is in the range of $10^{-12}-10^{-16}$, an of $\epsilon$ of $10^{-6}$ may simply be too liberal.  All in all, the threshold's stringency may depend on the scale of $\theta^*$.  
+Other criteria for determining convergence exist.  You may notice from the definition above that the algorithm converges if the raw difference in $\theta^{(t+1)}$ and $\theta^{(t)}$ becomes small.  However, if  $\theta^*$  is generally large in scale (say, typically > 10000 in value), an $\epsilon$ of $10^{-6}$ may be too restrictive or difficult to reach, whereas if $\theta^*$ is in the range of $10^{-12}-10^{-16}$, an of $\epsilon$ of $10^{-6}$ may simply be too liberal.  All in all, the threshold's stringency may depend on the scale of $\theta^*$.  
 
-For these reasons some may prefer a relative convergence threshold, such as $|\frac{\theta^{(t+1)} - \theta^{(t)}}{\theta^{(t)}}| < \epsilon$, where convergence is now met if the change relative to $\theta^{(t)}$ is smaller than some proportion $\epsilon$. For example we may instead to terminate the algorithm when the change is less than say $1%$ of the previous value rather then specifying an exact value of the difference.   There are additional problem-specific variants of this theme, however we will get into this in more detail as we discuss other optimization algorithms. 
+For these reasons some may prefer a relative convergence threshold, such as $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}|} < \epsilon$, where convergence is now met if the change relative to $\theta^{(t)}$ is smaller than some proportion $\epsilon$. For example we may instead to terminate the algorithm when the change is less than say $1\%$ of the previous value rather then specifying an exact value of the difference.   However, a relative convergence criteria can become problematic if $\theta^{(t)}$ or $\theta^*$ is very close to zero. In that case, an alternative criterion $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}| + \epsilon} < \epsilon$ may help prevent instability in the criterion. 
 
-It is also helpful to add a maximum iteration limit to prevent runaway divergence or to halt poorly converging algorithms (sometimes indicative of bad starting points).  This limit may also be hit if your convergence threshold is too stringent and/or the iteration limit may be too low.  Printing a warning message when this limit is reached is common among algorithms.  
+It is also helpful to add a maximum iteration limit to prevent runaway divergence or to halt poorly converging algorithms (sometimes indicative of bad starting points).  This limit may also be reached if your convergence threshold is too stringent, and/or the iteration limit is too low.  Printing a warning message when this limit is reached is common among algorithms.  
 
 ### Impact of starting values on convergence
 Lets now examine the impact of a different starting point for the algorithm, $\theta^{(0)} = 1$.  
@@ -322,9 +322,9 @@ Now lets try something further away, $\theta^{(0)} = 8$.
   }
 ```
 
-In some cases, the end result of the algorithm is the same regardless of the chosen starting point of the algorithm, however fewer iterations may be required for $\theta^{(t)} \rightarrow \theta^*$ (due to a better starting point).  In other cases, you can see that the model may converge to an  value other than $\theta^*$, representing a **local optimum** rather than the **global optimum**.   Or, the algorithm may not converge at all (diverges), as in the last example example above.  
+In some cases, the end result of the algorithm is the same regardless of the chosen starting point of the algorithm, however fewer iterations may be required for $\theta^{(t)} \rightarrow \theta^*$ (due to a better starting point).  In other cases, you can see that the model may converge to a value other than $\theta^*$, representing a **local optimum** rather than the **global optimum**.   Or, the algorithm may not converge at all (diverges), as in the last example example above.  
 
-In general, utilizing a starting value closer to the $\theta^*$ results in convergence in fewer iterations.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application. Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. 
+In general, utilizing a starting value closer to $\theta^*$ results in convergence in fewer iterations.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application. Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. 
 
 ### Basics of Numerical Optimization Summary 
 To summarize, the following concepts are important for understanding the set of optimzation algorithms covered in the rest of this module:
@@ -401,7 +401,7 @@ Using similar arguments, we can show that the convergence order for NR is *quadr
 * Cons
     + Requires derivation and evaluation of 1st and 2nd derivatives
     + Relatively more sensitive to choice of starting value
-    + In multivariate setting, need checks on hessian to avoid singularties, other issues
+    + In the multivariate setting, need checks on hessian to avoid singularties, other issues
   
 If the derivatives and/or likelihood are complicated NR may not be an attractive alternative.  In addition, if the derivatives required additional work for evaluation (such as likelihoods involving integration), performing additional evaluations in the 1st and 2nd derivatives may be unattractive. 
 
