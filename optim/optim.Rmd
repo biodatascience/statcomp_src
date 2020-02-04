@@ -43,7 +43,7 @@ The term "parameter estimation" may be one that you may have commonly heard in t
 
 More generally, this task pertains to an "optimization" problem, where we seek to finding a set of parameter values that minimizes or maximizes some pre-defined objective function.  When this objective function is a log likelihood function, this reduces to the problem of maximum likelihood estimation.  
 
-As we will see in this lecture, there are many potential approaches to use for optimization in this context.  How best to optimize a function of interest depends on the the nature of the function to be optimized as well as practical concerns regarding the complexity of the procedures considered. As such, another goal of this lecture is to help indicate the pro's and con' of various approaches to help determine which approch best fits your problem.  
+As we will see in this lecture, there are many potential approaches to use for optimization in this context.  How best to optimize a function of interest depends on the nature of the function to be optimized as well as practical concerns regarding the complexity of the procedures considered. As such, another goal of this lecture is to help indicate the pro's and con' of various approaches to help determine which approach best fits your problem.  
 
 Our discussion of optimization in this lecture will give a broad overview of existing approaches for unconstrained optimization, touching the many of the special cases that may have been covered in previous coursework.  In a later lecture we will discuss the topic of "constrained" optimization, where the potential set of allowable solutions is no longer unrestricted. We focus on the class of problems where the function to be optimized is smooth, real valued, and is differentiable.
 
@@ -73,9 +73,9 @@ Here, $\thetab = \mu$ since we are assuming that $\sigma^2$ is known.  Taking lo
 
 Why does this matter? This implies that the maximum of one function will be the maximum of the other function, as the log transformation is a one-to-one mapping from the likelihood to the log-likelihood (example in figure below).  Using approaches from prior courses, we can show that this function is smooth and convex in $\thetab$, and therefore the maximum of the log-likelihood (and hence the likelihood) will be attained at the value of $\thetab$ where the first derivative of $\mathcal{l}(\thetab)$ is equal to zero.  
 
-In the current problem, the MLE for $\mu$, $\hat{\mu} = \hat{\y}$, is then obtained  by setting the 1st derivative of the log-likelihood (also known as the "score function") equal to 0 and then solving for $\mu$ (can you show this?).  In other words, we find the root of the score function with respect to $\mu$.  For the regression based approaach, we are simply minimizing the residual sum of squares (RSS), defined as $\sum_{i = 1}^{100} (y_i - \mu)^2$.
+In the current problem, the MLE for $\mu$, $\hat{\mu} = \hat{\y}$, is then obtained  by setting the 1st derivative of the log-likelihood (also known as the "score function") equal to 0 and then solving for $\mu$ (can you show this?).  In other words, we find the root of the score function with respect to $\mu$.  For the regression based approach, we are simply minimizing the residual sum of squares (RSS), defined as $\sum_{i = 1}^{100} (y_i - \mu)^2$.
 
-In previous courses you may have found that this log transformation often facilitates the taking of derivatives when solving for $\mu$.  This approach of using another function as a proxy of the original function to simplify maximization can be found in several examples of optimation we will cover this semester. 
+In previous courses you may have found that this log transformation often facilitates the taking of derivatives when solving for $\mu$.  This approach of using another function as a proxy of the original function to simplify maximization can be found in several examples of optimization we will cover this semester. 
 
 
 ### Visualizing the optimization problem for $\mu$
@@ -186,7 +186,7 @@ As discussed in prior courses, the MLE can be obtained by simply taking the firs
 
 The log likelihood here is $$\mathcal{l}(\lambda) = -n\lambda + \left(\sum_{i = 1}^{n} y_i \right)\log(\lambda) - \sum_{i = 1}^{n}\log(y_i!).$$ Then, taking the first derivative of the log likelihood, also known as the score function, we then solve the following:  $$0 = -n + \left(\sum_{i = 1}^{n} y_i \right)/\lambda$$ which gives the MLE $\hat{\lambda} = \left(\sum_{i = 1}^{n} y_i \right)/n$.  
 
-In this example, as in the prior one, we can derive closed form solutions to obtain a parameter estimate for $\lambda$ by maximizing log-liklihood function. 
+In this example, as in the prior one, we can derive closed form solutions to obtain a parameter estimate for $\lambda$ by maximizing log-likelihood function. 
 
 **However, what if we do not have such nice closed-form solutions for the model at hand?**  
 
@@ -261,7 +261,7 @@ Clearly, larger values of $\epsilon$ will result in convergence in fewer iterati
 
 Other criteria for determining convergence exist.  You may notice from the definition above that the algorithm converges if the raw difference in $\theta^{(t+1)}$ and $\theta^{(t)}$ becomes small.  However, if  $\theta^*$  is generally large in scale (say, typically > 10000 in value), an $\epsilon$ of $10^{-6}$ may be too restrictive or difficult to reach, whereas if $\theta^*$ is in the range of $10^{-12}-10^{-16}$, an of $\epsilon$ of $10^{-6}$ may simply be too liberal.  All in all, the threshold's stringency may depend on the scale of $\theta^*$.  
 
-For these reasons some may prefer a relative convergence threshold, such as $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}|} < \epsilon$, where convergence is now met if the change relative to $\theta^{(t)}$ is smaller than some proportion $\epsilon$. For example we may instead to terminate the algorithm when the change is less than say $1\%$ of the previous value rather then specifying an exact value of the difference.   However, a relative convergence criteria can become problematic if $\theta^{(t)}$ or $\theta^*$ is very close to zero. In that case, an alternative criterion $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}| + \epsilon} < \epsilon$ may help prevent instability in the criterion. 
+For these reasons some may prefer a relative convergence threshold, such as $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}|} < \epsilon$, where convergence is now met if the change relative to $\theta^{(t)}$ is smaller than some proportion $\epsilon$. For example we may instead to terminate the algorithm when the change is less than say $1\%$ of the previous value rather than specifying an exact value of the difference.   However, a relative convergence criteria can become problematic if $\theta^{(t)}$ or $\theta^*$ is very close to zero. In that case, an alternative criterion $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}| + \epsilon} < \epsilon$ may help prevent instability in the criterion. 
 
 It is also helpful to add a maximum iteration limit to prevent runaway divergence or to halt poorly converging algorithms (sometimes indicative of bad starting points).  This limit may also be reached if your convergence threshold is too stringent, and/or the iteration limit is too low.  Printing a warning message when this limit is reached is common among algorithms.  
 
@@ -325,18 +325,18 @@ Now lets try something further away, $\theta^{(0)} = 8$.
   }
 ```
 
-In some cases, the end result of the algorithm is the same regardless of the chosen starting point of the algorithm, however fewer iterations may be required for $\theta^{(t)} \rightarrow \theta^*$ (due to a better starting point).  In other cases, you can see that the model may converge to a value other than $\theta^*$, representing a **local optimum** rather than the **global optimum**.   Or, the algorithm may not converge at all (diverges), as in the last example example above.  
+In some cases, the end result of the algorithm is the same regardless of the chosen starting point of the algorithm, however fewer iterations may be required for $\theta^{(t)} \rightarrow \theta^*$ (due to a better starting point).  In other cases, you can see that the model may converge to a value other than $\theta^*$, representing a **local optimum** rather than the **global optimum**.   Or, the algorithm may not converge at all (diverges), as in the last example above.  
 
 In general, utilizing a starting value closer to $\theta^*$ results in convergence in fewer iterations.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application. Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. 
 
 ### Basics of Numerical Optimization Summary 
-To summarize, the following concepts are important for understanding the set of optimzation algorithms covered in the rest of this module:
+To summarize, the following concepts are important for understanding the set of optimization algorithms covered in the rest of this module:
 
-1. Algorithm starting point or intialization
-2. Choice of updating algoritm
+1. Algorithm starting point or initialization
+2. Choice of updating algorithm
 3. Specification of stopping criteria
 
-In the next few sections we will go into detail regarding various approaches for numerical optimazation and their pros and cons for use. We will also discuss algorithm-specific aspects of computational complexity and convergence speed of each approach to help you decide which algorithm may be better to utilize for your specifical application. 
+In the next few sections we will go into detail regarding various approaches for numerical optimization and their pros and cons for use. We will also discuss algorithm-specific aspects of computational complexity and convergence speed of each approach to help you decide which algorithm may be better to utilize for your specific application. 
 
 
 ## Newton-Raphson
@@ -344,7 +344,7 @@ In the previous illustration we used a common technique called **Newton-Raphson*
 
 One notable requirement of this method is that expressions for  the **first and second derivatives of the function of interest must be given**.  In some situations such derivatives may be difficult to derive or evaluate in practice. We will introduce several alternative numerical optimization procedures to handle these situations later in this lecture. 
 
-Let $\theta^{(0)}$ denote the starting value for the estimate of $\theta$ and assume that we wish to maximize some function $f(\theta)$.  Then, based on this scheme, we update our estimate of $\theta$ at the $t$th step of the algorithm ($\theta^{(t)}$) using the following expression: $$\theta^{(t+1)} = \theta^{(t)} + h^{(t)},$$ where $h^{(t)} = -\frac{f'(\theta^{(t)})}{f''(\theta^{(t)})},$ $f'(\theta)$ is the first derivative of $f(\theta)$ with respect to $\theta$, and $f''(\theta)$ is the second derivative of $f(\theta)$ with respect to $\theta$.
+Let $\theta^{(0)}$ denote the starting value for the estimate of $\theta$ and assume that we wish to maximize some function $f(\theta)$.  Then, based on this scheme, we update our estimate of $\theta$ at the $t$th step of the algorithm ($\theta^{(t)}$) using the following expression: $$\theta^{(t+1)} = \theta^{(t)} + h^{(t)},$$ where $h^{(t)} = -\frac{f'(\theta^{(t)})}{f''(\theta^{(t)})},$ $f'(\theta)$ is the first derivative of $f(\theta)$ with respect to $\theta$ evaluated at $(\theta^{(t)}$, and $f''(\theta)$ is the second derivative of $f(\theta)$ with respect to $\theta$ evaluated at $(\theta^{(t)}$.
 
 If we sought to instead minimize $f(\theta)$, the same update would apply.  After choosing an appropriate starting point for the algorithm and stopping rule, we can apply the updating rule above as we had in the previous example to arrive at $\hat{\theta}$.  
 
@@ -403,8 +403,8 @@ Using similar arguments, we can show that the convergence order for NR is *quadr
     + Speed:  Extremely Fast convergence
 * Cons
     + Requires derivation and evaluation of 1st and 2nd derivatives
-    + Relatively more sensitive to choice of starting value
-    + In the multivariate setting, need checks on hessian to avoid singularties, other issues
+    + Relatively more sensitive to the choice of starting value
+    + In the multivariate setting, need checks on hessian to avoid singularities, other issues
   
 If the derivatives and/or likelihood are complicated NR may not be an attractive alternative.  In addition, if the derivatives required additional work for evaluation (such as likelihoods involving integration), performing additional evaluations in the 1st and 2nd derivatives may be unattractive. 
 
@@ -529,7 +529,7 @@ while(eps > tol & iter < maxit){
  
 
 ## Fisher Scoring
-Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$ is simply an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptopic properties for NR and FS are similar. 
+Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$ is simply an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptotic properties for NR and FS are similar. 
 
 The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(t)})^{-1}l'(\theta^{(t)}).$$ Given the particular problem at hand, NR or FS may be easier to derive analytically, where the latter only needs knowledge of the 1st derivatives and avoids computation of the 2nd derivatives. According to GH, FS may be used in early iterations for rapid improvements, and NR can be used to make better refinements near the end.  
 
@@ -607,24 +607,24 @@ print(end - start)
 
 # Multivariate Optimization
 
-The approaches that we have described also extend to the multivariate setting, where we seek to optimize a function with respect to more than one parameter at the same time.  More formally, we see to find the optimum of some real valued function $f(\thetab)$, where $\thetab$ is now some $p-$dimensional vector of parameters such that $\thetab = (\theta_1,\ldots,\theta_p)^T$.  Similar to before, the estimate of $\thetab$ at step $t$ will be denoted as $\thetab^{(t)}$.  Most of the prior concepts covered in univariate maximimization, such as regarding starting points, iterative updating, and specification of convergence criteria for termination, also applies here.  
+The approaches that we have described also extend to the multivariate setting, where we seek to optimize a function with respect to more than one parameter at the same time.  More formally, we see to find the optimum of some real valued function $f(\thetab)$, where $\thetab$ is now some $p-$dimensional vector of parameters such that $\thetab = (\theta_1,\ldots,\theta_p)^T$.  Similar to before, the estimate of $\thetab$ at step $t$ will be denoted as $\thetab^{(t)}$.  Most of the prior concepts covered in univariate maximization, such as regarding starting points, iterative updating, and specification of convergence criteria for termination, also applies here.  
 
 ## Note about convergence in the multivariate setting 
 
-Obviously in the multivariate setting we cannot directly utilize the same convergence criteria defined earlier.  To extend this to the multivariate setting, we may use distance-based measures for convergence, for example based one the sum of the absolute differences between iterations $$D(\mathbf{u},\mathbf{v}) = \sum_{i-1}^p | u_i - v_i|$$ or the euclidean distance between iterations $$D(\mathbf{u},\mathbf{v}) = \sqrt{\left(\sum_{i-1}^p (u_i - v_i)^2\right)}$$.  The output of these functions are scalars, so given a particular choice of $D(\mathbf{u},\mathbf{v})$, we can define a particular absolute convergence threshold $\epsilon$ to terminate the algorithm such that $D(\thetab^{(t+1)},\thetab^{(t)}) < \epsilon$.  We can similarly define a relative convergence threshold $\epsilon$ such that $$\frac{D(\thetab^{(t+1)},\thetab^{(t)})}{D(\thetab^{(t)},0)} < \epsilon$$.  
+Obviously in the multivariate setting we cannot directly utilize the same convergence criteria defined earlier.  To extend this to the multivariate setting, we may use distance-based measures for convergence, for example based one the sum of the absolute differences between iterations $$D(\mathbf{u},\mathbf{v}) = \sum_{i-1}^p | u_i - v_i|$$ or the Euclidean distance between iterations $$D(\mathbf{u},\mathbf{v}) = \sqrt{\left(\sum_{i-1}^p (u_i - v_i)^2\right)}$$.  The output of these functions are scalars, so given a particular choice of $D(\mathbf{u},\mathbf{v})$, we can define a particular absolute convergence threshold $\epsilon$ to terminate the algorithm such that $D(\thetab^{(t+1)},\thetab^{(t)}) < \epsilon$.  We can similarly define a relative convergence threshold $\epsilon$ such that $$\frac{D(\thetab^{(t+1)},\thetab^{(t)})}{D(\thetab^{(t)},0)} < \epsilon$$.  
 
 We will now discuss multivariate extensions to the methods introduced in the previous section.  
 
 ##  Newton-Raphson and Fisher Scoring
 
-Using the rationale described in the univariate setting, we can define the updating algorithm in this setting using a quadradtic Taylor Series expansion around $f(\thetab^*)$:  $$f(\thetab^*) = f(\thetab^{(t)}) + (\thetab^* - \thetab^{(t)})^T f'(\theta^{(t)}) + \frac{1}{2}(\thetab^* - \thetab^{(t)})^T f''(\theta^{(t)})(\thetab^* - \thetab^{(t)}).$$ If we take the derivative of this expansion and set it equal to zero, we get $$0 = f'(\thetab^{(t)}) + f''(\thetab^{(t)})(\thetab^* - \thetab^{(t)}),$$  which provides the update $$\thetab^{(t+1)} = \thetab^{(t)} - f''(\thetab^{(t)})^{-1}f'(\thetab^{(t)}).$$ 
+Using the rationale described in the univariate setting, we can define the updating algorithm in this setting using a quadratic Taylor Series expansion around $f(\thetab^*)$:  $$f(\thetab^*) = f(\thetab^{(t)}) + (\thetab^* - \thetab^{(t)})^T f'(\theta^{(t)}) + \frac{1}{2}(\thetab^* - \thetab^{(t)})^T f''(\theta^{(t)})(\thetab^* - \thetab^{(t)}).$$ If we take the derivative of this expansion and set it equal to zero, we get $$0 = f'(\thetab^{(t)}) + f''(\thetab^{(t)})(\thetab^* - \thetab^{(t)}),$$  which provides the update $$\thetab^{(t+1)} = \thetab^{(t)} - f''(\thetab^{(t)})^{-1}f'(\thetab^{(t)}).$$ 
 
 As a side note, if you recall, in our derivation from the univariate setting we started with a linear Taylor Series expansion of $f'(\theta^*)$.  Doing the same in this setting, rather than starting with a quadratic Taylor Series expansion around $f(\thetab^*)$ would allow us to arrive at the same expression given above.  So, our increment $\mathbf{h}^{(t)}$ is simply  $\mathbf{h}^{(t)} = -f''(\thetab^{(t)})^{-1}f'(\thetab^{(t)})$.  Fisher scoring in this case also has a similar updating function $$\thetab^{(t+1)} = \thetab^{(t)} - \I(\thetab^{(t)})^{-1}\l'(\thetab^{(t)}).$$  The properties of these algorithms will be similar to those described in the univariate section.  
 
 We will illustrate these multivariate section with an example in the next section. 
 
 ## Iteratively Reweighted Least Squares
-Generalized Linear Models (GLMs) encompass a large family of models including linear regression, logistic regression (binary responses), poisson regression (count responses), and many others.  In contrast to linear regression, the class of models encompassed by GLMs can handle response variables of different distributions, where such distributions are members of what we call the "exponential family" of distributions.  
+Generalized Linear Models (GLMs) encompass a large family of models including linear regression, logistic regression (binary responses), Poisson regression (count responses), and many others.  In contrast to linear regression, the class of models encompassed by GLMs can handle response variables of different distributions, where such distributions are members of what we call the "exponential family" of distributions.  
 
 This family has the general form $$f(y; \theta,\phi) = \exp\left[(y\theta-b(\theta)]/a(\phi)) + c(y,\phi)\right],$$ where $\theta$ is called the "natural" or "canonical" parameter and $\phi$ is a fixed dispersion parameter.  The following distributions can be factored into this form, and therefore belong to the exponential family:
 
@@ -637,7 +637,7 @@ This family has the general form $$f(y; \theta,\phi) = \exp\left[(y\theta-b(\the
 * Beta
 * Dirichlet
 * Wishart
-* Geometic
+* Geometric
 * Binomial (fixed number of trials)
 * Negative Binomial (fixed number of failures or fixed overdispersion parameter)
 * Multinomial (fixed number of trials)
@@ -661,7 +661,7 @@ Since this distribution is part of the exponential family, we can factor the PDF
 We can  show that the likelihood for this model can then be written in the form $$l(\thetab) = \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) = \sum_{i = 1}^n Y_i\X_i\betab - b(\theta_i) = \Y^T\X\betab - \textbf{b}^T(\theta)\mathbf{1},$$ where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\betab$ through the use of the canonical link function. 
 
 ## NR-based approach to maximization
-Using similar logic as before to maximize the likelihood with respect to $\betab$, let us try to find $\betab$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\betab) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with repect to each element of $\betab$, which is also $p$-dimensional.  
+Using similar logic as before to maximize the likelihood with respect to $\betab$, let us try to find $\betab$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\betab) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with respect to each element of $\betab$, which is also $p$-dimensional.  
 
 The second derivative of the likelihood function (called the "Hessian") is given as $$\l''(\betab) = \frac{d}{d\betab}(\X^T(\Y-\pib)) = -\left(\frac{d\pib}{d\betab}\right)^T\X = -\X^T\W\X,$$ where $\W$ is a diagonal matrix with the $i$th diagonal element having value equal to $\pi_i(1-\pi_i)$.  Note that the Hessian is a matrix.  
 
@@ -679,7 +679,7 @@ This result comes from again a Taylors Series expansion approximating the score 
 
 In any case, in each iteration we update the estimate of $\betab^{(t+1)}$ given the current values of $\e^{(t)}$ and $\W^{(t)}$, then then in turn update these intermediate quantities given $\betab^{(t+1)}$, continuing until convergence.  This update for $\betab^{(t+1)}$ can be computed manually using matrix computation, or using existing off the shelf software/algorithms for weighted least squares.  **We call this iterative approach of applying weighted least squares as Iteratively Reweighted Least Squares (IRLS).** 
 
-The ease in the application of this algorithm to broad variety of models is one reason why we see IRLS as the standard approach for maximimizing GLMs in R and SAS.  Its connection to weighted least squares is another reason why it is often used in tandem with penalized likelihood approaches for high dimensional variable selection, as one can apply the similar procedures used in linear models to GLMs given the framework above. 
+The ease in the application of this algorithm to broad variety of models is one reason why we see IRLS as the standard approach for maximizing GLMs in R and SAS.  Its connection to weighted least squares is another reason why it is often used in tandem with penalized likelihood approaches for high dimensional variable selection, as one can apply the similar procedures used in linear models to GLMs given the framework above. 
 
 In summary, we have the following pro's and cons for using IRLS
 
@@ -692,7 +692,7 @@ In summary, we have the following pro's and cons for using IRLS
     +  Can be slow and unreliable, unless the model fits the data well
 
 ### Example:  Poisson regression with NR
-Lets generate some data from a poisson regression model and fit it with NR
+Lets generate some data from a Poisson regression model and fit it with NR
 
 ```{r, echo=TRUE}
 # 100 samples
@@ -868,11 +868,11 @@ The question is how do we obtain an $\M^{(t+1)}$ that satisfies this condition a
 
 where here $\z^{(t)} = \thetab^{(t+1)} - \thetab^{(t)}$ and $\y^{(t)} = f'(\thetab^{(t+1)}) - f'(\thetab^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  In general, through the use of backtracking (which we will discuss in more detail in the next section) during the calculation of M^{(t)}, we can ensure ascent.  
 
-We wont worry about the specific details regarding how this update was specifically derived.  Many off-the-shelf methods are available implementing this procedure, given a known likelihood function and 1st derivative (we will give an example of this later), so no manual implementation of this approach is necessary. 
+We won’t worry about the specific details regarding how this update was specifically derived.  Many off-the-shelf methods are available implementing this procedure, given a known likelihood function and 1st derivative (we will give an example of this later), so no manual implementation of this approach is necessary. 
 
 ### Tips for improving performance and stability
 
-Performance of BFGS is senstive to the starting value of $\M^{(0)}$.  For maximum likelihood estimation, it is good to set $\M^{(0)} = -I(\thetab^{(0)})$ the negative expected Fisher Information Matrix.  For other problems, setting $\M^{(0)} = -I_{p\times p}$, the negative identity matrix, may work well if all the parameters are on similar scales.  
+Performance of BFGS is sensitive to the starting value of $\M^{(0)}$.  For maximum likelihood estimation, it is good to set $\M^{(0)} = -I(\thetab^{(0)})$ the negative expected Fisher Information Matrix.  For other problems, setting $\M^{(0)} = -I_{p\times p}$, the negative identity matrix, may work well if all the parameters are on similar scales.  
 
 Rescaling parameters is generally helpful if parameters are on very different scales, for example if you have a function $f(\theta_1, \theta_2) = exp(1+\theta_1) + \theta_2$.  Clearly, similar changes in $\theta_1$ and $\theta_2$ will have very different impacts on $f(\theta_1, \theta_2)$.  This may also prevent the stopping criterion from being influenced by those variables that have the largest units or most influence on the function to be maximized over.   We will go more in how to do this in the section on $\texttt{optimx} in R.
 
@@ -882,7 +882,7 @@ Rescaling parameters is generally helpful if parameters are on very different sc
 * Pros
     + Avoids calculation of the Hessian in an efficient manner, while retaining the secant condition
     + Fast and powerful
-    + Backtracking approach can ensure asecent
+    + Backtracking approach can ensure ascent
 * Cons
     + Not as fast as NR (convergence order between 1 and 2), faster than linear but slower than quadratic convergence
     + Complicated to implement manually, so reliance on off the shelf methods are needed. 
@@ -891,16 +891,16 @@ Rescaling parameters is generally helpful if parameters are on very different sc
 
 In R, optimx() is a great general purpose solver that employs many of the methods we will discuss in this lecture in one single function.  It also provides a nice comparison of various methods if you specify more than one method to be evaluated.  This is related to an older function called optim() that contains a more limited set of methods.  
 
-One thing you might notice in optim() and optimx() that despite being very common, NR is not listed as one of the options in these general purpose solvers.  John Nash, one of the original developers of optim(), has stated that this was intentional.  This is mainly due to the hessian matrix potentially not being positive definite in certain cases in NR, which made writing the code to check for these issues quite difficult.  He states that methods like BFGS avoids some of these issues in the approximated version of the hessian and thus are more stable.  Overall, he prefers BFGS. 
+One thing you might notice in optim() and optimx() that despite being very common, NR is not listed as one of the options in these general-purpose solvers.  John Nash, one of the original developers of optim(), has stated that this was intentional.  This is mainly due to the hessian matrix potentially not being positive definite in certain cases in NR, which made writing the code to check for these issues quite difficult.  He states that methods like BFGS avoids some of these issues in the approximated version of the hessian and thus are more stable.  Overall, he prefers BFGS. 
 
 One only needs to pass the likelihood, 1st derivative, and/or second derivative functions to optim, depending on the method requested.   The user also specify control parameters regarding convergence tolerances, max number of iterations and many other things.  
 
-One small caveat:  optimx() expects the function to specify the argument pertaining to the vector of parmeters to be optimized as "x".  Since this is not the case with our likelihood and gradient functions, we have to edit these  a bit to get the optimx() command to work.  Alternatively, you can change the function directly to take x as a vector of parameters.  If there is only one parameter to be maximized, then x is a scalar. 
+One small caveat:  optimx() expects the function to specify the argument pertaining to the vector of parameters to be optimized as "x".  Since this is not the case with our likelihood and gradient functions, we have to edit these  a bit to get the optimx() command to work.  Alternatively, you can change the function directly to take x as a vector of parameters.  If there is only one parameter to be maximized, then x is a scalar. 
 
 Lets apply it to the Poisson Regression Example from Earlier:
 
 ```{r, echo=TRUE}
-# load the optimx librar
+# load the optimx library
 library(optimx)
 start = Sys.time()
 fit = optimx(
@@ -935,7 +935,7 @@ The intuition behind this approach may be described as to trying to find one's w
 
 Gradient Descent, depending on who you talk to, is either the same thing as steepest descent, or a more general form of steepest descent that fixes $\alpha{(t)}$ rather than letting it vary within each iteration.  Regardless, the idea is similar in that it avoids computing the hession and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems. 
 
-However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\betab^{(t)})$ where we wish to estimate $\betab$ in the prior poisson regression example: $$\betab^{(t+1)} = \betab^{(t)} - \alpha{(t)}l'(\betab^{(t)}).$$  One thing that is clear from here is that $$l'(\betab) = \sum_{i=1}^n (y_i - \exp(X_i\betab))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
+However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\betab^{(t)})$ where we wish to estimate $\betab$ in the prior Poisson regression example: $$\betab^{(t+1)} = \betab^{(t)} - \alpha{(t)}l'(\betab^{(t)}).$$  One thing that is clear from here is that $$l'(\betab) = \sum_{i=1}^n (y_i - \exp(X_i\betab))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
 
 ## Stochastic Gradient Descent (SGD)
 
@@ -944,7 +944,7 @@ Stochastic gradient descent instead randomly subsamples the data and performs an
 Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
 
 ### Application of GD and SGD to our Poisson Regression Example
-Lets try it out on our poisson regression example.  Here is regular gradient ascent with just a fixed $\alpha^{(t)}$:
+Lets try it out on our Poisson regression example.  Here is regular gradient ascent with just a fixed $\alpha^{(t)}$:
 
 
 ```{r, echo=TRUE}
@@ -985,7 +985,7 @@ end = Sys.time()
 print(end - start)
 ```
 
-Takes more iterations and time than some of the prior methods in the low dimensional low sample size setting, but is not surpising since it does not utilized or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
+Takes more iterations and time than some of the prior methods in the low dimensional low sample size setting, but is not surprising since it does not utilize or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
 
 Now here is a mini batched version of stochastic gradient descent, taking samples of 10
 
