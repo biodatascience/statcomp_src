@@ -256,7 +256,7 @@ To illustrate an application of numerical optimization to $f(\theta)$ (introduce
 You can see that the algorithm appears to **converge** in approximately 12 iterations to `r round(th, 5)` (the value of $\theta$ pertaining to the true maximum of the $f(\theta)$), where the difference between the value of $\hat{\theta}$ at the 11th step ($\hat{\theta}^{(11)}$) and the 12th step ($\hat{\theta}^{(12)}$) is very small, and our final estimate for $\hat{\theta}^{(11)}$ is `r round(th,5)`.  
 
 ### Criteria for convergence: absolute versus relative  
-If we define our **tolerance** for convergence, or convergence threshold, at step $t$ as some small fixed value $\epsilon$,  we may formally terminate the algorithm when $|\hat{\theta}^{(t)} - \hat{\theta}^{(t-1)}| < \epsilon$.  Here, the optimal value of $\theta}$  is $\theta^*$=  `r round(th,5)`.  
+If we define our **tolerance** for convergence, or convergence threshold, at step $t$ as some small fixed value $\epsilon$,  we may formally terminate the algorithm when $|\hat{\theta}^{(t)} - \hat{\theta}^{(t-1)}| < \epsilon$.  Here, the optimal value of $\theta$  is $\theta^*$=  `r round(th,5)`.  
 
 Clearly, larger values of $\epsilon$ will result in convergence in fewer iterations, however the resulting $\hat{\theta}$ may be less accurate (further aware from $\theta^*$).  Depending on the application, a higher or lower convergence threshold may be warranted, where in some cases 10 decimal places of accuracy (and potentially requiring many more iterations for meeting the convergence threshold) may not be necessary.  
 
@@ -624,7 +624,7 @@ As a side note, if you recall, in our derivation from the univariate setting we 
 
 We will illustrate these multivariate results with an example in the next section. 
 
-## GLMs: NR, FS, and IRLS
+### GLMs: NR, FS, and IRLS
 Generalized Linear Models (GLMs) encompass a large family of models including linear regression, logistic regression (binary responses), Poisson regression (count responses), and many others.  In contrast to linear regression, the class of models encompassed by GLMs can handle response variables of different distributions, where such distributions are members of what we call the "exponential family" of distributions.  
 
 This family has the general form $$f(y; \theta,\phi) = \exp\left[(y\theta-b(\theta)]/a(\phi)) + c(y,\phi)\right],$$ where $\theta$ is called the "natural" or "canonical" parameter and $\phi$ is a fixed dispersion parameter.  The following distributions can be factored into this form, and therefore belong to the exponential family:
@@ -653,7 +653,7 @@ For example, in linear regression $g$ is simply the "identity link" where $E[Y_i
 
 Given the wide range of distributions that may be covered by the exponential family, a general estimation framework to obtain $\hat{\betab}$ may be advantageous for modeling, as separate algorithms for different distributions can be avoided.  You will learn more about these models and various link functions in Bios 762.  
 
-### Logistic Regression Example
+#### Logistic Regression Example
 If we take the example of logistic regression, we assume that the response variable $Y_i$ is distributed Bernoulli with parameter $\pi_i$, where $E[Y_i |\x_i] = \mu_i = \pi_i$ and $i =  1,\ldots,n$.  We wish to model the probability of success for each individual $i$, $\pi_i$,  with respect to an $1 \times p$ vector of predictors $\X_i$ and a set of unknown regression coefficients $\betab$, a $p\times 1$ vector. The log likelihood can be written as $$\mathcal{l}(\pi_i) = \sum_{i=1}^n y_i\log\left(\frac{\pi_i}{1-\pi_i}\right) + \log(1-\pi_i).$$ 
 
 Since this distribution is part of the exponential family, we can factor the PDF into exponential family form such that the natural parameter is $\theta_i = \log(\frac{\pi_i}{1-\pi_i})$, $a(\phi) = 1$, and $b(\theta_i) = \log(1+exp(\theta_i))$.  If we choose $g(\mu_i) = \log(\frac{\pi_i}{1-\pi_i})$, we can show that this link function, often called the logit function, is also the "canonical"" link function: $$b'(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i = g^{-1}(\theta),$$  and therefore $\theta_i = \eta_i = X_i\betab$. We will see why this is convenient when we rewrite the likelihood below.  The inverse link function here is  $g^{-1}(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i$.  
@@ -668,7 +668,7 @@ l(\thetab) &= \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) \\
 
 where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\betab$ through the use of the canonical link function. 
 
-## NR-based approach to maximization (assuming canonical link)
+#### NR-based approach to maximization (assuming canonical link)
 Using similar logic as before to maximize the likelihood with respect to $\betab$, let us try to find $\betab$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\betab) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with respect to each element of $\betab$, which is also $p$-dimensional.  
 
 The second derivative of the likelihood function (called the "Hessian") is given as $$\l''(\betab) = \frac{d}{d\betab}(\X^T(\Y-\pib)) = -\left(\frac{d\pib}{d\betab}\right)^T\X = -\X^T\W\X,$$ where $\W$ is a diagonal matrix with the $i$th diagonal element having value equal to $\pi_i(1-\pi_i)$.  Note that the Hessian is a matrix.  
@@ -687,7 +687,7 @@ Given the fact that the Hessian **does not** depend on the observed data, we can
 
 As a result, FS and NR for this particular example are exactly the same when the link function is chosen as the canonical link!  However,  this will not always hold in other scenarios).  
 
-## FS and IRLS-based approach to maximization for arbitrary link functions (including non-canonical links)
+#### FS and IRLS-based approach to maximization for arbitrary link functions (including non-canonical links)
 
 Under non-canonical links, the derivatives of the likelihood function become much more complicated, and methods such as FS may be more amenable to implement in this scenario.
 
@@ -709,7 +709,7 @@ In summary, we have the following pro's and cons for using IRLS
 * Cons
     +  Can be slow and unreliable, unless the model fits the data well
 
-### Example:  Poisson regression with NR
+#### Example:  Poisson regression with NR
 Lets generate some data from a Poisson regression model and fit it with NR
 
 ```{r, echo=TRUE}
@@ -812,7 +812,7 @@ print(glm(y ~ X -1, family = poisson()))
 
 We get the same thing
 
-### Example:  Poisson regression with IRLS
+#### Example:  Poisson regression with IRLS
 
 Now lets try IRLS.  We can show $\theta_i = g(\mu_i) = g(\lambda_i)  = \log(\lambda_i)$, $a(\phi) = 1$, and $b(\theta_i) = e^\theta_i = \lambda_i$.   Here, $g(\mu_i)$ is the chosen link function for this case, where $g^{-1}(\eta_i) =e^\eta_i$.  We can show that this link function, often called the log link function, is also the canonical link function: $$b'(\theta_i) = e^\theta_i = g^{-1}(\theta_i),$$  and therefore $\theta_i = \eta_i = \X_i\beta$.
 
@@ -881,7 +881,7 @@ A wide variety of "Newton-Like" or "Quasi-Newton" approaches exist, where the up
 
 This is helpful when the second derivatives may be difficult to derive, have a complicated form, or are computationally expensive to evaluate in practice. 
 
-In this class of methods we may write the updating equation as $$\thetab^{(t+1)} = \thetab^{(t)} - (\M^{(t)})^{-1}f'(\thetab),$$ where $\M^{(t)}$ is a $p\times p$ matrix approximating the Hessian $f''(\thetab)$ (assuming $\thetab$ is a $p$-dimensional vector).  We may choose to do this because either evaluating the Hessian is too computationally expensive, or the steps selected by NR **may not go uphill** (if maximizing), as it is not guarunteed that $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ when we are maximizing some function $f(\thetab)$.  We will talk about the the approach of "steepest ascent/descent", sometimes referred to as "gradient ascent/descent" later that tries to ensure improvements in the objective function with each update. 
+In this class of methods we may write the updating equation as $$\thetab^{(t+1)} = \thetab^{(t)} - (\M^{(t)})^{-1}f'(\thetab),$$ where $\M^{(t)}$ is a $p\times p$ matrix approximating the Hessian $f''(\thetab)$ (assuming $\thetab$ is a $p$-dimensional vector).  We may choose to do this because either evaluating the Hessian is too computationally expensive, or the steps selected by NR **may not go uphill** (if maximizing), as it is not guarunteed that $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ when we are maximizing some function $f(\thetab)$ (see NR divergence example from earlier).  We will talk about the the method of "steepest ascent/descent" later that tries to ensure improvements in the objective function with each update. 
 
 Alternatively, we can choose an $\M^{(t)}$ that can guarantee $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ (ascent).  Due to time purposes, we will not cover Discrete Newton, Fixed Point Methods or Gauss-Newton in detail.  However, if interested you can find these topics covered in GH 2.2.2.   We will instead cover more commonly used algorithms such as BFGS (which in general has better performance than the aforementioned methods), Nelder-Mead, gradient descent/ascent, and stochastic gradient descent/ascent.   
 
@@ -889,19 +889,25 @@ In general, one may try to avoid calculation of the Hessian matrix by approximat
 
 ### Quasi-Newton Methods:  BFGS
 
-Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   Essentially, we need an approach to generate $\M^{(t+1)}$ from $\M^{(t)}$ the minimizes the number of calculations needed and preserves the above condition.  
+Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   Essentially, we need an approach to generate $\M^{(t+1)}$ from $\M^{(t)}$ that minimizes the number of calculations needed and preserves the above condition.  
 
-The question is how do we obtain an $\M^{(t+1)}$ that satisfies this condition and is computable in a manner that is efficient?  Quasi-Newton (or "variable step") methods are one such approach that can do this when approximating the Hessian at each iteration  The update to the Hessian has the following form $$\M^{(t+1)} = \M^{(t)} - \frac{\M^{(t)}\z^{(t)}(\M^{(t)}\z^{(t)})^T}{(\z^{(t)})^T\M^{(t)}\z^{(t)}} + \frac{\y^{(t)}(\y^{(t)})^T}{(\z^{(t)})^T\y^{(t)}} + \delta^{(t)}(\z^{(t)})^T\M^{(t)}\z^{(t)})\d^{(t)}(\d^{(t)})^T,$$ where $$\d^{(t)} = \frac{\y^{(t)}}{(\z^{(t)})^T\y^{(t)}} - \frac{\M^{(t)}\z^{(t)}}{(\z^{(t)})^T\M^{(t)}\z^{(t)}},$$  
+The question is how do we obtain an $\M^{(t+1)}$ that satisfies this condition and can be determined in a manner that is computationally efficient?  Quasi-Newton (or "variable step") methods are one such approach that can do this when approximating the Hessian at each iteration.  The update to the Hessian has the following form $$\M^{(t+1)} = \M^{(t)} - \frac{\M^{(t)}\z^{(t)}(\M^{(t)}\z^{(t)})^T}{(\z^{(t)})^T\M^{(t)}\z^{(t)}} + \frac{\y^{(t)}(\y^{(t)})^T}{(\z^{(t)})^T\y^{(t)}} + \delta^{(t)}(\z^{(t)})^T\M^{(t)}\z^{(t)})\d^{(t)}(\d^{(t)})^T,$$ where $$\d^{(t)} = \frac{\y^{(t)}}{(\z^{(t)})^T\y^{(t)}} - \frac{\M^{(t)}\z^{(t)}}{(\z^{(t)})^T\M^{(t)}\z^{(t)}},$$  
 
-where here $\z^{(t)} = \thetab^{(t+1)} - \thetab^{(t)}$ and $\y^{(t)} = f'(\thetab^{(t+1)}) - f'(\thetab^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  In general, through the use of backtracking (which we will discuss in more detail in the next section) during the calculation of M^{(t)}, we can ensure ascent.  
+where here $\z^{(t)} = \thetab^{(t+1)} - \thetab^{(t)}$ and $\y^{(t)} = f'(\thetab^{(t+1)}) - f'(\thetab^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  In general, through the use of backtracking (which we will discuss in more detail in the next section) during the calculation of $M^{(t)}$, we can ensure ascent.  
 
-We won’t worry about the specific details regarding how this update was specifically derived.  Many off-the-shelf methods are available implementing this procedure, given a known likelihood function and 1st derivative (we will give an example of this later), so no manual implementation of this approach is necessary. 
+Another nice property of BFGS is that the **positive definiteness** of the Hessian approximation is also ensured, meaning that we can take the inverse of this matrix, leading to increase robustness of the method.  If you recall, one of the downsides of NR in the multivariate setting is the lack this guarantee, leading to potential instability of the approach (especially as the dimension grows).  We will touch more on this later.   
+
+We won’t worry about the specific details regarding how this update was specifically derived.  Many off-the-shelf methods are available implementing this procedure, given a known likelihood function and 1st derivative (we will give an example of this later), so no manual implementation of this approach is necessary. Convergence is slower than than NR (order is between 1 and 2), however BFGS may be potentially faster in terms of overall time, depending on how expensive it is to calculate the hessian in NR.   
+
+Lastly, you may more commonly see "L-BFGS-B" in  applications instead of BFGS, which is a variant of BFGS that 1)  approximates the Hessian approximation update using a limited amount of computer memory and 2) can place box constaints (bounds) on the parameters be estimated.  The latter is helpful in cases where you want to prevent the algorithm of proposing updates to the parameters that are out of the range of the support for that parameters (for example, values less than or equal zero for $\lambda$ from our simple Poisson example). 
+
+
 
 ### Tips for improving performance and stability
 
 Performance of BFGS is sensitive to the starting value of $\M^{(0)}$.  For maximum likelihood estimation, it is good to set $\M^{(0)} = -I(\thetab^{(0)})$ the negative expected Fisher Information Matrix.  For other problems, setting $\M^{(0)} = -I_{p\times p}$, the negative identity matrix, may work well if all the parameters are on similar scales.  
 
-Rescaling parameters is generally helpful if parameters are on very different scales, for example if you have a function $f(\theta_1, \theta_2) = exp(1+\theta_1) + \theta_2$.  Clearly, similar changes in $\theta_1$ and $\theta_2$ will have very different impacts on $f(\theta_1, \theta_2)$.  This may also prevent the stopping criterion from being influenced by those variables that have the largest units or most influence on the function to be maximized over.   We will go more in how to do this in the section on $\texttt{optimx} in R.
+Rescaling parameters is generally helpful if parameters are on very different scales, for example if you have a function $f(\theta_1, \theta_2) = exp(1+\theta_1) + \theta_2$.  Clearly, similar changes in $\theta_1$ and $\theta_2$ will have very different impacts on $f(\theta_1, \theta_2)$.  This may also prevent the stopping criterion from being influenced by those variables that have the largest units or most influence on the function to be maximized over.   We will go more in how to do this in the section on $\texttt{optimx}$ in R.
 
 
 ### Pros and Cons for using BFGS:
@@ -916,7 +922,7 @@ Rescaling parameters is generally helpful if parameters are on very different sc
 
 ### Examples
 
-In R, optimx() is a great general purpose solver that employs many of the methods we will discuss in this lecture in one single function.  It also provides a nice comparison of various methods if you specify more than one method to be evaluated.  This is related to an older function called optim() that contains a more limited set of methods.  
+In R, optimx() from the [optimx R package](https://cran.r-project.org/web/packages/optimx/index.html) is a great general purpose solver that employs many of the methods we will discuss in this lecture [in one single function](https://www.jstatsoft.org/article/view/v043i09).  It also provides a nice comparison of various methods if you specify more than one method to be evaluated.  This is related to an older function called optim() that contains a more limited set of methods.  
 
 One thing you might notice in optim() and optimx() that despite being very common, NR is not listed as one of the options in these general-purpose solvers.  John Nash, one of the original developers of optim(), has stated that this was intentional.  This is mainly due to the hessian matrix potentially not being positive definite in certain cases in NR, which made writing the code to check for these issues quite difficult.  He states that methods like BFGS avoids some of these issues in the approximated version of the hessian and thus are more stable.  Overall, he prefers BFGS. 
 
@@ -960,7 +966,7 @@ That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)
 
 The intuition behind this approach may be described as to trying to find one's way down a hill when blindfolded.  The only information available to you is how steep the hill is at the point where you are standing, and moving in the direction where the slope appears the steepest. We do not have an idea of the curvature (change in the slope) around that point, so we just follow the slope instead. 
 
-Gradient Descent, depending on who you talk to, is either the same thing as steepest descent, or a more general form of steepest descent that fixes $\alpha{(t)}$ rather than letting it vary within each iteration.  Regardless, the idea is similar in that it avoids computing the hession and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems. 
+Gradient Descent, depending on who you talk to, may be throught as a more general form of steepest descent that instead fixes $\alpha{(t)}$ (sometimes called the "learning rate") rather than letting it vary within each iteration.  Regardless, the idea is similar in that it avoids computing the hessian and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems (no need to store or approximate a $p \times p$ hessian). 
 
 However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\betab^{(t)})$ where we wish to estimate $\betab$ in the prior Poisson regression example: $$\betab^{(t+1)} = \betab^{(t)} - \alpha{(t)}l'(\betab^{(t)}).$$  One thing that is clear from here is that $$l'(\betab) = \sum_{i=1}^n (y_i - \exp(X_i\betab))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
 
@@ -1021,7 +1027,7 @@ Now here is a mini batched version of stochastic gradient descent, taking sample
 # the start
 tol = 10^-9 # lowered threshold to ensure convergence
 beta = c(log(mean(y)),0,0) # multivariate now
-maxit = 60000 # increased iteration limit
+maxit = 100000 # increased iteration limit
 iter = 0
 alpha = 0.00001
 subsample.size = 10
@@ -1031,7 +1037,7 @@ logL = rep(NA, maxit)
 
 # given this, the result below will be the same as NR
 start = Sys.time()
-while(eps > tol & iter < maxit & epscount < 2){
+while(eps > tol & iter < maxit & epscount < 4){
   # save the previous value
   beta0 = beta
   

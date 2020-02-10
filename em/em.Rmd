@@ -107,7 +107,7 @@ $$
 f(y_i|\boldsymbol{\theta}) = \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)
 $$
 
-where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)^T$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1^T,\ldots,\boldsymbol{\beta}_K^T)^T$, and $\boldsymbol{\beta}_k = (\beta_1,\ldots,\beta_{pk})^T$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\beta_k = \beta_{0k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \lambda_{k} = \exp(\beta_{0k})$. 
+where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)^T$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1^T,\ldots,\boldsymbol{\beta}_K^T)^T$, and $\boldsymbol{\beta}_k = (\beta_{1k},\ldots,\beta_{pk})^T$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\boldsymbol{\beta}_k = \beta_{0k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \lambda_{k} = \exp(\beta_{0k})$. 
 
 The log likelihood can be written as $$l(\boldsymbol{\theta}) = \sum_{i=1}^n \log\left( \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)\right)$$
 
@@ -151,7 +151,7 @@ Examples of $\boldsymbol{z}$ in the latter case may pertain to the set of class 
 
 ### Defining the Complete Data Log Likelihood
 
-Let us assume that the distribution for the complete data vector $\boldsymbol{y}_c$ is given by the pdf $g(\boldsymbol{y}_c | \boldsymbol{\theta})$.  Given this setup, we can define the *complete data log likelihood* function as $$\log L_c(\boldsymbol{\theta}) = g(\boldsymbol{y}_c| \boldsymbol{\theta}).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(\boldsymbol{y}_o,\boldsymbol{\theta}) = \int g(\boldsymbol{y}_c| \boldsymbol{\theta})d\boldsymbol{z} $$  
+Let us assume that the distribution for the complete data vector $\boldsymbol{y}_c$ is given by the pdf $g(\boldsymbol{y}_c | \boldsymbol{\theta})$.  Given this setup, we can define the *complete data log likelihood* function as $$\log L_c(\boldsymbol{\theta}) = \log g(\boldsymbol{y}_c| \boldsymbol{\theta}).$$  From this, it is clear that the likelihood can be simply obtained by integrating out the missing data from the complete data likelihood, such that $$g(\boldsymbol{y}_o,\boldsymbol{\theta}) = \int g(\boldsymbol{y}_c| \boldsymbol{\theta})d\boldsymbol{z} $$  
 
 ### Q-function and Initialization
 
@@ -206,7 +206,7 @@ When you are applying the EM algorithm in process, it is helpful to break down t
 
 From the general form of the FMR model given earlier, the log likelihood can be written as $$l(\boldsymbol{\theta}) = \sum_{i=1}^n \log\left( \sum_{k =1}^2 \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)\right),$$ where $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$, $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$, and $\sum_{k = 1}^K \pi_k = 1$.  
 
-In this example $\boldsymbol{X}_{ik} = \boldsymbol{X}_i$, where $\boldsymbol{X}_i$ is a $1 \times 4$ vector pertaining to the intercept, age, log boat length in feet, and log cooler size in liters, and $\boldsymbol{\beta}_k = (\beta_0, \beta_1, \beta_2, \beta_3)^T$ are the regression coefficients component $k$ pertaining to $\boldsymbol{X}_i$.  Therefore, we assume that the mean of each mixture component is modeled with different sets of regression coefficients but share the same set of predictors.  This allows for the same predictor to potentially have different effects in each component.  We also assume here that an observation may come from either the amateur or professional fishing populations, however the component membership of each observation is not known or observed. 
+In this example $\boldsymbol{X}_{ik} = \boldsymbol{X}_i$, where $\boldsymbol{X}_i$ is a $1 \times 4$ vector pertaining to the intercept, age, log boat length in feet, and log cooler size in liters, and $\boldsymbol{\beta}_k = (\beta_{0k}, \beta_{1k}, \beta_{2k}, \beta_{3k})^T$ are the regression coefficients component $k$ pertaining to $\boldsymbol{X}_i$.  Therefore, we assume that the mean of each mixture component is modeled with different sets of regression coefficients but share the same set of predictors.  This allows for the same predictor to potentially have different effects in each component.  We also assume here that an observation may come from either the amateur or professional fishing populations, however the component membership of each observation is not known or observed. 
 
 ### Complete Data Log Likelihood 
 
@@ -227,18 +227,18 @@ In reality, we do not know which component an individual came from. Thus, we sti
 
 Now we must evaluate the expectation of the CDLL, $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) = E\left[ \log L_c(\boldsymbol{\theta}) | \boldsymbol{y}_o,\boldsymbol{\theta}^{(t)}\right]$.  Here, this simply reduces to
 
-\begin{aligned}
+\begin{align}
 Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &=\sum_{i=1}^n \sum_{k =1}^2 E[I[z_i = k] | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}]\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]\\
 &= \sum_{i=1}^n \sum_{k =1}^2 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]
-\end{aligned}
+\end{align}
 
 We can show that 
 
-\begin{aligned}
+\begin{align}
 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) &= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{p(\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})} \\
 &= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{\sum_{k =1}^2p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}\\
 &= \frac{\pi_k^{(t)}f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k)}{ \sum_{k =1}^2\pi_k^{(t)}f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k))}
-\end{aligned}
+\end{align}
 
 using the definition of conditional probability.  So, evaluating the Q-function is facilitated by simply computing the expectation above.  It is easy to see here that we are "filling in" the latent data $z_i$ with $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$, making it possible to maximize this function.  This quantity is sometimes referred to as the "posterior probability" of subject $i$ belonging to component $k$ at iteration $t$.  
 
@@ -248,7 +248,7 @@ Upon convergence, we will see that we can actually use these values to classify 
 
 Here we now maximize $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) = \sum_{i=1}^n \sum_{k =1}^2 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]$.  We can simplify this to maximizing  $$\sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))$$ with respect to $\boldsymbol{\beta}_k$, $k = 1,2$, and $$\sum_{i=1}^np(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(\pi_k)$$ with respect to $\pi_k$, $k = 1,2$.  This is because the Q-function nicely separates with respect to each set of parameters.  
 
-For each $\boldsymbol{\beta}_k$, we can regard $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework.  This is to distinguish from the weights that are defined in each IRLS iteration.  Therefore, we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\X$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can defined new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. 
+For each $\boldsymbol{\beta}_k$, we can regard $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework.  This is to distinguish from the weights that are defined in each IRLS iteration.  Therefore, we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\boldsymbol{X}$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can defined new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. 
 
 For $\pi_k$, we can show that  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$, that is, the mean of the posterior probabilities of each individual belonging to component $k$.  How do we get this?  We have the constraint that $\sum_{i=1}^{K} \pi_k = 1$, therefore we can compute the Langrangian for this problem and set its partial derivative to zero (don't need to worry about this).  Another way to think about this is that if we actually did observe the states, we could simply calculate $\hat{\pi}_k = \sum_{i = 1}^nI[z_i = k]/n$.  Since they are not observed, we can take the conditional expectation of each $z_i$ to give  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$.  
 
