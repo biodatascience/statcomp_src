@@ -45,36 +45,52 @@ This model, called a zero-inflated Poisson model, accounts for the excess zeros 
 
 Let’s take this problem a step further.  Let us assume that at a bass fishing tournament, a statistician took a survey of participants at the end of the week, asking them how many fish they had caught during the tournament  The statistician also noted the age of each individual, the length of their boat in feet, and the approximate volume of the cooler they had brought in liters ($l \times w \times h$).  One of the things that the statistician wanted to determine was how these covariates were related to the number of fish an individual caught during the week. 
 
-For the purposes of illustration, we simulate this data.  We provide the simulation code in the RMD file pertaining to this lecture in case you want to follow along.  We will come back to this simulation setup later.
+For the purposes of illustration, we simulate this data.  We provide the simulation code in the RMD file for this lecture, which you can run if you want to follow along.  We will come back to this simulation setup later.
 
-```{r, echo=FALSE}
-# generate the data
+```{r, echo = F}
+## set the seed 
 set.seed(10)
 
-# sample size
+## set sample size
 n = 500
 
-# create design matrix
+## create design matrix consisting of variables cooler size, boat length, and age
 cooler = round(rt(n, 15, 35),2)
 boat_length =  round(rt(n,5, 30),2)
 age = round(rt(n,25, 50))
 X = model.matrix(~ 1 + age + boat_length + cooler)
 
-# set coefficients
-pi1 = 0.5 # non-professional proportion
-pi2 = 1-pi1 # professional proportion
-beta_1 = matrix(c(3, 0, 0, -.01),ncol = 1) # NP coefs, larger boat cooler = less fish
-beta_2 = matrix(c(3, 0, 0, .01),ncol = 1) # P coefs, larger boat cooler = more fish
+## set the model coefficients
+  # non-professional fisher proportion
+  pi1 = 0.5 
+  
+  # professional fisher proportion
+  pi2 = 1-pi1 
+  
+  # Non-Pro regression coefs
+  beta_1 = matrix(c(3, 0, 0, -.01),ncol = 1) 
+  
+  # Pro regression coefs
+  beta_2 = matrix(c(3, 0, 0, .01),ncol = 1) # Pro- coefs, larger boat cooler = more fish
 
-# simulate data
-group_indicators = rbinom(n, 1, pi2) # 1 = P, 0 = NP
-y = rep(0, n)
-y[group_indicators == 0] = rpois(n = sum(group_indicators == 0),lambda = exp(X[group_indicators == 0,]%*%beta_1))
+## simulate the data
+  # generate group membership vector
+    group_indicators = rbinom(n, 1, pi2) # 1 = Pro, 0 = Non Pro
+
+  # Simulate y given group membership  
+  y = rep(0, n)
+  
+  # non pro y
+  y[group_indicators == 0] = rpois(n = sum(group_indicators == 0),lambda = exp(X[group_indicators == 0,]%*%beta_1))
+  
+  # pro y 
 y[group_indicators == 1] = rpois(n = sum(group_indicators == 1),lambda = exp(X[group_indicators == 1,]%*%beta_2))
+
+## write to file, commented out since only done once for HW
 # write.table(cbind(y, X[,-1]), file = './em/fish.txt', quote = F, col.names = T, row.names = F,  sep = "\t")
 ```
 
-She ran a Poisson GLM on the data and found that none of the variables except for cooler seemed to correlation with outcome:
+She ran a Poisson GLM on the data and found that none of the variables except for cooler seemed to  associate with outcome:
 
 ```{r}
 fit = glm(y ~ X-1, family = poisson())
@@ -99,7 +115,7 @@ Looks like the distribution may be bimodal even after accounting for the predict
 pairs(cbind(log(y+1), X[,-1]), panel = function(...) smoothScatter(..., nrpoints = 0, add = TRUE), gap = 0.2)
 ```
 
-In the first row we can see evidence that there may be different relationships between the cooler variable (x-axis) and the number of fish caught (y-axis) in two different subgroups of participants.  Each group also seems to have a different baseline numbers of fish caught and different trend with cooler.  This could make sense, as both amateur and professional fisherman were allowed to register for the tournament, where we would assume the professional fisherman would catch more than the amateur ones.  
+In the first row we can see evidence that there may be different relationships between the cooler variable (x-axis) and the number of fish caught (y-axis) in two possible subgroups of participants.  Each group also seems to have a different baseline numbers of fish caught and different trend with cooler.  This could make sense, as both amateur and professional fisherman were allowed to register for the tournament, where we would assume the professional fisherman would catch more than the amateur ones.  
 
 The statistician wanted to go ahead and fit a mixture model to the data, again assuming there are two latent populations at hand.  Let’s write the general form of a mixture model with $K$ mixture components, sometimes referred to as "states", where each component corresponds to a particular assumed subpopulation in the data.  We can then write the general form for the density of this mixture as the following: 
 
@@ -108,6 +124,10 @@ f(y_i|\boldsymbol{\theta}) = \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \bo
 $$
 
 where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)^T$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1^T,\ldots,\boldsymbol{\beta}_K^T)^T$, and $\boldsymbol{\beta}_k = (\beta_{1k},\ldots,\beta_{pk})^T$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\boldsymbol{\beta}_k = \beta_{0k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \lambda_{k} = \exp(\beta_{0k})$. 
+
+One way to interpret this model is that we assume that the probability that an individual comes from component (subpopulation) $k$ is $\pi_k$, and, given that the individual is from subpopulation $k$, the density of $y_i$ conditional on membership to component $k$ is $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$.  Since we do not know what the true component membership is, we sum the product of $\pi_k$ and $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$ across all $k$ to get the overall density.  In a sense, this can be thought of as taking a weighted average of all of the component densities as we do not know the component membership in advance, where the weights are the $\pi_k$'s. 
+
+If we somehow knew the component membership of each subject in advance, then we would not need a finite mixture model to begin with, and could just use $f_k$ to model the observations pertaining to a known component $k$. When we discuss the "complete data log likelihood" later, we will come back to this idea. 
 
 The log likelihood can be written as $$l(\boldsymbol{\theta}) = \sum_{i=1}^n \log\left( \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)\right)$$
 
