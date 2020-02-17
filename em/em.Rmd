@@ -112,7 +112,14 @@ hist(residuals(fit, type="pearson"), breaks = 20)
 Looks like the distribution may be bimodal even after accounting for the predictor effects.  Lets look at each of the predictors individually with respect to the log number of fish caught.  
 
 ```{r}
-pairs(cbind(log(y+1), X[,-1]), panel = function(...) smoothScatter(..., nrpoints = 0, add = TRUE), gap = 0.2)
+# create combined matrix object
+mat = cbind(log(y+1), X[,-1])
+
+# name the first column y
+colnames(mat)[1] = "y"
+
+# plot each column against each other using pairs and smoothscatter
+pairs(mat, panel = function(...) smoothScatter(..., nrpoints = 0, add = TRUE), gap = 0.2)
 ```
 
 In the first row we can see evidence that there may be different relationships between the cooler variable (x-axis) and the number of fish caught (y-axis) in two possible subgroups of participants.  Each group also seems to have a different baseline numbers of fish caught and different trend with cooler.  This could make sense, as both amateur and professional fisherman were allowed to register for the tournament, where we would assume the professional fisherman would catch more than the amateur ones.  
@@ -125,9 +132,9 @@ $$
 
 where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)^T$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1^T,\ldots,\boldsymbol{\beta}_K^T)^T$, and $\boldsymbol{\beta}_k = (\beta_{1k},\ldots,\beta_{pk})^T$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\boldsymbol{\beta}_k = \beta_{0k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \lambda_{k} = \exp(\beta_{0k})$. 
 
-One way to interpret this model is that we assume that the probability that an individual comes from component (subpopulation) $k$ is $\pi_k$, and, given that the individual is from subpopulation $k$, the density of $y_i$ conditional on membership to component $k$ is $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$.  Since we do not know what the true component membership is, we sum the product of $\pi_k$ and $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$ across all $k$ to get the overall density.  In a sense, this can be thought of as taking a weighted average of all of the component densities as we do not know the component membership in advance, where the weights are the $\pi_k$'s. 
+One way to interpret this model is that we assume that the prior probability that an individual comes from component (subpopulation) $k$ is $\pi_k$, and, given that the individual is from subpopulation $k$, the density of $y_i$ conditional on membership to component $k$ is $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$.  Since we do not know exactly which component an observation  actually came from, we take the product of $\pi_k$ and $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$ across all $k$ to get the overall density.  In a sense, this can be thought of as taking a weighted average of all $K$ component densities, as we do not know the component membership in advance, where the weights are the $\pi_k$'s. 
 
-If we somehow knew the component membership of each subject in advance, then we would not need a finite mixture model to begin with, and could just use $f_k$ to model the observations pertaining to a known component $k$. When we discuss the "complete data log likelihood" later, we will come back to this idea. 
+If we somehow knew the component membership of each subject in advance, then we would not need a finite mixture model to begin with.  Instead, we could just use each poisson regression model $f_k$ to model the observations pertaining to component $k$. When we discuss the "complete data log likelihood" later, we will come back to this idea. 
 
 The log likelihood can be written as $$l(\boldsymbol{\theta}) = \sum_{i=1}^n \log\left( \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)\right)$$
 
@@ -158,7 +165,7 @@ Let $\boldsymbol{y}$ be the $n$-dimensional random vector pertaining to the vect
 
 To be clear, we are treating $\boldsymbol{y}_o$ here in the general sense in that it pertains to all the **observed data** for a particular model.  This is exactly how it sounds like, in that it pertains to the data that we can actually collect and have on hand in our problem.  
 
-In some situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice for of the complete data likelihood that is suitable for maximization.  
+In some situations, it may be helpful to reformulate a problem with no missing data into a missing data problem.  This may be done, for example, by introducing a latent variable that may simplify the likelihood and thus computation.  Such latent variables may be considered as hypothetical and never observable in some sense, but as we will see later, leads to nice form of the complete data likelihood that is more amenable to maximization.  
 
 In either case, we may term the observed data $\boldsymbol{y}_o$ as the "incomplete data" in this setting, and the "complete" or "augmented" data as as $\boldsymbol{y}_c$, where $\boldsymbol{y}_c = (\boldsymbol{y}_o^T, \boldsymbol{z}^T)^T$, where $\boldsymbol{z}$ pertains to the vector of missing or unobservable data. 
 
@@ -179,12 +186,12 @@ The objective function to be maximized over can be considered a surrogate functi
 
 Similar to the algorithms introduced in the prior lecture, the EM algorithm is iterative and begins at some starting value for $\boldsymbol{\theta}$, which we denote as $\boldsymbol{\theta}^{(0)}$. **Alternatively**, in some cases it may make sense to start with an initial value of the E-step, and then proceed to the M-step.  We will give an example of this situation later in the finite mixture regression model example. 
 
-Better starting values may result in faster convergence, as well as higher chance of converging to the global maximum as opposed to a local one. In a later section will be discuss some of the properties of the EM, one of which is that it does not guarantee global but only local convergence. 
+Better starting values may result in faster convergence, as well as a higher chance of converging to the global maximum as opposed to a local one. In a later section will be discuss some of the properties of the EM, one of which is that it does not guarantee global but only local convergence. 
 
 ### E-step
 In the E-step, the expected value of the complete data likelihood is updated, given the current value of the parameter estimates and the observed data. In some sense, we fill in the missing data in the complete data log likelihood with their expected values at that step, given the observed data and current parameter estimates from the M-step.  That is, at iteration $t$, we calculate  $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)})$, where $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) = E\left[ \log L_c(\boldsymbol{\theta}) | \boldsymbol{y}_o,\boldsymbol{\theta}^{(t)}\right].$ 
 
-Now, in many cases this analogy of "filling in" the missing data with their conditional expections may be an accurate description.  However, in a more general sense we are simply computing the conditional expectation of the **complete data log likelihood** with respect to the missing data. For example, if say the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appeared, $E[q^2| \boldsymbol{y}, \boldsymbol{\theta}] \neq E[q, \boldsymbol{y}, \boldsymbol{\theta}]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expectation for $q^2$ and fill the value in for that particular terms.
+Now, in many cases this analogy of "filling in" the missing data with their conditional expections may be an accurate description.  However, in a more general sense we are simply computing the conditional expectation of the **complete data log likelihood** with respect to the missing data. For example, if we denote the missing data in a problem was some variable $q$, and in the complete data log likelihood both the terms $q$ and $q^2$ appear, $E[q^2| \boldsymbol{y}, \boldsymbol{\theta}] \neq E[q, \boldsymbol{y}, \boldsymbol{\theta}]^2$. That is, we cannot simply "fill in" the guess for $q^2$ in the CDLL with the square of the guess for $q$.  We will still have to formally evaluate the conditional expectation for $q^2$ and fill the value in for that particular term.
 
 Another way to think about this is that we are integrating out the missing data from the complete data log likelihood weighted by the posterior distribution of the missing data, given the observed data and current parameter estimates.  If complex functions of the missing data are present in the CDLL this can complicate the evaluation of this integral, and hence the E-step.  
 
@@ -199,7 +206,7 @@ Optimization methods such as those discussed in the prior lecture are now applic
 In this sense, the EM algorithm is modular, where one can apply existing maximization procedures to maximize the Q-function even in situations where the likelihood is quite complicated, for example necessitating the evaluation of multidimensional integrals (such as GLMMs) or require recursive computation (such as HMMs).  
 
 ### Convergence Criteria
-The algorithm iterates between the E and M steps until the value of the likelihood, Q-function, or parameter estimates converge.  In cases where the likelihood is difficult to compute, such as in GLMMs, using the Q-function or parameter estimates may be preferable over using the likelihood function for convergence.  The same principles regarding choosing informative starting points and convergence criteria apply to the EM algorithm as well.  
+The algorithm iterates between the E and M steps until the value of the likelihood, Q-function, or parameter estimates converge (one can pick any of the three).  In cases where the likelihood is difficult to compute, such as in GLMMs, using the Q-function or parameter estimates may be preferable over using the likelihood function for convergence.  The same principles regarding choosing informative starting points and convergence criteria apply to the EM algorithm as well.  
 
 We will see that some of the properties of the EM algorithm enables it to be quite robust regardless of selected starting points, but can be slower to converge relative to other methods.  It is also not immune to converging to local maxima.  
 
@@ -255,12 +262,12 @@ Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &=\sum_{i=1}^n \sum_{k =1}^2 E[
 We can show that 
 
 \begin{align}
-p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) &= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{p(\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})} \\
-&= \frac{p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{\sum_{k =1}^2p(z_i = k,\boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}\\
+p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) &= \frac{p(z_i = k,\boldsymbol{y}_o |  \boldsymbol{\theta}^{(t)})}{p(\boldsymbol{y}_o | \boldsymbol{\theta}^{(t)})} \\
+&= \frac{p(z_i = k,\boldsymbol{y}_o| \boldsymbol{\theta}^{(t)})}{\sum_{k =1}^2p(z_i = k,\boldsymbol{y}_o | \boldsymbol{\theta}^{(t)})}\\
 &= \frac{\pi_k^{(t)}f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k)}{ \sum_{k =1}^2\pi_k^{(t)}f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}^{(t)}_k)}
 \end{align}
 
-using the definition of conditional probability.  So, evaluating the Q-function is facilitated by simply computing the expectation above.  It is easy to see here that we are "filling in" the latent data $z_i$ with $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$, making it possible to maximize this function.  This quantity is sometimes referred to as the "posterior probability" of subject $i$ belonging to component $k$ at iteration $t$.  
+using the definition of conditional probability.  So, evaluating the Q-function is facilitated by simply computing the expectation above.  It is easy to see here that we are "filling in" the function of the latent data $I[z_i = k]$ with $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$, making it possible to maximize this function.  This quantity is sometimes referred to as the "posterior probability" of subject $i$ belonging to component $k$ at iteration $t$.  
 
 Upon convergence, we will see that we can actually use these values to classify subjects into components.
 
@@ -268,11 +275,13 @@ Upon convergence, we will see that we can actually use these values to classify 
 
 Here we now maximize $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) = \sum_{i=1}^n \sum_{k =1}^2 p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]$.  We can simplify this to maximizing  $$\sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))$$ with respect to $\boldsymbol{\beta}_k$, $k = 1,2$, and $$\sum_{i=1}^np(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(\pi_k)$$ with respect to $\pi_k$, $k = 1,2$.  This is because the Q-function nicely separates with respect to each set of parameters.  
 
-For each $\boldsymbol{\beta}_k$, we can regard $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework.  This is to distinguish from the weights that are defined in each IRLS iteration.  Therefore, we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\boldsymbol{X}$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can defined new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. 
+For each $\boldsymbol{\beta}_k$, we can implement one of the techniques described in the previous lecture to maximize the portion of the Q-function above that pertains to $\boldsymbol{\beta}_k$. However, we can also simplify this step by recognizing that $\sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))$ takes on a familiar form.  
+
+For example, if we consider $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework,  we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\boldsymbol{X}$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can defined new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. If $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) = 1$ for all $i = 1,\ldots,n$, then this problem just reduces to fitting a regular (unweighted) poisson regression model.  
 
 For $\pi_k$, we can show that  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$, that is, the mean of the posterior probabilities of each individual belonging to component $k$.  How do we get this?  We have the constraint that $\sum_{i=1}^{K} \pi_k = 1$, therefore we can compute the Langrangian for this problem and set its partial derivative to zero (don't need to worry about this).  Another way to think about this is that if we actually did observe the states, we could simply calculate $\hat{\pi}_k = \sum_{i = 1}^nI[z_i = k]/n$.  Since they are not observed, we can take the conditional expectation of each $z_i$ to give  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$.  
 
-Therefore, the M-step $\boldsymbol{\beta}_k$ reduces to the problem of computing a weighted GLM for each component, and for $\pi_k$ is simply the mean of the component posterior probabilities.  This is drastically simpler than the alternative approaches that try to maximize the log likelihood directly. Also, as we will see, this also simplifies the coding implementation. 
+Therefore, in the M-step maximizing the Q-function with respect to $\boldsymbol{\beta}_k$ reduces to the problem of computing a weighted GLM in each component.  For $\pi_k$ the computation reduces to simply computing the mean of the component posterior probabilities of membership in each component.  This is drastically simpler than the alternative approaches that try to maximize the log likelihood directly. Also, as we will see, this also simplifies the coding implementation by using existing maximization routines from the last lecture. 
 
 ### Initialization and Convergence
 
@@ -285,64 +294,87 @@ If an informative guess may be utilized for an initial partition, for example, a
 For convergence, we can use parameter-based criteria as before, or simply use the updated value of the log likelihood at each iteration. 
 
 ### And finally, the code implementation
+
+We wont wrap this in a function just yet so that its easier to explore and inspect some of the interior components of the algorithm.  
+
 ```{r}
-tol = 10^-5
-maxit = 50
-iter = 0
-eps = Inf
-ll = -10000
-fit = list()
+### Initialization and setup
+
+## starting parameters
+  # convergence threshold
+  tol = 10^-5   
+  # max number of EM iterations
+  maxit = 50    
+  # iteration counter
+  iter = 0   
+  # arbitrary large to avoid triggering the while loop for delta
+  eps = Inf
+  # arbitrary large value to set the inital ll to
+  ll = -10000
+  # list object for M-step
+  fit = list()
+  # Number of mixture components, K
+  K = 2
   
 ## create posterior probability matrix
-pp = matrix(0, n, 2)
-colnames(pp) = c("amateur","prof")
-
-## use informative initialization, 
-## assuming lower counts --> amatuer
-## choose prop of samples that are amatuer first
-## should vary this and re-evaluate
-prop_ama = 0.6
-
-## set everything greater than th
-pp[y > quantile(y, prop_ama),2] = 1
-pp[,1] = 1 - pp[,2]
-
-## now start the EM algorithm
-start = Sys.time()
-while(eps > tol & iter < maxit){
+  # First col is p(z_i = 1 | y_o, theta^{(t)}, amateur
+  # Second col is p(z_i = 2 | y_o, theta^{(t)}, professional
+  pp = matrix(0, n, K)
   
-  ## save old ll
-    ll0 = ll
-  
-  ## start M-step
-    # pi, mean of component pp's
-    pi = colMeans(pp)
+  # name the columns 
+  colnames(pp) = c("amateur","prof")
+
+## use informative initialization,  assuming lower counts --> amateur
+  #  choose prop of samples that are amateur first
+  #  should vary this and re-run to evaluate multiple starting points/partitions
+  prop_ama = 0.6
+
+  # set everything greater than prop_ama'th percentile to be professional
+  pp[,2] = (y > quantile(y, prop_ama))^2
+  pp[,1] = 1 - pp[,2]
+
+### now start the EM algorithm
+  start = Sys.time()
+  while(eps > tol & iter < maxit){
     
-    # betak, weighted glm's based on pp
-    for(i in 1:2) fit[[i]] = glm(y ~ X -1, family = poisson(), weights = pp[,i])
-  
-  ## start E-step
-    # calculate numerator
-    for(i in 1:2) pp[,i] = pi[i]*dpois(y,lambda = fit[[i]]$fitted)
-  
-    # divide by denominator, the sum across components in each i
-    pp = pp/rowSums(pp)
- 
-  ## calculate LL
-    interior_sum = 0
-    for(i in 1:2) interior_sum = interior_sum + pi[i]*dpois(y,lambda = fit[[i]]$fitted) 
-    ll = sum(log(interior_sum))
+    ## save old ll
+      ll0 = ll
     
-  ## calculate relative change in log likelihood  
-    eps  = abs(ll-ll0)/abs(ll0)
-  
-  ## update iterator
-    iter = iter + 1
-    if(iter == maxit) warning("Iteration limit reached without convergence")
-  
-  ## print out info to keep track
-    cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
-}
+      
+    ## start M-step (Sec. 2.2.4)
+      # pi, mean of each pp column 
+      pi = colMeans(pp)
+      
+      # beta_k, weighted glm's based on pp 
+      for(k in 1:K) fit[[k]] = glm(y ~ X -1, family = poisson(), weights = pp[,k])
+    
+      
+    ## start E-step (Sec. 2.2.3)
+      # calculate numerator, fitted values are exp(X %*% beta_hat)
+      for(k in 1:K) pp[,k] = pi[k]*dpois(y,lambda = fit[[k]]$fitted)
+    
+      # divide by denominator, the sum across components in each i
+      pp = pp/rowSums(pp)
+   
+      
+    ## calculate LL (Sec 2.2.1)
+      # Calculate sum across K inside the log for each subject
+      interior_sum = rep(0, length(y))
+      for(i in 1:K) interior_sum = interior_sum + pi[k]*dpois(y,lambda = fit[[k]]$fitted) 
+      # Take the log of each, then sum across the n subjects to get the ll
+      ll = sum(log(interior_sum))
+      
+    ## calculate relative change in log likelihood  
+      eps  = abs(ll-ll0)/abs(ll0)
+    
+    ## update iterator
+      iter = iter + 1
+      if(iter == maxit) warning("Iteration limit reached without convergence")
+    
+      
+    ## print out info to keep track
+      cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
+  }
 
 end = Sys.time()
 print(end - start)
@@ -396,7 +428,7 @@ In this section we will not focus on the proofs behind the results shown but ins
 
 [The seminal 1977 paper on the EM algorithm by Dempster, Laird, and Rubin](http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.133.4884) demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guaranteed not to decrease with each EM iteration such that $L(\boldsymbol{\theta}^{(k+1)}) \geq L(\boldsymbol{\theta}^{(t)})$ for each iteration $t \geq 0$.   Therefore, for some bounded sequence of likelihood values ${L(\boldsymbol{\theta}^{(t+1)})}$, we know that the likelihood at each iteration converges to some likelihood value $L^*$, which may or may be either a local or global maximum.
 
-The "self-consistency" property of the EM comes from this result, where we can show that if the MLE $\hat{\boldsymbol{\theta}}$ is the global maximizer for the likelihood, this implies that it is also the global maximizer for the Q-function (the surrogate for the likelihood).  In order words, if $\hat{\boldsymbol{\theta}}$ is the global maximizer for $L(\boldsymbol{\theta})$, then this implies that $$Q(\hat{\boldsymbol{\theta}}|\hat{\boldsymbol{\theta}}) \geq Q(\boldsymbol{\theta}|\hat{\boldsymbol{\theta}})$$ and that $\hat{\boldsymbol{\theta}}$ is the solution to the equation $$\frac{d}{d\boldsymbol{\theta}} Q(\boldsymbol{\theta}|\hat{\boldsymbol{\theta}})\|_{\boldsymbol{\theta} = \hat{\boldsymbol{\theta}}} = 0.$$  The latter statement translates to that the optimal value for $\boldsymbol{\theta}$ for the likelihood is also the optimal value for the Q-function.
+The "self-consistency" property of the EM comes from this result, where we can show that if the MLE $\hat{\boldsymbol{\theta}}$ is the global maximizer for the likelihood, this implies that it is also the global maximizer for the Q-function (the surrogate for the likelihood).  In other words, if $\hat{\boldsymbol{\theta}}$ is the global maximizer for $L(\boldsymbol{\theta})$, then this implies that $$Q(\hat{\boldsymbol{\theta}}|\hat{\boldsymbol{\theta}}) \geq Q(\boldsymbol{\theta}|\hat{\boldsymbol{\theta}})$$ and that $\hat{\boldsymbol{\theta}}$ is the solution to the equation $$\frac{d}{d\boldsymbol{\theta}} Q(\boldsymbol{\theta}|\hat{\boldsymbol{\theta}})\|_{\boldsymbol{\theta} = \hat{\boldsymbol{\theta}}} = 0.$$  The latter statement basically says that the optimal $\boldsymbol{\theta}$ with respect to the likelihood function is also the optimal value with respect to the Q-function (hence showing why we can work with the easier Q-function for maximizing the likelihood).
 
 In a more general sense, $\boldsymbol{\theta}^{(t+1)}$ is chosen to maximize $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)})$ at iteration $t$ rather than globally.  Using similar reasoning as the prior result, we can show that this results in a sequence of estimates across iterations satisfying $L(\boldsymbol{\theta}^{(t+1)}) \geq L(\boldsymbol{\theta}^{(t)})$, and therefore the likelihood will not decrease as the algorithm progresses. 
 
@@ -405,7 +437,7 @@ Under certain conditions, such as if the likelihood function is unimodal in $\bo
 ## Convergence Rates 
 Using similar arguments at the last lecture, we can use a Taylor Series Expansion of $\boldsymbol{\theta}^{(t)}$ around $\boldsymbol{\theta}^{(t)}$.  We can show that around $\boldsymbol{\theta}^*$, the rate of convergence of the EM depends on the problem at hand.  Theoretically, the rate of convergence can be determined from the eigenvalues of the Jacobian Matrix at $\theta^*$, where the component with the largest eigenvalues (indicating the slowest rate) determines the overall rate of convergence. 
 
-In general, we can view the EM algorithm as a conservative algorithm, guaranteeing improvements in the likelihood but at rates oftentimes slower than other algorithms.  Again, how much slower is dependent on the problem at hand.  A more in-depth discussion on this topic in at least the mixture model context [can be found here](https://dspace.mit.edu/bitstream/handle/1721.1/7195/aim-1520.pdf?sequence=2)
+In general, we can view the EM algorithm as a conservative algorithm, guaranteeing improvements in the likelihood but at rates oftentimes slower than other algorithms.  Again, how much slower is dependent on the problem at hand.  A more in-depth discussion on this topic in the gaussian mixture model context [can be found here](https://dspace.mit.edu/bitstream/handle/1721.1/7195/aim-1520.pdf?sequence=2)
 
 # Computing Standard Errors of Parameter Estimates
 For the NR algorithm, the hessian matrix is estimated with each update of the algorithm, and one nice byproduct of this is that standard errors can be directly computed for the parameter estimates after convergence using the hessian.  For methods such as BFGS where no hessian is computed, its approximation (often used during maximization) can similarly be utilized for standard error computation.  That is, the covariance matrix of the parameter estimates can be determined with relative ease. 
@@ -424,80 +456,107 @@ For the purpose of covariance matrix estimation for the model parameters, we sim
 
 ## Non-parametric Bootstrap
 
-An alternative version is the **nonparametric bootstrap**, where instead of simulating $B$ bootstrap samples from the fitted model, we instead resample observations with replacement from the original dataset to get out $B$ bootstrap datasets.  Then, similar to the parametric approach, we fit our model on each of the $B$ datasets, and then calculate the covariate matrix of the parameter estimates across the cases. 
+An alternative version is the **nonparametric bootstrap**, where instead of simulating $B$ bootstrap samples from the fitted model, we instead resample observations with replacement from the original dataset to get out $B$ bootstrap datasets.  Then, similar to the parametric approach, we fit our model on each of the $B$ datasets, and then calculate the covariance matrix of the $B$ vectors of parameter estimates across the cases. 
 
-The nonparametric version may be preferred in cases where we have "true missing" data, as indicated earlier in the lecture. For example, in cases where we have censoring in our dataset.  In such cases it is difficult to know and simulate the mechanism and factors driving the missingness in the data, and resampling the original data is one robust way to avoid making such assumptions.  Overall, it is relatively simpler to implement.  
+The nonparametric version may be preferred in cases where we have "true missing" data, as indicated earlier in the lecture. For example, in cases where we have censoring in our dataset.  In such cases it is difficult to know and simulate the mechanism and factors driving the missingness in the data, and therefore resampling the original data is one robust way to avoid making such assumptions.  Overall, it is relatively simpler to implement.  
 
-While we are using this in the context of mixture models fitted with EM, we can use the principle to estimate quantities in many other contexts as the approach is quite general and simple.  More detail on bootstrapping is given in GH Chapter 9.  We may prefer to use direct methods for standard error computations in cases where the application of EM to a specific problem is computational burdensome, where applying EM to each resamples datasets would be very time-prohibitive. 
+While we are using this in the context of mixture models fitted with EM, we can use the principle to estimate quantities in many other contexts, as the approach is quite general and simple.  More detail on bootstrapping is given in GH Chapter 9.  We may prefer to use direct methods for standard error computations in cases when the application of EM to a specific problem is computational burdensome, and therefore applying EM to each resampled datasets would be very time-prohibitive. 
 
 ## Application of nonparametric bootstrap to standard error estimation
 
 Here we created a function that implements the while loop from the prior EM example to simplify the code below.  The function returns the coefficient estimates from a given bootstrap dataset
 
 ```{r}
-
-pois.two.mix.reg.em = function(y, X, tol, maxit, prop1, trace = 0){
-  
-  ## initialize 
-  n = length(y)
+pois.two.mix.reg.em = function(y, X, tol, maxit, prop1, trace = 0) {
+  ## starting parameters
+  # iteration counter
   iter = 0
+  # arbitrary large to avoid triggering the while loop for delta
   eps = Inf
+  # arbitrary large value to set the inital ll to
   ll = -10000
+  # list object for M-step
   fit = list()
-
+  # Number of mixture components, K
+  K = 2
+  
   ## create posterior probability matrix
-  pp = matrix(0, n, 2)
-  colnames(pp) = c("amateur","prof")
+  # First col is p(z_i = 1 | y_o, theta^{(t)}, amateur
+  # Second col is p(z_i = 2 | y_o, theta^{(t)}, professional
+  pp = matrix(0, n, K)
   
-  ## use informative initialization, 
-  ## assuming lower counts --> amatuer
-  ## choose prop of samples that are amatuer first
-  ## should vary this and re-evaluate
+  # name the columns
+  colnames(pp) = c("amateur", "prof")
   
-  ## set everything greater than th
-  pp[y > quantile(y, prop1),2] = 1
-  pp[,1] = 1 - pp[,2]
+  ## use informative initialization,  assuming lower counts --> amateur
+  #  choose prop of samples that are amateur first
+  #  should vary this and re-run to evaluate multiple starting points/partitions
+  prop_ama = prop1
   
-  ## now start the EM algorithm
+  # set everything greater than prop_ama'th percentile to be professional
+  pp[, 2] = (y > quantile(y, prop_ama)) ^ 2
+  pp[, 1] = 1 - pp[, 2]
+  
+  ### now start the EM algorithm
   start = Sys.time()
-  while(eps > tol & iter < maxit){
-    
+  while (eps > tol & iter < maxit) {
     ## save old ll
-      ll0 = ll
+    ll0 = ll
     
-    ## start M-step
-      # pi, mean of component pp's
-      pi = colMeans(pp)
-      
-      # betak, weighted glm's based on pp
-      for(i in 1:2) fit[[i]] = glm(y ~ X -1, family = poisson(), weights = pp[,i])
+    ## start M-step (Sec. 2.2.4)
+    # pi, mean of each pp column
+    pi = colMeans(pp)
     
-    ## start E-step
-      # calculate numerator
-      for(i in 1:2) pp[,i] = pi[i]*dpois(y,lambda = fit[[i]]$fitted)
+    # beta_k, weighted glm's based on pp
+    for (k in 1:K)
+      fit[[k]] = glm(y ~ X - 1, family = poisson(), weights = pp[, k])
     
-      # divide by denominator, the sum across components in each i
-      pp = pp/rowSums(pp)
-   
-    ## calculate LL
-      interior_sum = 0
-      for(i in 1:2) interior_sum = interior_sum + pi[i]*dpois(y,lambda = fit[[i]]$fitted) 
-      ll = sum(log(interior_sum))
-      
-    ## calculate relative change in log likelihood  
-      eps  = abs(ll-ll0)/abs(ll0)
+    
+    ## start E-step (Sec. 2.2.3)
+    # calculate numerator, fitted values are exp(X %*% beta_hat)
+    for (k in 1:K)
+      pp[, k] = pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+    
+    # divide by denominator, the sum across components in each i
+    pp = pp / rowSums(pp)
+    
+    
+    ## calculate LL (Sec 2.2.1)
+    # Calculate sum across K inside the log for each subject
+    interior_sum = rep(0, length(y))
+    for (i in 1:K)
+      interior_sum = interior_sum + pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+    # Take the log of each, then sum across the n subjects to get the ll
+    ll = sum(log(interior_sum))
+    
+    
+    ## calculate relative change in log likelihood
+    eps  = abs(ll - ll0) / abs(ll0)
     
     ## update iterator
-      iter = iter + 1
-      if(iter == maxit) warning("Iteration limit reached without convergence")
+    iter = iter + 1
+    if (iter == maxit)
+      warning("Iteration limit reached without convergence")
     
     ## print out info to keep track
-    if(trace >0)  cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
+    if (trace > 0)
+      cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n", iter, ll, pi[1], eps))
   }
   
-  # return coefficients
+  ### return coefficients
   res = c(pi, fit[[1]]$coef, fit[[2]]$coef)
-  names(res) = c("pi1", "pi2", "int1","age1","boat_length1","cooler1", "int2","age2","boat_length2","cooler2")
+  names(res) = c(
+    "pi1",
+    "pi2",
+    "int1",
+    "age1",
+    "boat_length1",
+    "cooler1",
+    "int2",
+    "age2",
+    "boat_length2",
+    "cooler2"
+  )
   return(res)
 }
 ```
@@ -505,31 +564,40 @@ pois.two.mix.reg.em = function(y, X, tol, maxit, prop1, trace = 0){
 Now lets verify it works properly:
 
 ```{r}
-fit = pois.two.mix.reg.em(y=y, X= X,tol = tol,maxit = maxit, prop1 = prop_ama, trace = 0)
-print(fit)
+em_fit = pois.two.mix.reg.em(y=y, X= X,tol = tol,maxit = maxit, prop1 = prop_ama, trace = 1)
+print(em_fit)
 ```
 
 Everything looks correct, so lets move on to implementing the nonparametric bootstrap
 
 ```{r}
-# Set number of bootstrap samples of size n to draw
+## set number of bootstrap samples of size n to draw
 B = 100
 
-# create matrix to save estimates
-est  = matrix(NA, B, length(fit))
+## create matrix to save estimates
+est  = matrix(NA, B, length(em_fit))
+
 # start loop
-for(i in 1:B){
+for (i in 1:B) {
   # get indices for resampled observations with replacement
-  index = sample(1:n,replace = T)
+  index = sample(1:n, replace = T)
   
-  # fit EM to resampled data 
-  res = pois.two.mix.reg.em(y=y[index], X= X[index,],tol = tol,maxit = maxit, prop1 = prop_ama, trace = 0)
+  # fit EM to resampled data
+  res = pois.two.mix.reg.em(
+    y = y[index],
+    X = X[index, ],
+    tol = tol,
+    maxit = maxit,
+    prop1 = prop_ama,
+    trace = 0
+  )
   
   # save values
-  est[i,] = res
+  est[i, ] = res
   
-  # print first 5 parameter estimates every 200 just for illustration purposes
-  if(floor(i/20) == ceiling(i/20)) print(est[i,1:5])
+  # print first 5 parameter estimates every 200 iterations for illustration
+  if (floor(i / 20) == ceiling(i / 20))
+    print(est[i, 1:5])
 }
 ```
 
@@ -539,7 +607,7 @@ Now that we have the coefficient estimates for each nonparametric bootstrap samp
 cov(est)[1:5,1:5]
 ```
 
-Given this, we can calculate the standard error of each parameter by square root of the diagonal of the bootstrap covariance matrix.  Prior work as shown $B$ = 50 to 100 is sufficient for standard error estimation.  
+Given this, we can calculate the standard error of each parameter by square root of the diagonal of the bootstrap covariance matrix.  Prior work has shown $B$ = 50 to 100 is sufficient for standard error estimation.  
 
 ```{r}
 print(sqrt(diag(cov(est))))
@@ -597,98 +665,153 @@ As mentioned in the previous lecture, the negative binomial distribution can be 
 
 Let’s generate some data similar to that from the fish example from earlier, but now adding in some overdispersion into each mixture component.  We will then fit a two-component negative binomial mixture model, following the same blueprint of the earlier example.  We will also up the sample size to 10,000 to better highlight the runtime differences between regular EM and the ECM version.  
 
-First, let’s load up the data.
+First, let’s generate the data.
 
 ```{r}
-# generate the data
+## generate the data
 set.seed(10)
 
-# sample size
+## set sample size
 n = 10000
 
-# create design matrix
-cooler = round(rt(n, 15, 35),2)
-boat_length =  round(rt(n,5, 30),2)
-age = round(rt(n,25, 50))
-X = model.matrix(~ 1 + age + boat_length + cooler)
+## create design matrix
+cooler = round(rt(n, 15, 35), 2)
+boat_length =  round(rt(n, 5, 30), 2)
+age = round(rt(n, 25, 50))
+X = model.matrix( ~ 1 + age + boat_length + cooler)
 
-# set coefficients
-pi1 = 0.5 # non-professional proportion
-pi2 = 1-pi1 # professional proportion
-beta_1 = matrix(c(3, 0, 0, -.01),ncol = 1) # NP coefs, larger boat cooler = less fish
-beta_2 = matrix(c(3, 0, 0, .01),ncol = 1) # P coefs, larger boat cooler = more fish
-phi = 10
 
-# simulate data
+## set coefficients
+  # amateur proportion
+  pi1 = 0.5 
+  # professional proportion
+  pi2 = 1 - pi1 
+  # Ama coefs, larger boat cooler = less fish
+  beta_1 = matrix(c(3, 0, 0,-.01), ncol = 1) 
+  # Pro coefs, larger boat cooler = more fish
+  beta_2 = matrix(c(3, 0, 0, .01), ncol = 1) 
+  # set dispersion
+  phi = 10
 
-group_indicators = rbinom(n, 1, pi2) # 1 = P, 0 = NP
-y = rep(0, n)
-y[group_indicators == 0] = rnbinom(n = sum(group_indicators == 0),mu = exp(X[group_indicators == 0,]%*%beta_1), size = phi)
-y[group_indicators == 1] = rnbinom(n = sum(group_indicators == 1),mu = exp(X[group_indicators == 1,]%*%beta_2), size = phi)
+
+## simulate data
+  # generate group membership indicator vector
+  group_indicators = rbinom(n, 1, pi2) # 1 = P, 0 = NP
+  
+  # create empty y vector
+  y = rep(0, n)
+  
+  # simulate responses for Amagroup
+  y[group_indicators == 0] = rnbinom(
+    n = sum(group_indicators == 0),
+    mu = exp(X[group_indicators == 0, ] %*% beta_1),
+    size = phi
+  )
+  
+  # simulate responses for Pro group 
+  y[group_indicators == 1] = rnbinom(
+    n = sum(group_indicators == 1),
+    mu = exp(X[group_indicators == 1, ] %*% beta_2),
+    size = phi
+  )
+
 ```
 
 
 ### Vanilla EM
-Now that we have the data, lets fit a regular EM using the glm.nb function in the M step:
+Now that we have the data, lets fit a regular EM using the glm.nb function in the M step.  Again, we show the code here without wrapping it into a function so that its easier to inspect each element.  Afterwards, we will rewrite this in a more modular form by splitting each step into a series of functions. 
 
 ```{r}
-library(MASS)
-tol = 10^-10
-maxit = 1000
-iter = 0
-eps = Inf
-ll = -10000
-fit = list()
-  
+### Initialization and setup
+library (MASS)
+
+## starting parameters
+  # convergence threshold
+  tol = 10 ^ -10
+  # max number of EM iterations
+  maxit = 1000
+  # iteration counter
+  iter = 0
+  # arbitrary large to avoid triggering the while loop for delta
+  eps = Inf
+  # arbitrary large value to set the inital ll to
+  ll = -10000
+  # list object for M-step
+  fit = list()
+  # Number of mixture components, K
+  K = 2
+
 ## create posterior probability matrix
-pp = matrix(0, n, 2)
-colnames(pp) = c("amateur","prof")
+  # First col is p(z_i = 1 | y_o, theta^{(t)}, amateur
+  # Second col is p(z_i = 2 | y_o, theta^{(t)}, professional
+  pp = matrix(0, n, K)
 
-## use informative initialization, 
-## assuming lower counts --> amateur
-## choose prop of samples that are amateur first
-## should vary this and re-evaluate
-prop_ama = 0.6
+  # name the columns
+  colnames(pp) = c("amateur", "prof")
 
-## set everything greater than th
-pp[y > quantile(y, prop_ama),2] = 1
-pp[,1] = 1 - pp[,2]
+## use informative initialization,  assuming lower counts --> amateur
+  #  choose prop of samples that are amateur first
+  #  should vary this and re-run to evaluate multiple starting points/partitions
+  prop_ama = 0.6
 
-## now start the EM algorithm
+  # set everything greater than prop_ama'th percentile to be professional
+  pp[, 2] = (y > quantile(y, prop_ama)) ^ 2
+  pp[, 1] = 1 - pp[, 2]
+
+
+### now start the EM algorithm
 start = Sys.time()
-while(eps > tol & iter < maxit){
-  
+while (eps > tol & iter < maxit) {
   ## save old ll
     ll0 = ll
   
   ## start M-step
     # pi, mean of component pp's
     pi = colMeans(pp)
-    
-    # betak, weighted glm's based on pp
-    for(i in 1:2) fit[[i]] = glm.nb(y ~ X -1,  weights = pp[,i],control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+  
+    # beta_k and theta_k, weighted glm's based on pp
+    for (k in 1:K)
+      fit[[k]] = glm.nb(y ~ X - 1, weights = pp[, k])
+  
   
   ## start E-step
     # calculate numerator
-    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-  
-    # divide by denominator, the sum across components in each i
-    pp = pp/rowSums(pp)
- 
-  ## calculate LL
-    interior_sum = 0
-    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    ll = sum(log(interior_sum))
+    for (k in 1:K)
+      pp[, k] = pi[k] * dnbinom(y, mu = fit[[k]]$fitted, size = fit[[k]]$theta)
     
-  ## calculate relative change in log likelihood  
-    eps  = abs(ll-ll0)/abs(ll0)
+    # divide by denominator, the sum across components in each i
+    pp = pp / rowSums(pp)
+  
+  
+  ## calculate LL
+    # Calculate sum across K inside the log for each subject
+    interior_sum = rep(0, length(y))
+    for (k in 1:K)
+      interior_sum = interior_sum + pi[k] * dnbinom(y, mu = fit[[k]]$fitted, size = fit[[k]]$theta)
+    
+    # Take the log of each, then sum across the n subjects to get the ll
+    ll = sum(log(interior_sum))
+  
+  ## calculate relative change in log likelihood
+    eps  = abs(ll - ll0) / abs(ll0)
   
   ## update iterator
     iter = iter + 1
-    if(iter == maxit) warning("Iteration limit reached without convergence")
+    if (iter == maxit)
+      warning("Iteration limit reached without convergence")
   
   ## print out info to keep track
-    if(floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1, eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,eps))
+    if (floor(iter / 20) == ceiling(iter / 20))
+      cat(
+        sprintf(
+          "Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1, eps:%f\n",
+          iter,
+          ll,
+          pi[1],
+          fit[[1]]$theta,
+          eps
+        )
+      )
 }
 
 end = Sys.time()
@@ -702,22 +825,188 @@ In the M-step, the following process is being utilized
 *  Obtain $\boldsymbol{\beta}^{(1)}$ given $\phi^{(1)}$ via IRLS
 *  Repeat until convergence in Deviance
 
-### ECM
+Lets simplify this a bit, leveraging the modularity of the EM, by splitting up the Initialization, E, and M steps into separate functions:
 
-Let’s do an ECM version, where instead of iterating until convergence in glm.nb in the M-step, we just do a single round.  First we grab the function for the NR maximization for $\phi$, phi.ml() from the MASS package (will invert later).  
+```{r}
+
+
+# function to perform above initialization steps to initialized pp matrix
+pp.init = function(K, col_names, prop) {
+  
+  ## create posterior probability matrix
+    # First col is p(z_i = 1 | y_o, theta^{(t)}, amateur
+    # Second col is p(z_i = 2 | y_o, theta^{(t)}, professional
+    n = length(y)
+    pp = matrix(0, n, K)
+  
+    # name the columns
+    colnames(pp) = col_names
+  
+  ## use informative initialization,  assuming lower counts --> amateur
+    # note that this is only specific for K=2, but can generalize for higher K cases
+    # also could just use random initilization
+    pp[, 2] = (y > quantile(y, prop)) ^ 2
+    pp[, 1] = 1 - pp[, 2]
+  
+  return(pp)
+}
+
+
+# M-step function
+m.step = function(y, X, pp, fit, K = 2) {
+  
+  ## pi, mean of component pp's
+  pi = colMeans(pp)
+  
+  ## beta_k and theta_k, weighted glm's based on pp
+  for (k in 1:K)
+    fit[[k]] = glm.nb(y ~ X - 1, weights = pp[, k])
+  
+  return(list(pi = pi, fit = fit))
+}
+
+
+# E-step function
+e.step = function(y, pp, m) {
+  
+  ## extract m step objects from m
+  pi = m$pi
+  fit = m$fit
+  
+  ## calculate numerator
+  for (k in 1:K)
+    pp[, k] = pi[k] * dnbinom(y, mu = fit[[k]]$fitted, size = fit[[k]]$theta)
+  
+  ## divide by denominator, the sum across components in each i
+  pp = pp / rowSums(pp)
+  
+  return(pp)
+}
+
+
+# log likelihood function
+ll.nb.mix = function(y, m) {
+  
+  ## extract m step objects from m
+  pi = m$pi
+  fit = m$fit
+  
+  ## Calculate sum across K inside the log for each subject
+  interior_sum = rep(0, length(y))
+  for (k in 1:K)
+    interior_sum = interior_sum + pi[k] * dnbinom(y, mu = fit[[k]]$fitted, size = fit[[k]]$theta)
+  
+  ## Take the log of each, then sum across the n subjects to get the ll
+  ll = sum(log(interior_sum))
+  
+  return(ll)
+}
+
+```
+
+Now lets rewrite the prior EM code into a modular function
+
+```{r}
+nb.two.mix.reg.em = function(y,
+                             X,
+                             tol = 10 ^ -10,
+                             maxit = 1000,
+                             prop,
+                             trace = 0) {
+  ## starting parameters
+    iter = 0
+    eps = Inf
+    ll = -10000
+    fit = list()
+    K = 2
+  
+  ## initialize posterior probability matrix
+    pp = pp.init(
+      prop = prop,
+      K = K,
+      col_names = c("amateur", "prof")
+    )
+  
+  ## now start the EM algorithm
+  start = Sys.time()
+  while (eps > tol & iter < maxit) {
+    
+    ## save old ll
+      ll0 = ll
+    
+    ## start M-step
+      m = m.step(y = y,
+                 X = X,
+                 pp = pp,
+                 fit = fit)
+      
+    ## start E-step
+      pp = e.step(y = y, m = m, pp = pp)
+    
+    ## calculate LL
+      ll = ll.nb.mix(y = y, m = m)
+    
+    ## calculate relative change in LL
+      eps  = abs(ll - ll0) / abs(ll0)
+    
+    ## update iterator
+      iter = iter + 1
+      if (iter == maxit)
+        warning("Iteration limit reached without convergence")
+      
+    ## print out info to keep track
+      if (floor(iter / 20) == ceiling(iter / 20) &
+          trace > 0)
+        cat(
+          sprintf(
+            "Iter: %d logL: %.2f pi1: %.3f theta1: %.3f glm.nb1, eps:%f\n",
+            iter,
+            ll,
+            m$pi[1],
+            m$fit[[1]]$theta,
+            eps
+          )
+        )
+  }
+  
+  end = Sys.time()
+  print(end - start)
+}
+```
+
+
+Now lets run it
+
+```{r}
+em_fit = nb.two.mix.reg.em(y = y,
+                           X = X,
+                           prop = prop_ama,
+                           trace = 1)
+```
+
+### ECM, Passing prior M-steps estimates as starting values
+
+Let’s do an ECM version, where instead of iterating until convergence in glm.nb in the M-step, we just do a single round.  One thing that should always be done using EM is to start the next iteration's M-step from the previous iteration's parameter estimates.  This will increase the stability of the fitting of subsequent iterations, and speed up the time to convergence.
+
+First we grab the function for the NR maximization for $\phi$, phi.ml() from the MASS package (will insert later into the m-step).  This function basically applies NR to obtain the updated estimate of the dispersion parameter. 
+
+
+
 
 ```{r}
 phi.ml <-
   function(y, mu, n = sum(weights), weights, limit = 10,
            eps = .Machine$double.eps^0.25,
            trace = FALSE,
-           p0 = NULL #  add this option new to pass starting values
+           p0 = NULL #  added this option new to pass starting values
            ){
-    lambda = 1E-50            ### change to phi instead of theta? ###
+    lambda = 1E-50    
+    # score 
     score <- function(n, ph, mu, y, w){
       sum(w*(digamma((1/ph) + y) - digamma(1/ph) + log(1/ph) +
                1 - log((1/ph) + mu) - (y + (1/ph))/(mu + (1/ph))))*(-1/ph^2) + 2*lambda*ph
     }
+    # hessian
     info <- function(n, ph, mu, y, w){
       sum(w*( - trigamma((1/ph) + y) + trigamma((1/ph)) - ph +
                 2/(mu + (1/ph)) - (y + (1/ph))/(mu + (1/ph))^2))*(1/ph^4) + 2*lambda
@@ -763,81 +1052,71 @@ phi.ml <-
 Then we embed this into the code below for the M step:
 
 ```{r}
-tol = 10^-10
-maxit = 1000
-iter = 0
-eps = Inf
-ll = -10000
-fit = list()
-  
-## create posterior probability matrix
-pp = matrix(0, n, 2)
-colnames(pp) = c("amateur","prof")
 
-## use informative initialization, 
-## assuming lower counts --> amatuer
-## choose prop of samples that are amatuer first
-## should vary this and re-evaluate
-prop_ama = 0.6
-
-## set everything greater than th
-pp[y > quantile(y, prop_ama),2] = 1
-pp[,1] = 1 - pp[,2]
-
-## now start the EM algorithm
-start = Sys.time()
-while(eps > tol & iter < maxit){
+m.step = function(y, X, pp, fit, K = 2) {
   
-  ## save old ll
-    ll0 = ll
-  
-  ## start M-step
-    # pi, mean of component pp's
+  ## pi, mean of component pp's
     pi = colMeans(pp)
-    
-    # Now only one round of beta
-    for(i in 1:2){
-      if(iter==0){
-      # first EM iteration fit poisson reg
-      fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
-                     family = poisson(),
-                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
-      }else{
-        # otherwise fit NB reg using prior theta
-        fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
-                     family = negative.binomial(theta = 1/phi),
-                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
+  
+  
+  ## beta_k given prior theta, weighted glm's based on pp
+    if (length(fit) == 0) {
+      
+      # if fit is uninitialized (no starting estimate for beta or theta), then
+      # no e-step update
+      
+      # fit a simple poisson model for beta
+        for (k in 1:K)
+          fit[[k]] = glm(y ~ X - 1, weights = pp[, k], family = poisson())
+        
+    } else{
+        
+      #  fit a NB regression model for beta given prior theta
+        for (k in 1:K) {
+          fit[[k]] = glm(
+            y ~ X - 1,
+            weights = pp[, k],
+            family = negative.binomial(theta = fit[[k]]$theta),
+            start = fit[[k]]$coefficients
+          )
+      }
+  }
+  
+  ## theta_k given update for beta_k
+    # returns 1/phi actually so need to invert
+    for (k in 1:K) {
+      
+      if (is.null(fit[[k]]$theta)) {
+        
+        # if no prior estimate of theta, then do regular phi.ml update
+          fit[[k]]$theta = 1 / phi.ml(y = y,
+                                      mu = fit[[k]]$fitted,
+                                      weights = pp[, k])$p0
+          
+      } else{
+        
+        #otherwise, pass prior value of theta as starting
+          fit[[k]]$theta = 1 / phi.ml(
+            y = y,
+            mu = fit[[k]]$fitted,
+            weights = pp[, k],
+            p0 = 1 / fit[[k]]$theta ## here
+          )$p0
+        
       }
     }
-    
-    # now one round of phi.ml, returns 1/phi actually so need to invert
-    for(i in 1:2) fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i])$p0
   
-  ## start E-step
-    # calculate numerator
-    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-  
-    # divide by denominator, the sum across components in each i
-    pp = pp/rowSums(pp)
- 
-  ## calculate LL
-    interior_sum = 0
-    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    ll = sum(log(interior_sum))
-    
-  ## calculate relative change in log likelihood  
-    eps  = abs(ll-ll0)/abs(ll0)
-  
-  ## update iterator
-    iter = iter + 1
-    if(iter == maxit) warning("Iteration limit reached without convergence")
-  
-  ## print out info to keep track
-    if(iter == 1 | floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,eps))
+  return(list(pi = pi, fit = fit))
 }
 
-end = Sys.time()
-print(end - start)
+
+
+# now lets rerun
+em_fit = nb.two.mix.reg.em(y = y,
+                           X = X,
+                           prop = prop_ama,
+                           trace = 1)
+
 ```
 
 
@@ -845,220 +1124,89 @@ So, the ECM implementation here where we first maximize each parameter sequentia
 
 ### Multicycle ECM
 
-Let’s if we can speed this up further with the multicycle ECM variant:
+Let’s if we can speed this up further with the multicycle ECM variant.  Here we update the m.step function to include e-step updates in between each conditional maximization:
 
 
 ```{r}
-tol = 10^-10
-maxit = 1000
-iter = 0
-eps = Inf
-ll = -10000
-fit = list()
+m.step = function(y, X, pp, fit, K = 2) {
   
-## create posterior probability matrix
-pp = matrix(0, n, 2)
-colnames(pp) = c("amateur","prof")
-
-## use informative initialization, 
-## assuming lower counts --> amateur
-## choose prop of samples that are amateur first
-## should vary this and re-evaluate
-prop_ama = 0.6
-
-## set everything greater than th
-pp[y > quantile(y, prop_ama),2] = 1
-pp[,1] = 1 - pp[,2]
-
-## now start the EM algorithm
-start = Sys.time()
-while(eps > tol & iter < maxit){
-  
-  ## save old ll
-    ll0 = ll
-  
-  ## start M-step:  pi
-    # pi, mean of component pp's
+  ## pi, mean of component pp's
     pi = colMeans(pp)
   
-  ## start E-step 1
-    if(iter > 0){    
-      # calculate numerator
-        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    
-      # divide by denominator, the sum across components in each i
-      pp = pp/rowSums(pp)
-    }
   
-  ## start M-step:  beta
-    for(i in 1:2){
-      if(iter==0){
-      # first EM iteration fit poisson reg
-      fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
-                     family = poisson(),
-                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
-      }else{
-        # otherwise fit NB reg using prior theta
-        # saving prior theta so not lost
-        phi = fit[[i]]$theta
-        fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
-                     family = negative.binomial(theta = phi),
-                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
-        fit[[i]]$theta = phi
+  ## beta_k given prior theta, weighted glm's based on pp
+    if (length(fit) == 0) {
+      
+      # if fit is uninitialized (no starting estimate for beta or theta), then
+      # no e-step update
+      
+      # fit a simple poisson model for beta
+        for (k in 1:K)
+          fit[[k]] = glm(y ~ X - 1, weights = pp[, k], family = poisson())
+        
+    } else{
+      
+      # estep update after pi_k, since prior fit exists
+        pp = e.step(y = y,
+                    m = list(pi = pi, fit = fit),
+                    pp = pp)
+        
+      #  fit a NB regression model for beta given prior theta
+        for (k in 1:K) {
+          fit[[k]] = glm(
+            y ~ X - 1,
+            weights = pp[, k],
+            family = negative.binomial(theta = fit[[k]]$theta),
+            start = fit[[k]]$coefficients
+          )
+          
+          # estep update after each beta_k
+          pp = e.step(y = y,
+                    m = list(pi = pi, fit = fit),
+                    pp = pp)
+      }
+    
+      
+  }
+  
+  ## theta_k given update for beta_k
+    # returns 1/phi actually so need to invert
+    for (k in 1:K) {
+      if (is.null(fit[[k]]$theta)) {
+        
+        # if no prior estimate of theta, then do the usual
+          fit[[k]]$theta = 1 / phi.ml(y = y,
+                                      mu = fit[[k]]$fitted,
+                                      weights = pp[, k])$p0
+          
+      } else{
+        #otherwise, pass prior value of theta as starting
+          fit[[k]]$theta = 1 / phi.ml(
+            y = y,
+            mu = fit[[k]]$fitted,
+            weights = pp[, k],
+            p0 = 1 / fit[[k]]$theta
+          )$p0
+          
+        # estep update after each theta_k
+        pp = e.step(y = y,
+                    m = list(pi = pi, fit = fit),
+                    pp = pp)
       }
     }
-
-  ## start E-step 2    
-    if(iter > 0){    
-      # calculate numerator
-        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    
-      # divide by denominator, the sum across components in each i
-      pp = pp/rowSums(pp)
-    }
-
-    
-  ## start M-step:  phi
-    for(i in 1:2) fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i])$p0
   
-  ## start E-step 3
-    # calculate numerator
-    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-  
-    # divide by denominator, the sum across components in each i
-    pp = pp/rowSums(pp)
- 
-  ## calculate LL
-    interior_sum = 0
-    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    ll = sum(log(interior_sum))
-    
-  ## calculate relative change in log likelihood  
-    eps  = abs(ll-ll0)/abs(ll0)
-  
-  ## update iterator
-    iter = iter + 1
-    if(iter == maxit) warning("Iteration limit reached without convergence")
-  
-  ## print out info to keep track
-  if(iter == 1 | floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,eps))
-    
+  return(list(pi = pi, fit = fit))
 }
 
 
-end = Sys.time()
-print(end - start)
+# now lets rerun
+em_fit = nb.two.mix.reg.em(y = y,
+                           X = X,
+                           prop = prop_ama,
+                           trace = 1)   
 ```
 
-### Passing prior M-steps estimates as starting values
-
-One thing that should always be done using EM is to start the next iteration's M-step from the previous iteration's parameter estimates.  This will increase the stability of the fitting of subsequent iterations, and speed up the time to convergence:
-
-```{r}
-tol = 10^-10
-maxit = 1000
-iter = 0
-eps = Inf
-ll = -10000
-fit = list()
-  
-## create posterior probability matrix
-pp = matrix(0, n, 2)
-colnames(pp) = c("amateur","prof")
-
-## use informative initialization, 
-## assuming lower counts --> amateur
-## choose prop of samples that are amateur first
-## should vary this and re-evaluate
-prop_ama = 0.6
-
-## set everything greater than th
-pp[y > quantile(y, prop_ama),2] = 1
-pp[,1] = 1 - pp[,2]
-
-## now start the EM algorithm
-start = Sys.time()
-while(eps > tol & iter < maxit){
-  
-  ## save old ll
-    ll0 = ll
-  
-  ## start M-step:  pi
-    # pi, mean of component pp's
-    pi = colMeans(pp)
-  
-  ## start E-step 1
-    if(iter > 0){    
-      # calculate numerator
-        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    
-      # divide by denominator, the sum across components in each i
-      pp = pp/rowSums(pp)
-    }
-  
-  ## start M-step:  beta, now passing prior estimate of beta
-    for(i in 1:2){
-      if(iter==0){
-      # first EM iteration fit poisson reg
-      fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
-                     family = poisson(),
-                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
-      }else{
-        # otherwise fit NB reg using prior theta
-        # saving prior theta so not lost
-        phi = fit[[i]]$theta
-        fit[[i]] = glm(y ~ X -1,  weights = pp[,i],
-                     family = negative.binomial(theta = 1/phi),start = fit[[i]]$coefficients,
-                     control = list(maxit = 25, epsilon = 10^-8, trace = 0))
-        fit[[i]]$theta = phi
-      }
-    }
-
-  ## start E-step 2    
-    if(iter > 0){    
-      # calculate numerator
-        for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    
-      # divide by denominator, the sum across components in each i
-      pp = pp/rowSums(pp)
-    }
-
-    
-  ## start M-step:  phi, now passing prior estimate of phi
-    for(i in 1:2){
-      if(iter > 0){
-        fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i],p0 = 1/fit[[i]]$theta)$p0
-      }else{
-        fit[[i]]$theta = 1/phi.ml(y = y, mu = fit[[i]]$fitted,weights = pp[,i])$p0
-      }
-    }
-  ## start E-step 3
-    # calculate numerator
-    for(i in 1:2) pp[,i] = pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-  
-    # divide by denominator, the sum across components in each i
-    pp = pp/rowSums(pp)
- 
-  ## calculate LL
-    interior_sum = 0
-    for(i in 1:2) interior_sum = interior_sum + pi[i]*dnbinom(y,mu = fit[[i]]$fitted, size = fit[[i]]$theta)
-    ll = sum(log(interior_sum))
-    
-  ## calculate relative change in log likelihood  
-    eps  = abs(ll-ll0)/abs(ll0)
-  
-  ## update iterator
-    iter = iter + 1
-    if(iter == maxit) warning("Iteration limit reached without convergence")
-  
-  ## print out info to keep track
-  if(iter == 1 | floor(iter/20) == ceiling(iter/20)) cat(sprintf("Iter: %d logL: %.2f pi1: %.3f theta1: %.3f eps:%f\n",iter, ll,pi[1],fit[[1]]$theta,eps))
-    
-}
-
-end = Sys.time()
-print(end - start)
-```
+In this setting we do not see much benefit, despite the cheapness of the E-step update.  As mentioned before, this may be helpful in certain settings.  In my person experience, this is helpful when there the dimensionality of the missing data is larger, and when it takes much time/effort to perform an entire M-step update consisting of many conditional maximizations.  
 
 ## Monte Carlo EM (MCEM)
 
