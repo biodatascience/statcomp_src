@@ -35,7 +35,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Question 1:  Not So Simple Univariate Optimization
 
-Let is revisit the problem from the last HW, now using BFGS to fit the model.  Report various the results of the various starting values as the last time, and comment on the convergence for each of the starting values relative the last HW that uses NR.  What properties about BFGS relative to NR could explain this different behavior in this setting? 
+Let is revisit the problem from the last HW, now using BFGS to fit the model.  Report the results of the various starting values as last time, and comment on the convergence for each of the starting values relative the last HW that uses NR.  What properties about BFGS relative to NR could explain the different behavior in this setting? 
 
 $$f(x) = 1.95 - e^{-2/x} - 2e^{-x^4}.$$
 
