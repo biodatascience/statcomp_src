@@ -1059,7 +1059,7 @@ m.step = function(y, X, pp, fit, K = 2) {
     pi = colMeans(pp)
   
   
-  ## beta_k given prior theta, weighted glm's based on pp
+  ## beta_k given prior theta and beta, weighted glm's based on pp
     if (length(fit) == 0) {
       
       # if fit is uninitialized (no starting estimate for beta or theta), then
@@ -1071,7 +1071,7 @@ m.step = function(y, X, pp, fit, K = 2) {
         
     } else{
         
-      #  fit a NB regression model for beta given prior theta
+      #  fit a NB regression model for beta given prior theta_k and beta_k
         for (k in 1:K) {
           fit[[k]] = glm(
             y ~ X - 1,
@@ -1082,7 +1082,7 @@ m.step = function(y, X, pp, fit, K = 2) {
       }
   }
   
-  ## theta_k given update for beta_k
+  ## theta_k given update for beta_k and prior theta_k
     # returns 1/phi actually so need to invert
     for (k in 1:K) {
       

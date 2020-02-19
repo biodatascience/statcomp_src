@@ -55,11 +55,23 @@ $$\int_{0}^1 x^2dx$$
 Here, we wish to integrate the area under the function $x^2$ from $x=0$ to $x=1$.  Graphically, we want to evaluate the area of the shaded region below:
 
 ```{r, echo=TRUE}
-x = seq(-1.5,1.5,,1000)
 
-# make a plot with this function
-plot(x, x^2, ylab = "f(x)", xlab = "x", type= 'l')
-polygon( c(0,x[x>=0 & x<=1],1),  c(0,(x^2)[x>=0 & x<=1],0), col="grey")
+## choose plotting range from -1.5 to 1.5
+  x = seq(-1.5, 1.5, , 1000)
+
+## make a plot with this function
+  plot(x,
+       x ^ 2,
+       ylab = "f(x)",
+       xlab = "x",
+       type = 'l')
+
+## add shaded region under the curve from 0 to 1
+  polygon(
+      c(0, x[x >= 0 & x <= 1], 1),  
+      c(0, (x ^ 2)[x >= 0 & x <= 1], 0), 
+      col = "grey"
+    )
 ```
 
 So how do we evaluate this integral?  Clearly there is an analytical form of the integral in this situation, and we can fall back to what we learned in high school calculus to evaluate it:
@@ -76,28 +88,34 @@ Let us use an example from Givens and Hoeting that illustrates an application of
 
 The example described a set of 22 Alzheimer’s patients that were tracked over a period of 5 months.  Once a month, patients were asked to recall words from a list that was provided at baseline. The outcome variable in this setting is the number of words recalled by each patient in a given month.  These patients were also receiving an experimental therapy during the course of the study.  The investigators sought to determine whether there is any improvement of word recall over time (assumed to be linear) compared to each patient's baseline. Data for 25 control patients was also recorded but not available. 
 
-Clearly, the repeated word count measurements within each subject are not independent, and that there may be substantial between-patient variation in each patient's baseline recall.  We can utilize a Generalized Linear Mixed Model (GLMM) to account for these issues.  
+Clearly, the repeated word count measurements within each subject are **not independent**, and that there may be substantial between-patient variation in each patient's baseline recall.  We can utilize a Generalized Linear Mixed Model (GLMM) to account for these issues.  
 
 Let’s visualize some of the patient data before going further.  The following spaghetti plot shows the individual patient trajectories: 
 
 ```{r}
-# read in the data
-alz = read.table("alzheimers.dat", header = T)
+## read in the data
+  alz = read.table("alzheimers.dat", header = T)
 
-# plot trajectory of each patient as separate lines
-for(i in 1:max(alz$subject)){
-  
-  # select subject indices
-  index = which(alz$subject == i)
+## plot trajectory of each patient as separate lines
+  for (i in 1:max(alz$subject)) {
+    # select subject indices
+    index = which(alz$subject == i)
     
-  # plot trajectory
-  if(i == 1){
-    plot(alz$month[index],alz$words[index], type = 'l', 
-         ylim = range(alz$words), ylab = "Words", xlab = "Month", col = i)
-  }else{
-    lines(alz$month[index],alz$words[index], type = 'l', col = i)
+    # plot trajectory
+    if (i == 1) {
+      plot(
+        alz$month[index],
+        alz$words[index],
+        type = 'l',
+        ylim = range(alz$words),
+        ylab = "Words",
+        xlab = "Month",
+        col = i
+      )
+    } else{
+      lines(alz$month[index], alz$words[index], type = 'l', col = i)
+    }
   }
-}
 ```
 
 It appears that the number of words recalled per month in each patient appears to be increasing over time.  This may suggest the experiment treatment appears to be improving performance relative to each patient's untreated baseline.  It is also apparent that significant heterogeneity exists in patient baseline word recall.
@@ -116,7 +134,7 @@ Here $f(y_{ij} | \lambda_{ij})$ is the Poisson PMF with mean $\lambda_{ij}$ (def
 
 However, as in all GLMM's, the random effects are actually unobservable in the model.  Therefore, in order to obtain the likelihood, we must integrate them out the above expression.  
 
-We perform separate integrals for each $\gamma_i$, 22 in total, which share a common distribution determined by $\sigma^2_gamma$.  In some sense, we can interpret these $\gamma_i's$ was 22 iid draws from $\phi(\gamma_i| 0, \sigma^2_{\gamma})$ which represent the baseline subject-level variability about $\beta_0$.  This likelihood can be represented as the following:
+We perform separate integrals for each $\gamma_i$, 22 in total, which share a common distribution determined by $\sigma^2_gamma$.  In some sense, we can interpret these $\gamma_i's$ was 22 iid draws from $\phi(\gamma_i| 0, \sigma^2_{\gamma})$, which reflects the baseline subject-level variability about $\beta_0$.  This likelihood can be represented as the following:
 
 $$L(\boldsymbol{\beta}, \sigma^2_{\gamma} | \y) = \prod_{i = 1}^{22}\int \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_{\gamma}) \right] d\gamma_i$$
   
@@ -128,7 +146,7 @@ Remember, the $\lambda_{ij}$ is dependent on $\gamma_i$ as well.
 
 This is a bread and butter GLMM, specifically a poisson GLMM with a subject-level random intercept.  Now we would like to maximize this log likelihood to obtain estimates for $\boldsymbol{\beta}$ and $\sigma^2_{\gamma}$. But how do we do even do this?
 
-Well, given that the joint density in the integrand does not simplify to a known distribution, there are no simple closed form solutions here to obtain the MLEs.  As a result, we will have to resort to the optimization tools discussed in the prior lectures (no surprise there). 
+Well, given that the joint density in the integrand does not simplify to a known distribution, there are no simple closed form solutions here to obtain the MLE.  As a result, we will have to resort to the optimization tools discussed in the prior lectures (no surprise there). 
 
 However, we have the additional complication of the presence of an integral with respect to $\gamma_i$ in the log likelihood. Again, the joint density in the integrand does not simplify to some known distribution, so we must approximate this integral numerically during the maximization process.  We also have to make some assumptions regarding switching the order or integration and derivation when calculating derivatives. 
 
@@ -174,29 +192,42 @@ Similar to the approaches discussed in the first lecture of this module, we can 
 
 Drawbacks of this approximation is that it is slow to converge with respect to $n$, in that you may need to increase the number of intervals greatly to achieve a good approximation.  This is not surprising given that the approximation on the sub interval itself is a constant function, so shorter intervals will provide better approximation to the function of interest. One advantage of this approach is that it is quite easy to calculate, particularly when the length of each subinterval is the same. 
 
-### Application to GLMM example
+### Application to the GLMM example
 Let’s go ahead and apply this to the problem of approximating the integral for the first subject in the Alzheimer’s dataset.  We will vary the number of intervals so that we can observe how quickly the approximation converges relative to $n$.  First we will define the function $f(x)$, which in this case is $\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\phi(\gamma_1| 0, \sigma^2_{\gamma})$
 
 ```{r}
-inner = function(gammai, y,beta, s2gamma, log=F){
-  # y is of length 5
-  # x is assumed to be 1:5
-  # beta is a length 2 vector
+# yi is a vector pertaining to single individual i
+# x is assumed to be 1:5
+# beta is a length 2 vector
+
+inner = function(gammai, yi, beta, s2gamma, log = F) {
+
+  ## create vector holding likelihood with respect to each gamma_i
+    val = rep(NA, length(gammai))
   
-  # calculate product over multiple potential values of gammai
-  val = rep(NA, length(gammai))
-  for(i in 1:length(val)){
-    # calculate lambda
-    lambda = exp(beta[1] + beta[2]*1:5 + gammai[i])
-    val0 = dpois(x = y, lambda = lambda) 
-    val[i] = prod(val0)*dnorm(x = gammai[i],mean = 0,sd = sqrt(s2gamma))
-  }
+  ## calculate product with respect to each index of gamma
+    for (i in 1:length(val)) {
+      
+        # calculate lambda
+        lambda = exp(beta[1] + beta[2] * 1:5 + gammai[i])
+        
+        # calculate f(y_ij | lambda_ij) for j = 1,...,5
+        val0 = dpois(x = yi, lambda = lambda)
+        
+        # calculate the product of f(y_ij | lambda_ij) over
+        # j = 1,...,5 times phi(gamma_i | s2_gamma)
+        val[i] = prod(val0) * dnorm(x = gammai[i],
+                                    mean = 0,
+                                    sd = sqrt(s2gamma))
+      }
   
-  if(log == F){
-    return(val)
-  }else{
-    return(log(val))
-  }
+  ## return likelihood or log likelihood
+    if (log == F) {
+      return(val)
+    } else{
+      return(log(val))
+    }
+    
 }
 ```
 
@@ -206,37 +237,74 @@ Using what we have discussed, we can visualize the integrand with respect to $\g
 
 ```{r}
 ## Set values
-range = c(-0.07, 0.085)
-beta = c(1.804, 0.165)
-s2gamma = 0.000225
-y1 = alz$words[alz$subject == 1]
+  range = c(-0.07, 0.085)
+  beta = c(1.804, 0.165)
+  s2gamma = 0.000225
+  y1 = alz$words[alz$subject == 1]
 
+## Define plotting range
+  x = seq(range[1], range[2], length.out = 1000)
+  
 ## plot
-x = seq(range[1], range[2],length.out = 1000)
-plot(x,inner(x, y = y1, beta = beta, s2gamma = s2gamma), 
-     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l')
+  plot(
+    x,
+    inner(
+      x,
+      yi = y1,
+      beta = beta,
+      s2gamma = s2gamma
+    ),
+    ylab = "inner(gamma1)",
+    xlab = "gamma1",
+    type = 'l'
+  )
+
 ```
 
-So, for the range that we picked, looks like we lucked out in that most of the mass under the curve is concentrated in this region.  Now let’s integrate this function using what we just learned
+So, for the range that we picked, looks like we lucked out in that most of the mass under the curve is concentrated in this region.  Now let’s integrate this function using what we just learned.  First, lets write a function to do this:
 
 ```{r}
-## pick number of intervals n
-n = 2
 
-## evaluate Reimann’s rule, assuming intervals of equal length
-# get h
-h = (range[2] - range[1])/n
+reimann = function(intervals, range, yi, beta, s2gamma, trace = 0 ){
 
-# now evaluate.  The book says to sum from 0 to n-1.  0 below pertains to the left most interval boundary
-k = 0:(n-1)
+  ## set the number of intervals n
+    n = intervals
+    
+  ## evaluate Reimann’s rule, assuming intervals of equal length
+    # get h
+    h = (range[2] - range[1])/n
+  
+    # now evaluate.  The book says to sum from 0 to n-1.  
+    # 0 below pertains to the left most interval boundary
+    k = 0:(n-1)
+  
+    # we need to adjust this for how the r vector 
+    # indices are specified (add 1 since no 0 index in r)
+    points = range[1] + k*h
+  
+    # now evaluate the Reimann rule for equal intervals as described above
+    val = h*sum(inner(gammai = points, y = yi, beta = beta, s2gamma = s2gamma))
+  
+  ## print trace statement if > 0
+    if(trace > 0) cat(sprintf("t=%d\tn=%d\tvalue=%.10e\n", log2(n), n, val))
+  
+  ## return the result
+    return(val)
+} 
+```
 
-# We need to adjust this for how r vector indices are specified (add 1 since no 0 index in r)
-points = range[1] + k*h
+Now lets evaluate this for $n = 2$ intervals
 
-# now evaluate the Reimann rule for equal intervals as described above
-val = h*sum(inner(gammai = points, y = y1, beta = beta, s2gamma = s2gamma))
+```{r}
 
-print(val)
+reimann(
+  intervals = 2,
+  range = range,
+  yi = y1,
+  beta = beta,
+  s2gamma = s2gamma
+)
+  
 ```
 
 We can imagine that with only two points this approximation is not very good.  Let’s increase the number of intervals by a factor of two each time and reevaluate.
@@ -244,24 +312,16 @@ We can imagine that with only two points this approximation is not very good.  L
 ```{r}
 
 for(t in 1:10){
-  ## pick number of intervals n
-  n = 2^t
-  
-  ## evaluate Reimann’s rule, assuming intervals of equal length
-  # get h
-  h = (range[2] - range[1])/n
-  
-  # now evaluate.  The book says to sum from 0 to n-1.  0 below pertains to the left most interval boundary
-  k = 0:(n-1)
-  
-  # We need to adjust this for how r vector indices are specified (add 1 since no 0 index in r)
-  points = range[1] + k*h
-  
-  # now evaluate the Reimann rule for equal intervals as described above
-  val = h*sum(inner(gammai = points, y = y1, beta = beta, s2gamma = s2gamma))
-  
-  cat(sprintf("t=%d n=%d value=%.10e\n", t, n, val))
+  reimann(
+    intervals = 2^t,
+    range = range,
+    yi = y1,
+    beta = beta,
+    s2gamma = s2gamma,
+    trace = 1
+  )
 }
+
 ```
 
 Clearly as we increase the number of intervals (and therefore the total number of nodes evaluated), the integral approximation improves.  The question is whether there are more efficient ways to achieve a similar level of accuracy, for example by using a fewer number of intervals. 
@@ -281,27 +341,61 @@ Given the above lets now implement the trapezoidal rule:
 
 ```{r}
 
+trap = function(intervals, range, yi, beta, s2gamma, trace = 0 ){
+
+  ## set the number of intervals n
+    n = intervals
+    
+  ## evaluate Reimann’s rule, assuming intervals of equal length
+    # get h
+    h = (range[2] - range[1])/n
+  
+    # now evaluate.  The book says to sum from 0 to n-1.  
+    # 0 below pertains to the left most interval boundary
+    k = 0:(n-1)
+  
+    # we need to adjust this for how the r vector 
+    # indices are specified (add 1 since no 0 index in r)
+    points_left = range[1] + k * h
+    points_right = range[1] + (k + 1) * h
+    
+    # now evaluate the trap rule for equal intervals as described above
+    # left first
+    left  = inner(
+      gammai = points_left,
+      yi = y1,
+      beta = beta,
+      s2gamma = s2gamma
+    )
+    
+    # then right
+    right  = inner(
+      gammai = points_right,
+      yi = y1,
+      beta = beta,
+      s2gamma = s2gamma
+    )
+    
+    # calculate value
+    val = (h / 2) * sum(left + right)
+  
+  ## print trace statement if > 0
+    if(trace > 0) cat(sprintf("t=%d\tn=%d\tvalue=%.10e\n", log2(n), n, val))
+  
+  ## return the result
+    return(val)
+}
+
+# now lets run it
 for(t in 1:10){
-  ## pick number of intervals n
-  n = 2^t
-  
-  ## assume intervals of equal length
-  # get h, length of each interval
-  h = (range[2] - range[1])/n
-  
-  # now evaluate.  The book says to sum from 0 to n-1.  0 below pertains to the left most interval boundary
-  k = 0:(n-1)
-  
-  # We need to adjust this for how r vector indices are specified (add 1 since no 0 index in r)
-  points_left = range[1] + k*h
-  points_right = range[1] + (k+1)*h
-  
-  # now evaluate the Reimann rule for equal intervals as described above
-  left  = inner(gammai = points_left, y = y1, beta = beta, s2gamma = s2gamma)
-  right  = inner(gammai = points_right, y = y1, beta = beta, s2gamma = s2gamma)
-  val = (h/2)*sum(left + right)
-  
-  cat(sprintf("t=%d n=%d value=%.10e\n", t, n, val))
+  trap(
+    intervals = 2^t,
+    range = range,
+    yi = y1,
+    beta = beta,
+    s2gamma = s2gamma,
+    trace = 1
+  )
 }
 ```
 
@@ -313,7 +407,7 @@ In general, these approaches may require a large number of intervals of shorter 
 
 To evaluate over an infinite range, we can perform a change of variable operation on the integral in question, replacing say $\gamma_1$ with variable $y = \frac{\gamma_1}{1+\gamma_1}$ and then integrating over the range of $y$ which is $(-1,1)$.  This may not address the above issues about the mass of the integral being concentrated in a few intervals.  Of course, such transformations can introduce other types of problems such as singularities.  Other choices of transformations exist, and one may choose the best one based on their problem (GH 5.4.1).  
 
-Alternatively, one may use the methods in the next section (particularly gauss-Hermite quadrature) to approximate integrals over the entire real line with very good accuracy. 
+Alternatively, one may use the methods in the next section (particularly Gauss-Hermite quadrature) to approximate integrals over the entire real line with very good accuracy. 
 
 # Gaussian Quadrature
 
@@ -351,9 +445,9 @@ If we expand the expression for $\phi(\gamma_i| 0, \sigma^2_{\gamma})$, we can s
 $$\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-\frac{\gamma_1^2}{2\sigma_{\gamma}^2}} d\gamma_1$$
 
 
-We can see that a rather easy choice for $w(x)$ is $w(x) = e^{-x^2}$, pertaining to Gauss-Hermite Quadrature, especially since we would like to ideally integrate over the real number line.  If the assumed distribution for $\gamma_i$ was instead standard normal, we would not have to do a lot of extra work here after obtaining our desired number of quadrature nodes and weights. 
-Since this is not the case here, we can achieve this form in a few ways.  The one way is through a change of variable to $\gamma_i^* = \frac{\gamma_i}{\sqrt{2\sigma_{\gamma}^2}}$, integrating now with respect to $\gamma_i^*$.  A more general approach would be to simply do the following:
+We can see that a rather easy choice for $w(x)$ is $w(x) = e^{-x^2}$, pertaining to Gauss-Hermite Quadrature, especially since we would like to ideally integrate over the real number line.  If the assumed distribution for $\gamma_i$ was instead distributed standard normal, we would not have to do a lot of extra work here after obtaining our desired number of quadrature nodes and weights. 
 
+Since this is not the case here, we can achieve this form in a few ways.  The one way is through a change of variable to $\gamma_i^* = \frac{\gamma_i}{\sqrt{2\sigma_{\gamma}^2}}$, integrating now with respect to $\gamma_i^*$.  A more general approach would be to simply do the following:
 
 $$\int \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}\left[\frac{e^{-\frac{\gamma_i^2}{2\sigma_{\gamma}^2}}}{e^{-\gamma_i^2}}\right]e^{-\gamma_i^2} d\gamma_i = \int f(\gamma_i)w(\gamma_i) d\gamma_i$$
 
@@ -367,51 +461,70 @@ Once the weights and nodes have been determined, the integral is approximated si
 Let’s start with $M = 5$ nodes.  Note that the total number of nodes here is much smaller than in the previous approaches (at minimum 1 node per interval). In our current example we have selected Gauss-Hermite Quadrature, which has the advantage of being able to approximate the integral in question over the entire real line.  Let’s first start by determining the set of orthogonal polynomials and associated weights for $M = 5$ nodes. Available R functions will either calculate these directly or will simple look them up in precomputed tables.  Here we use the gaussquad package to print the nodes and associated weights for $k = 1,\ldots, 5$:
 
 ```{r, echo=TRUE}
-# load the gaussquad library
-library(statmod)
+## load the gaussquad library
+  library(statmod)
 
-# get the nodes and associated weights up to M = 5
-gh = gauss.quad(n = 5, kind="hermite")
+## get the nodes and associated weights up to M = 5
+  gh = gauss.quad(n = 5, kind = "hermite")
 
-# print out the resulting list object
-print(gh)
+## print out the resulting list object
+  print(gh)
+  
 ```
 
 Now, let’s write a function for $f(\gamma_i)$ as we defined earlier, and then use this function to calculate the integral approximation with the nodes and weights associated with.  
 ```{r}
-f_gammai = function(gammai, y,beta, s2gamma){
-  # y is of length 5
-  # x is assumed to be 1:5
-  # beta is a length 2 vector
+# yi is of length 5
+# x is assumed to be 1:5
+# beta is a length 2 vector
+
+f_gammai = function(gammai, yi, beta, s2gamma) {
+
+  ## create vector holding likelihood with respect to each gamma_i
+    val = rep(NA, length(gammai))
   
-  # calculate product over multiple potential values of gammai
-  val = rep(NA, length(gammai))
-  for(i in 1:length(val)){
-    # calculate lambda
-    lambda = exp(beta[1] + beta[2]*1:5 + gammai[i])
-    # plug into dpois
-    val0 = dpois(x = y, lambda = lambda) 
-    # calculate product
-    val[i] = prod(val0)* dnorm(x = gammai[i],mean = 0,sd = sqrt(s2gamma))/exp(-gammai[i]^2) 
-  }
+  ## calculate product with respect to each index of gamma
+    for (i in 1:length(val)) {
+      
+      # calculate lambda
+      lambda = exp(beta[1] + beta[2] * 1:5 + gammai[i])
+      
+      # plug into dpois
+      val0 = dpois(x = yi, lambda = lambda)
+      
+      # calculate product
+      val[i] = prod(val0) * dnorm(x = gammai[i],
+                                  mean = 0,
+                                  sd = sqrt(s2gamma)) / exp(-gammai[i] ^ 2)
+    }
   
+  ## return value  
   return(val)
+    
 }
 ```
 
 Now that we have that out of the way, lets approximate the integral for the first observation
 
 ```{r, echo=TRUE}
-# get the nodes for M = 5
-x = gh$nodes
+## get the nodes for M = 5
+  x = gh$nodes
 
-# get the weights associated with each node for M = 5
-w = gh$weights
+## get the weights associated with each node for M = 5
+  w = gh$weights
 
-# now approximate the integral using GH quadrature
-val = sum(w*f_gammai(gammai = x, y = y1, beta = beta, s2gamma = s2gamma))
-  
-print(val)
+## now approximate the integral using GH quadrature
+  val = sum(w * 
+      f_gammai(
+        gammai = x,
+        y = y1,
+        beta = beta,
+        s2gamma = s2gamma
+      )
+  )
+
+## print the value  
+  print(val)
 ```
 
 Hmm, that didn’t work too well.  If we take a look at the nodes, and then look at the original figure plotting the inner function from earlier in this lecture, the range of the nodes themselves seem to be a bit out of the range of where most of the mass under the curve:
@@ -421,10 +534,25 @@ print(x)
 ```
 
 ```{r}
-xv = seq(range[1], range[2],length.out = 1000)
-plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
-     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l', xlim = c(-2.5, 2.5))
-abline(v = x, lty = 2, col = "grey")
+
+## set plotting range
+  xv = seq(range[1], range[2], length.out = 1000)
+
+## now plot
+  plot(
+    xv,
+    inner(
+      gammai = xv,
+      y = y1,
+      beta = beta,
+      s2gamma = s2gamma
+    ),
+    ylab = "inner(gamma1)",
+    xlab = "gamma1",
+    type = 'l',
+    xlim = c(-2.5, 2.5)
+  )
+  abline(v = x, lty = 2, col = "grey")
 ```
 
 Actually, almost all of the quadrature nodes are out of the range since in this example we chose $\sigma^2_{\gamma} = 0.000225$.  Instead, let’s try a change of variable.  We could try to increase the number of nodes, but we can try a change of variable instead.  For example, if say for some $x$, $y = h(x)$, then we know that 
@@ -437,29 +565,34 @@ Here, we want to use $x = \frac{\gamma_1}{\sigma_{\gamma}\sqrt{2}}$, where then 
 
 With this, we have that
 
-\begin{aligned}
+\begin{align}
 \int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-\frac{\gamma_1^2}{2\sigma_{\gamma}^2}} d\gamma_i &= \int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-x^2}h'(x)dx\\
 &=\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right)\frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}} e^{-x^2}\sigma_{\gamma}\sqrt{2}dx\\
 &=\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right)\frac{1}{\sqrt{\pi}} e^{-x^2}dx\\
 &\approx \sum_{k = 1}^M \frac{1}{\sqrt{\pi}}\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})
-\end{aligned}
+\end{align}
 
 where now $\log(\lambda_{1j}) = \boldsymbol{x}_{1j}^T\boldsymbol{\beta} + \sigma_{\gamma}\sqrt{2}x_k$.  Let’s try it out:
 
 ```{r}
 f_x = function(x, y,beta,s2gamma){
-  # y is of length 5
-  # x is assumed to be 1:5
-  # beta is a length 2 vector
   
-  # calculate product over multiple potential values of gammai
+  ## create empty vector
   val = rep(NA, length(x))
-  for(i in 1:length(val)){
-    # calculate lambda
-    lambda = exp(beta[1] + beta[2]*1:5 + sqrt(2*s2gamma)*x[i])
-    val0 = dpois(x = y, lambda = lambda)
-    val[i] = prod(val0)/(sqrt(pi))
-  }
+  
+  ## calculate product over multiple potential values of gammai
+    for(i in 1:length(val)){
+      
+      # calculate lambda
+      lambda = exp(beta[1] + beta[2]*1:5 + sqrt(2*s2gamma)*x[i])
+      
+      # calculate numerator
+      val0 = dpois(x = y, lambda = lambda)
+      
+      # take the product over the vector, then divide by sqrt(pi)
+      val[i] = prod(val0)/(sqrt(pi))
+      
+    }
   return(val)
 }
 ```
@@ -467,20 +600,26 @@ f_x = function(x, y,beta,s2gamma){
 Now evaluate
 
 ```{r, echo=TRUE}
-# set node number
-M = 5
+## set node number
+  M = 5
 
-# get the nodes for M = 5
-gh = gauss.quad(n = M, kind="hermite")
-x = gh$nodes
+## get the nodes for M = 5
+  gh = gauss.quad(n = M, kind = "hermite")
+  x = gh$nodes
 
-# get the weights associated with each node for m = 5
-w = gh$weights
+## get the weights associated with each node for m = 5
+  w = gh$weights
 
-# now approximate the integral using GH quadrature
-val = sum(w*f_x(x = x, y = y1, beta = beta, s2gamma = s2gamma))
-  
-print(val)
+## now approximate the integral using GH quadrature
+  val = sum(w * f_x(
+    x = x,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma
+  ))
+
+## print the value  
+  print(val)
 ```
 
 Looks very similar to what we obtained earlier, and we did so with only 5 nodes! Let’s loop over from 1 to 10 nodes instead: 
@@ -739,11 +878,11 @@ where $\phi(\mu, \sigma^2) \sim N(\mu, \sigma^2)$,  $t=\mu + \sqrt{2\sigma^2}x_k
 
 Then, we can write the integral of $g(t)$ in the following form:
 
-\begin{aligned}
+\begin{align}
 \int g(t)dt &= h(t)\phi(t; \hat{\mu}, \hat{\sigma}^2)dt \\
 &\approx \sum_{k = 1}^M A^*_kh(t_k)\\
 &=\sum_{k = 1}^M A^*_kh\left(\hat{\mu} + \sqrt{2\hat{\sigma^2}}x_k\right)
-\end{aligned}
+\end{align}
 
 where $h(t) = \frac{g(t)}{\phi(t; \hat{\mu}, \hat{\sigma}^2)}$.  We demonstrate this approach below for the first sample in the Alzheimer's dataset.  Here, $h(t) = \frac{\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\phi(t| 0, \sigma^2_{\gamma})}{\phi(t; \hat{\mu}, \hat{\sigma}^2)}$, $\log(\lambda_{1j}) = \boldsymbol{x}_{1j}^T\boldsymbol{\beta} + t$,and $\hat{\mu}$ and $\hat{\sigma}^2$ are chosen in the manner described above. 
 
@@ -774,7 +913,7 @@ Now that we have these pieces, lets write the functions that we need to evaluate
 
 ```{r}
 h_t = function(t, y,beta, s2gamma, pm, hess_pm){
-  # y is of length 5
+  # yi is of length 5
   # x is assumed to be 1:5
   # beta is a length 2 vector
   
