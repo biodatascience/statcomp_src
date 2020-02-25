@@ -55,10 +55,9 @@ f1 = function(x){
 }
 
 
-# to start the model
-tol = 10^-4
+# to start the model, can use maxit/tolerance defaults from optimx
 x = 1.2 # also try 0.5 and 0.99
-maxit = 500
+
 
 
 ## solution
