@@ -40,7 +40,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 #  Introduction
-Statisticians often encounter situations where they need to evaluate an integral during the evaluation or fitting of a statistical model.  One may recall that in random effects models, Bayesian methods, and in the evaluation of expectations such integral evaluations are necessary.  
+Statisticians often encounter situations where they need to evaluate an integral during the fitting of a statistical model.  One may recall that in random effects models, Bayesian methods, and in the evaluation of expectations such integrals are necessary.  
 
 In this section we wish to cover several strategies to evaluate such integrals in practice. In particular, we focus on situations where there is no clear analytical form for the integral.  In such cases we resort to numerical integration to approximate the integral.  
 
@@ -118,23 +118,23 @@ Let’s visualize some of the patient data before going further.  The following 
   }
 ```
 
-It appears that the number of words recalled per month in each patient appears to be increasing over time.  This may suggest the experiment treatment appears to be improving performance relative to each patient's untreated baseline.  It is also apparent that significant heterogeneity exists in patient baseline word recall.
+It appears that the number of words recalled per month in each patient is increasing over time.  This may suggest the experiment treatment is improving recall performance relative to each patient's untreated baseline.  It is also apparent that significant heterogeneity exists in patient baseline word recall.
 
 ### Model setup
-We can more formally set up with problem with the following.  Let $y_{ij}$ be the number of words recalled by patient $i$ in month $j$, where $i = 1\ldots 22$ and $j = 1 \ldots 5$.  We assume that each $y_{ij} \sim Po(\lambda_{ij})$, where the mean and variance of $y_{ij}$ is $\lambda_{ij}$.  
+We can more formally set up with problem with the following.  Let $y_{ij}$ be the number of words recalled by patient $i$ in month $j$, where $i = 1\ldots 22$ and $j = 1 \ldots 5$.  We assume that each $y_{ij} \sim Po(\lambda_{ij})$, where the mean and variance of $y_{ij}$ is assumed to be some $\lambda_{ij}$.  
 
-We also let the covariate vector for the $i$th patient in the $j$th month be $\boldsymbol{x}_{ij} = (1, j)$, indicating that we assume an intercept $\beta_0$ and linear slope $\beta_1$ for month ($\boldsymbol{\beta} = (\beta_0,\beta_1)^T$).  
+Also, let the covariate vector pertaining to the $i$th patient in the $j$th month be defined as $\boldsymbol{x}_{ij} = (1, j)$, where we assume an intercept $\beta_0$ and linear slope $\beta_1$ for month ($\boldsymbol{\beta} = (\beta_0,\beta_1)^T$).  
 
-Then, the counts can be modeled with a poisson GLMM sich that $$\log(\lambda_{ij}) = \boldsymbol{x}_{ij}\boldsymbol{\beta} + \gamma_i$$, where $\gamma_i$ is the unobserved subject-level random effect such that  $\gamma_i \sim N(0,\sigma_{\gamma}^2)$.  
+Then, we assume the counts can be modeled with a poisson GLMM such that $$\log(\lambda_{ij}) = \boldsymbol{x}_{ij}\boldsymbol{\beta} + \gamma_i$$, where $\gamma_i$ is the unobserved subject-level random effect such that  $\gamma_i \sim N(0,\sigma_{\gamma}^2)$.  
 
 So, how do we write  the likelihood for this poisson GLMM with random intercept?  If say  $\gamma_i$ was observable and known, we could write the likelihood as the following:
 
 $$L(\boldsymbol{\beta}, \sigma^2_{\gamma} | \y, \boldsymbol{\gamma}) = \prod_{i = 1}^{22} \left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_{\gamma}).$$
 Here $f(y_{ij} | \lambda_{ij})$ is the Poisson PMF with mean $\lambda_{ij}$ (defined above, dependent on $\gamma_{i}$), and $\phi(\gamma_i| 0, \sigma^2_{\gamma})$ is the Normal PDF with mean 0 and variance $\sigma^2_{\gamma}$.   Also, $\y$ is the vector of all observations in the study and $\gamma = (\gamma_1,\ldots,\gamma_{22})$.  
 
-However, as in all GLMM's, the random effects are actually unobservable in the model.  Therefore, in order to obtain the likelihood, we must integrate them out the above expression.  
+However, as in all GLMM's, the random effects are actually unobservable.  Therefore, in order to obtain the likelihood, we must integrate them out the above expression.  
 
-We perform separate integrals for each $\gamma_i$, 22 in total, which share a common distribution determined by $\sigma^2_gamma$.  In some sense, we can interpret these $\gamma_i's$ was 22 iid draws from $\phi(\gamma_i| 0, \sigma^2_{\gamma})$, which reflects the baseline subject-level variability about $\beta_0$.  This likelihood can be represented as the following:
+We perform separate integrals for each $\gamma_i$, 22 in total, which share a common distribution determined by $\sigma^2_{\gamma}$.  In some sense, we can interpret these $\gamma_i's$ as 22 iid draws from $\phi(\gamma_i| 0, \sigma^2_{\gamma})$, which reflects the baseline subject-level variability about $\beta_0$.  This likelihood can be represented as the following:
 
 $$L(\boldsymbol{\beta}, \sigma^2_{\gamma} | \y) = \prod_{i = 1}^{22}\int \left[\left(\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ij})\right)\phi(\gamma_i| 0, \sigma^2_{\gamma}) \right] d\gamma_i$$
   
@@ -148,7 +148,7 @@ This is a bread and butter GLMM, specifically a poisson GLMM with a subject-leve
 
 Well, given that the joint density in the integrand does not simplify to a known distribution, there are no simple closed form solutions here to obtain the MLE.  As a result, we will have to resort to the optimization tools discussed in the prior lectures (no surprise there). 
 
-However, we have the additional complication of the presence of an integral with respect to $\gamma_i$ in the log likelihood. Again, the joint density in the integrand does not simplify to some known distribution, so we must approximate this integral numerically during the maximization process.  We also have to make some assumptions regarding switching the order or integration and derivation when calculating derivatives. 
+More importantly, we have the additional complication of the presence of an integral with respect to each $\gamma_i$ in the log likelihood. Again, the joint density in the integrand does not simplify to some known distribution, so we must approximate this integral numerically during the maximization process.  We also have to make some assumptions regarding switching the order or integration and derivation when calculating derivatives. 
 
 ### A path forward
 If we assume that we can switch the order of integration and derivation when computing the 1st and 2nd derivatives of the log likelihood, we can obtain analytical forms for first and second derivatives of the likelihood.  Then, we can implement a few of the optimization schemes discussed in the first lecture of this module. 
@@ -307,7 +307,7 @@ reimann(
   
 ```
 
-We can imagine that with only two points this approximation is not very good.  Let’s increase the number of intervals by a factor of two each time and reevaluate.
+We can imagine that with only two intervals this approximation is not very good.  Let’s increase the number of intervals by a factor of two each time and reevaluate.
 
 ```{r}
 
@@ -415,15 +415,13 @@ When the mass under the integrand is concentrated mostly in just a few intervals
 
 Instead of having intervals with equally spaced nodes, what if we instead got rid of intervals entirely and just placed the nodes in the range of $x$ where the bulk of the mass is under the curve?  
 
-This is the general intuition behind Gaussian Quadrature (GQ), where the trick is to first determine two quantities:  the best locations of each node where the function will be evaluated, as well as the weights that are associated with each node.  With these two values in hand, we can approximate a given interval with relatively good accuracy compared to the methods from the prior section using much fewer nodes.  Exact integration can be obtained for $2(M+1)$the degree polynomial, where $M$ is the number of nodes being utilized.   
+This is the general intuition behind Gaussian Quadrature (GQ), where the trick is to first determine two quantities:  the best locations of each node where the function will be evaluated, as well as the weights that are associated with each node.  With these two values in hand, we can approximate a given interval with relatively good accuracy compared to the methods from the prior section using much fewer nodes.  Exact integration can be obtained for $2(M+1)$th degree polynomial, where $M$ is the number of nodes being utilized.   
 
-Gaussian quadrature is very effective for integrals of the following form: $$ \int_a^b f(x)w(x)dx$$ and  $$ \int_a^b x^pw(x)dx < \infty.$$  You may recall that the former may be relevant in Bayesian applications where we have a density function $f(x)$ and some prior $w(x)$.  
+Gaussian quadrature is very effective for integrals of the following form: $$ \int_a^b f(x)w(x)dx$$ and  $$ \int_a^b x^pw(x)dx < \infty.$$  You may recall that the former may be relevant in Bayesian applications where we have a density function $f(x)$ and some prior $w(x)$.  The former is also similar in form to the original integrand in our problem, where in place of $f(x)$ we have $\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})$ and in place of $w(x)$ we have $\phi(\gamma_1| 0, \sigma^2_{\gamma})$, where we wish to integrate with respect to $\gamma_i$.
 
-You might notice that the former is similar to the original integrand at hand in our problem, where in place of $f(x)$ we have $\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})$ and in place of $w(x)$ we have $\phi(\gamma_1| 0, \sigma^2_{\gamma})$ and we wish to integrate with respect to $\gamma_i$.
+The latter is relevant to computing finite moments with respect to some pdf $w(x)$ (such expectations when $k = 1$).  More generally, we can use quadrature to integrate any generic function $f(x)$ via  $$ \int_a^b f^*(x)w(x)dx,$$ where $f^{*}(x) = \frac{f(x)}{w(x)}$.  
 
-The latter is relevant to computing finite moments (such as the expectation $k = 1$) with respect to some pdf $w(x)$.  More generally, we can use quadrature to integrate any generic function $f(x)$ via  $$ \int_a^b f^*(x)w(x)dx,$$ where $f^{*}(x) = \frac{f(x)}{w(x)}$.  
-
-In general, as before we have that $$\int_a^b f(x)w(x)dx \approx \sum_{k = 1}^M A_kf(x_k),$$ where $x_1\ldots x_M$ are the selected quadrature nodes, and $A_1 \ldots A_M$ are the weights associates with each node. **In the previous section, we chose nodes and associated weights in each subinterval that allowed exact integration of the approximating polynomial in that subinterval.**  
+As before, we can write the integral approximation for in the following manner: $$\int_a^b f(x)w(x)dx \approx \sum_{k = 1}^M A_kf(x_k),$$ where $x_1\ldots x_M$ are the selected quadrature nodes, and $A_1 \ldots A_M$ are the weights associated with each node. **In the previous section, we chose nodes and associated "weights" in each subinterval that allowed exact integration of the approximating polynomial in that subinterval.**  
 
 For gaussian quadrature, the question is how do we pick the nodes and the weights for the function of interest that we wish to integrate?  We do this through the use of orthogonal polynomials.
 
@@ -456,12 +454,12 @@ where $w(\gamma_i) = e^{-\gamma_i^2}$ and $f(\gamma_i) = \left(\prod_{j = 1}^{5}
 
 ## Gaussian Quadrature Rule 
 
-Once the weights and nodes have been determined, the integral is approximated simply using $$\sum_{k=1}^M A_kf(x_k)$$, where $x_k$ is the $k$th quadrature node and $A_k$ is the weight associated with that node.  In general, the more nodes that we select the more accurate the approximation becomes, however at the expense of more computing time.  
+Once the weights and nodes have been determined, the integral is approximated simply using $$\sum_{k=1}^M A_kf(x_k),$$ where $x_k$ is the $k$th quadrature node and $A_k$ is the weight associated with that node.  In general, the more nodes that we select the more accurate the approximation becomes, however at the expense of more computing time.  
 
-Let’s start with $M = 5$ nodes.  Note that the total number of nodes here is much smaller than in the previous approaches (at minimum 1 node per interval). In our current example we have selected Gauss-Hermite Quadrature, which has the advantage of being able to approximate the integral in question over the entire real line.  Let’s first start by determining the set of orthogonal polynomials and associated weights for $M = 5$ nodes. Available R functions will either calculate these directly or will simple look them up in precomputed tables.  Here we use the gaussquad package to print the nodes and associated weights for $k = 1,\ldots, 5$:
+Let’s start with $M = 5$ nodes.  Note that the total number of nodes here is much smaller than in the previous approaches (at minimum 1 node per interval). In our current example we have selected Gauss-Hermite Quadrature, which has the advantage of being able to approximate the integral in question over the entire real line.  Let’s first start by determining the set of orthogonal polynomials and associated weights for $M = 5$ nodes. Available R functions will either calculate these directly or will simple look them up in precomputed tables.  Here we use the statmod package to print the nodes and associated weights for $k = 1,\ldots, 5$:
 
 ```{r, echo=TRUE}
-## load the gaussquad library
+## load the statmod library
   library(statmod)
 
 ## get the nodes and associated weights up to M = 5
@@ -541,7 +539,7 @@ print(x)
 ## now plot
   plot(
     xv,
-    inner(
+    f_gammai(
       gammai = xv,
       y = y1,
       beta = beta,
@@ -555,10 +553,13 @@ print(x)
   abline(v = x, lty = 2, col = "grey")
 ```
 
-Actually, almost all of the quadrature nodes are out of the range since in this example we chose $\sigma^2_{\gamma} = 0.000225$.  Instead, let’s try a change of variable.  We could try to increase the number of nodes, but we can try a change of variable instead.  For example, if say for some $x$, $y = h(x)$, then we know that 
+Actually, almost all of the quadrature nodes are out of the range since in this example we chose $\sigma^2_{\gamma} = 0.000225$.  
+Since this prior procedure did not work well, let’s try a change of variable instead.  Later on, we will consider a more "automatic" way of performing the following procedure to reduce the uncertainty of how best to approximate this intergral using GQ. 
+
+For example, if say for some $x$, $\gamma_1 = h(x)$, then we know that 
 
 $$
-\int_a^bf(y)dy = \int_{h^{-1}(a)}^{h^{-1}(b)} f(h(x))h'(x)dx
+\int_a^bf(\gamma_1)d\gamma_i = \int_{h^{-1}(a)}^{h^{-1}(b)} f(h(x))h'(x)dx
 $$
 
 Here, we want to use $x = \frac{\gamma_1}{\sigma_{\gamma}\sqrt{2}}$, where then $\gamma_1 = h(x) = \sigma_{\gamma}\sqrt{2}x$.   More generally, if say $\gamma_1 \sim N(\mu,\sigma^2)$ then we perform the transformation $x = \frac{\gamma_1 -\mu}{\sigma\sqrt{2}}$ where $\gamma_1 = \sigma\sqrt{2}x + \mu$.
@@ -566,13 +567,13 @@ Here, we want to use $x = \frac{\gamma_1}{\sigma_{\gamma}\sqrt{2}}$, where then 
 With this, we have that
 
 \begin{align}
-\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-\frac{\gamma_1^2}{2\sigma_{\gamma}^2}} d\gamma_i &= \int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-x^2}h'(x)dx\\
+\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \times \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-\frac{\gamma_1^2}{2\sigma_{\gamma}^2}} d\gamma_1 &= \int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right) \frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{-x^2}h'(x)dx\\
 &=\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right)\frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}} e^{-x^2}\sigma_{\gamma}\sqrt{2}dx\\
 &=\int \left(\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\right)\frac{1}{\sqrt{\pi}} e^{-x^2}dx\\
 &\approx \sum_{k = 1}^M \frac{1}{\sqrt{\pi}}\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})
 \end{align}
 
-where now $\log(\lambda_{1j}) = \boldsymbol{x}_{1j}^T\boldsymbol{\beta} + \sigma_{\gamma}\sqrt{2}x_k$.  Let’s try it out:
+where now $\log(\lambda_{1j}) = \boldsymbol{x}_{1j}^T\boldsymbol{\beta} + \sigma_{\gamma}\sqrt{2}x_k$ since now $\gamma_1 = h(x) = \sigma_{\gamma}\sqrt{2}x$.  Let’s try it out:
 
 ```{r}
 f_x = function(x, y,beta,s2gamma){
@@ -622,7 +623,7 @@ Now evaluate
   print(val)
 ```
 
-Looks very similar to what we obtained earlier, and we did so with only 5 nodes! Let’s loop over from 1 to 10 nodes instead: 
+Looks closer to what we obtained earlier, and we did so with only 5 nodes! Let’s loop over from 1 to 10 nodes instead: 
 
 ```{r, echo=TRUE}
 for(i in 1:10){
@@ -644,17 +645,17 @@ for(i in 1:10){
 }
 ```
 
-We can see that we achieve very high accuracy in just a small number of nodes with no restriction on the range of integration (using Gauss-Hermite Quadrature).  One reason why we see a slightly higher value for the integral approximation in this application relative to the prior approaches is because we are now integrating over the real number line, where the others were limited to a particular range.  There are some limitations to this approach, which we address later on during the discussion of adaptive Gaussian Quadrature. 
+We can see that we achieve very high accuracy in just a small number of nodes with no restriction on the range of integration (using Gauss-Hermite Quadrature).  One reason why we see a slightly higher value for the integral approximation in this application relative to the prior approaches is because we are now integrating over the real number line, where the others were limited to a particular range.  There are some limitations to this approach, which we address later on during the discussion of adaptive Gaussian Quadrature.  We will show that we can improve on this accuracy by using such an approach.  
 
-### Great, but now how do I do optimization?
+### Great, but now how do I perform optimization?
 
-As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to apply NR, BFGS, etc. to optimize the likelihood.  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
+As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to maximize the likelihood or loglihood via NR, BFGS, abd etc..  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
 
 # Monte-Carlo Integration
 
-So far we have talked about several approaches that approximate the area under the curve based upon a set of fixed points.  We have found that Gaussian Quadrature-based integration methods offer greater computational efficiency and higher accuracy than the Newton-Cotes methods but take a little bit more work to set up. 
+So far we have talked about several approaches that approximate the area under the curve based upon a set of fixed points.  We have found that Gaussian Quadrature-based integration methods offer greater computational efficiency and higher accuracy than the Newton-Cotes methods, but take a little bit more work to set up. 
 
-However, both approaches will become computationally expensive as the dimension of the integral to be evaluated increases.  For example, if we instead assumed in our current example that we have a random intercept and a random slope (with respect to month), the dimension of the random effect increases from 1 to 2, and now we have to integrate out both to obtain the likelihood.  We will get to an example of how these methods fare with multidimensional integrals this at the end of this section.  An alternative approach to the methods that we have introduced is called Monte Carlo integration.  
+However, both approaches will become computationally expensive as the dimension of the integral in question increases.  For example, if we assumed in our current example that we have a random intercept and a random slope (with respect to month), the dimension of the random effect increases from 1 to 2, and now we have to integrate out both to obtain the likelihood.  We will get to an example of how these methods fare with multidimensional integrals at the end of this section.  An alternative approach to the methods that we have introduced is called Monte Carlo integration, which tends to scale better as the dimension of the intergral increases (at other costs).  
 
 ## The general idea
 
@@ -670,39 +671,39 @@ $$ \int h(\boldsymbol{x})f(\boldsymbol{x})dx \approx \frac{1}{M}\sum_{k = 1}^M h
 
 This is helpful for integrating joint probability distributions, such as in our GLMM example where $f(\boldsymbol{x})$ is $\phi(\gamma_i| 0,\sigma^2_{\gamma})$, or in calculating expectations of functions of random variables. Here, $f$ is often called the "target distribution", the density that we wish to sample from.  
 
-Due to the random nature of the way in which the nodes being drawn, some variance in the approximation is expected.  This is called the Monte Carlo Variance (MCV) of the estimate and is larger at smaller $M$.  That is, if you repeated the integration process, your estimate of the integral would vary more from attempt to attempt with smaller values of $M$ compared to larger values. 
+Due to the random nature of the way in which the nodes being drawn, some variance in the approximation is expected.  This is called the Monte Carlo Variance (MCV) of the estimate.  For example, if you repeated the integration process, your estimate of the integral would vary from attempt to attempt.  As you can imagine, this variation would generally be larger with smaller values of $M$ compared to when larger values of $M$ are used. 
 
-If we let $$\hat{\mu}_{MC} = \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k)$$ and assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ as $M \rightarrow \infty$, and $v(\boldsymbol{x}) = (h(\boldsymbol{x}) - \mu)^2$, then using results from BIOS 760 we know that the sampling variance for $\hat{\mu}_{MC}$  is given by $E[v(\boldsymbol{X})/M]  = \sigma^2/M$.  Here $\mu$ is the expectation of $h(\boldsymbol{X})$, where $\boldsymbol{X}$ is a random variable with density $f$.
+If we define $\hat{\mu}_{MC}$ such that $$\hat{\mu}_{MC} = \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k),$$  assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ as $M \rightarrow \infty$, and $v(\boldsymbol{x}) = (h(\boldsymbol{x}) - \mu)^2$, then using results from BIOS 760 we know that the sampling variance for $\hat{\mu}_{MC}$  is given by $E[v(\boldsymbol{X})/M]  = \sigma^2/M$.  Here $\mu$ is the expectation of $h(\boldsymbol{X})$, where $\boldsymbol{X}$ is a random variable with density $f$.
 
-We can calculate the estimate for $\sigma^2$ using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{var}(\hat{\mu}_{MC}) =\frac{1}{M-1} \sum_{k = 1}^M [h(\boldsymbol{X}_k) - \hat{\mu}_{MC}]^2$$.
+We can calculate the estimate for $\sigma^2$ using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{\sigma}^2 = \hat{var}(\hat{\mu}_{MC}) =\frac{1}{M-1} \sum_{k = 1}^M [h(\boldsymbol{X}_k) - \hat{\mu}_{MC}]^2$$.
 
 If we assume that $\sigma^2$ exists, then we know that the asymptotic distribution for $\hat{\mu}_{MC}$ is approximately normal, so we can derive approximate confidence bounds for $\mu$ and perform statistical inference later. 
 
-In later lectures, we will talk about situations where we cannot exactly sample from the target distribution in question (common in Bayesian applications).  In other situations, the evaluation of the target function may be very difficult (integration/optimization needed), and therefore we would want to go the simulation route to avoid evaluating $f$ as much as possible.  In either case, we will use simulation strategies to approximately sample from such distributions, in contrast to the approaches in this lecture where we can example sample from the known parametric densities in question.   
+In later lectures, we will talk about situations where we cannot exactly sample from the target distribution in question (common in Bayesian applications).  In other situations, the evaluation of the target function may be very difficult (integration/optimization needed), and therefore we would want to go the simulation route to avoid evaluating $f$ as much as possible.  In either case, we will use simulation strategies to **approximately** sample from such distributions, in contrast to the approaches in this lecture where we can **exactly** sample from the known parametric densities in question.   
 
 ## Very simple example
 
-Let’s say that some random variable $Y \sim Po(5)$ and we want to calculate $E[Y]$.  Normally we would just use the fact that the expected value of a $Po(\lambda)$ random variable is simply $\lambda$ or evaluate the expectation analytically.  However, we can also obtain this through MCI.  
+Let’s say that some random variable $Y \sim Po(5)$ and we want to calculate $E[Y]$.  Normally we would just use the fact that the expected value of a random variable distributed $Po(\lambda)$ is simply $\lambda$ ,or evaluate the expectation analytically.  However, we can also obtain this through MCI.  
 
 Here we wish to compute the following $$\int Yf(Y)dY.$$  Using what we have already discussed, we know that we can approximate the expected value by generating $M$ samples $Y_1,\ldots,Y_M$ from the $Po(5)$ distribution, and then calculating $\frac{1}{M}\sum_{k=1}^M h(Y_k) = \frac{1}{M}\sum_{k=1}^M Y_k$.
 
 Using the following, we can do this easily:
 
 ```{r, echo=TRUE}
-# set the seed
-set.seed(1)
+## set the seed
+  set.seed(1)
 
-# set the number of MC samples to draw
-M = 100
+## set the number of MC samples to draw
+  M = 100
 
-# draw the samples
-y = rpois(M, lambda = 5) 
+## draw the samples
+  y = rpois(M, lambda = 5)
 
-# since h(y) = y, we can simply take the mean of y 
-print(mean(y))
+## since h(y) = y, we can simply take the mean of y
+  print(mean(y))
 
-# estimate the MCV
-print(var(y)/M)
+## estimate the MCV
+  print(var(y) / M)
 ```
 
 This is pretty intuitive in that we are simply drawing samples from the known distribution for $Y$ and taking the mean to estimate $\hat{\lambda}$, where in this case the true value for $\lambda = 5$. 
@@ -710,17 +711,17 @@ This is pretty intuitive in that we are simply drawing samples from the known di
 We can see that this estimate is not exactly equal to 5 and the MCV in this case is relatively large at 0.0391.  So, to increase the accuracy of the integral, lets bump up $M$:
 
 ```{r, echo=TRUE}
-# set the number of MC samples to draw
-M = 10^4
+## set the number of MC samples to draw
+  M = 10 ^ 4
 
-# draw the samples
-y = rpois(M, lambda = 5) 
+## draw the samples
+  y = rpois(M, lambda = 5)
 
-# since h(y) = y, we can simply take the mean of y 
-print(mean(y))
+## since h(y) = y, we can simply take the mean of y
+  print(mean(y))
 
-# estimate the MCV
-print(var(y)/M)
+## estimate the MCV
+  print(var(y) / M)
 ```
 
 Now we can see that the error is much lower, at the cost of many more samples. 
@@ -729,20 +730,20 @@ Let us now try calculating the values of higher order moments using MCI. If you 
 
 ```{r, echo=TRUE}
 
-# set the number of MC samples to draw
-M = 10^4
+## set the number of MC samples to draw
+  M = 10^4
 
-# draw the samples
-y = rpois(M, lambda = 5) 
+## draw the samples
+  y = rpois(M, lambda = 5) 
 
-#  h(y) = y^2
-print(mean(y^2))
+##  h(y) = y^2
+  print(mean(y^2))
 
-#  h(y) = y^3
-print(mean(y^3))
+##  h(y) = y^3
+  print(mean(y^3))
 
-#  h(y) = y^4
-print(mean(y^4))
+##  h(y) = y^4
+  print(mean(y^4))
 
 ```
 
@@ -752,77 +753,135 @@ We know for example that the second moment of $Y$ is $\lambda + \lambda^2 = 5 + 
 
 We can use MCI to also estimate the area of a circle below with radius $r = 0.5$.  Let’s say that we did not know the value of $\pi$, or that the area of circle is $\pi r^2$. How do we calculate the area of the circle in this situation? 
 
-Let’s reformulate the problem in the following manner.  First, let’s assume that the circle sits perfectly inside of a square shape that we know how to calculate the area to $((2 \times r)^2 = 1)$.  Lets also assume that the center of the circle is located at point (0,0) in a two dimensional coordinate plane.  Given this, we can write the following: $$A_{circle} = A_{square} \left[\frac{A_{circle}}{A_{square}}\right] = 1 \times \left[\frac{A_{circle}}{A_{square}}\right].$$  
+Let’s reformulate the problem in the following manner.  First, let’s assume that the circle sits perfectly inside of a square shape that we know how to calculate the area to $((2 \times r)^2 = 1)$.  Lets also assume that the center of the circle is located at point (0,0) in a two dimensional coordinate plane.  Given this, we can write the following: $$A_{circle} = A_{square} \left[\frac{A_{circle}}{A_{square}}\right] = 1 \times p_{A_{circle}}$$  
 
-Let’s say that if we selected a point $\boldsymbol{z} = (z_x,z_y)$ at random over the support of the square, where $z_x$ and $z_y \sim U(-1/2,1/2)$, then we can also write rewrite this problem as the following: $$A_{circle} = 1 \times p(\boldsymbol{z} \in circle) = 1\int I[\boldsymbol{z} \in circle]d\boldsymbol{z} \approx \frac{1}{M}\sum_{k=1}^M I[\boldsymbol{Z_k} \in circle] $$ where $\boldsymbol{Z}_k = (Z_{x,k},Z_{y,k})$, $Z_{x,k}$ and $Z_{y,k} \sim U(-1/2,1/2)$, and $k =1 \ldots M$.  
+where $p_{A_{circle}}$ is the proportion of the square's area that falls within the circle. Let’s say that if we randomly selected a point $\boldsymbol{z} = (z_x,z_y)$ over the two-dimensional support of the square, where $z_x$ and $z_y \sim U(-1/2,1/2)$, then we can also write rewrite this problem in a probabilistic framework as the following: 
+
+\begin{align}
+A_{circle} &= 1 \times p(\boldsymbol{z} \in circle)\\
+&= 1\int I[\boldsymbol{z} \in circle]d\boldsymbol{z}\\ 
+&\approx \frac{1}{M}\sum_{k=1}^M I[\boldsymbol{Z_k} \in circle] 
+\end{align}
+
+where $\boldsymbol{Z}_k = (Z_{x,k},Z_{y,k})$, $Z_{x,k}$ and $Z_{y,k} \sim U(-1/2,1/2)$, and $k =1 \ldots M$.  
 
 Let’s implement this below:
 
 ```{r}
-# Set number of MC samples to draw
-M = 10^7
+## Set number of MC samples to draw
+  M = 10 ^ 7
 
-# set the radius
-r = 0.5 
+## set the radius
+  r = 0.5
 
-# Draw x and y coordinates from uniform distribution over square with side = 2r
-zx = runif(M, -r, r)
-zy = runif(M, -r, r)
+## Draw x and y coordinates from uniform distribution over square with side = 2r
+  zx = runif(M,-r, r)
+  zy = runif(M,-r, r)
 
-# indicator function if point is in circle of radius 1
-inside = zx^2 + zy^2 < r^2
+## indicator function if point is in circle of radius 1
+  inside = zx ^ 2 + zy ^ 2 < r ^ 2
 
-# calculate area
-print(mean(inside)*(2*r))
+## calculate area
+  print(mean(inside) * (2 * r))
 ```
 
-which is similar to $\pi(0.5)^2 = 0.78539$.  The area of the circle here is simply the area of the square $\times$ the proportion of points falling into the circle, which is our MC estimator for $1\times p(\boldsymbol{z} \in circle) = E[I[\boldsymbol{z}]]$.  We can visualize this below:
+which is similar to $\pi(0.5)^2 = 0.78539$.  The area of the circle here is simply the area of the square $\times$ the proportion of points falling into the circle, which is our MC estimator for $1\times p(\boldsymbol{z} \in circle) = E[I[\boldsymbol{z} \in circle]]$.  We can visualize this below:
 
 ```{r}
-# color points inside circle red
-col = rep(1, M)
-col[inside] = 2
 
-# plot circle with points (just use a subset of points to save plotting time)
-subset = 1:1000
-plot(zx[subset], zy[subset], asp = 1, xlim = c(-r, r), col = col[])
+## color points inside circle red
+
+  # create vector of length M, 
+  col = rep("black", M)
+
+  # set points inside to  red
+  col[inside] = "red"
+
+## plot circle with points 
+  
+  # just use a subset of points to save plotting time
+  subset = 1:1000
+  
+  # now plot
+  plot(zx[subset],
+       zy[subset],
+       asp = 1,
+       xlim = c(-r, r),
+       col = col)
+
 ```
 
-So, in other words, if we have a known quantity, such as the area of the surrounding square, and have a means to estimate the proportion of that area belonging to your feature of interest, then you can estimate the area of any arbitrary shape within the square.  This is similar to randomly throwing darts at a board, and simply counting the number of times you hit the region of interest. 
+So, in other words, if we have a known quantity, such as the area of the surrounding square, and have a means to estimate the proportion of that area belonging to your feature of interest, then you can estimate the area of any arbitrary shape within the square.  This is similar to randomly throwing darts at a board, and simply computing the proportion of times you hit the region of interest. 
 
 ## Application to Alzheimer’s GLMM example
 
 Let’s try to evaluate the integral for the first subject in the model using MCI and then compare the approach to quadrature.
 
 ```{r}
-# function h(gammai)
-h = function(gammai,y,beta){
-  lambda = exp(beta[1] + beta[2]*1:5 + gammai)
-  val0 = dpois(x = y, lambda = lambda) 
-  # calculate product
-  return(prod(val0))
-}
+## function h(gammai)
+  h = function(gammai, y, beta) {
+    
+    # calculate lambda give gammai
+    lambda = exp(beta[1] + beta[2] * 1:5 + gammai)
+    
+    # get poisson PMF given lambda, y
+    val0 = dpois(x = y, lambda = lambda)
+    
+    # calculate product
+    return(prod(val0))
+  }
 
-# starting values
-M = 1000
-y1 = alz$words[alz$subject == 1]
-beta = c(1.804, 0.165)
-s2gamma = 0.000225
+## starting values
 
-# draw samples from the target density f(gamma)
-gammai = rnorm(M, 0, sd = sqrt(s2gamma))
+  # choose num draws
+  M = 1000
 
-# evaluate integral
-mean(sapply(gammai, h, y = y1, beta = beta))
+  # get 1st observations data
+  y1 = alz$words[alz$subject == 1]
+  
+  # set beta and s2gamma  as  before
+  beta = c(1.804, 0.165)
+  s2gamma = 0.000225
+
+## draw samples from the target density f(gamma)
+  gammai = rnorm(M, 0, sd = sqrt(s2gamma))
+
+## evaluate integral
+  mean(sapply(gammai, h, y = y1, beta = beta))
+  
 ```
 
 Pretty close to what we had before! But, compared to quadrature we had to use a lot more nodes to get this estimate.  Also, the estimate appears to be a little bit off.  We can try to increase $M$, but just to be safe let’s visualize this first:
 
 
 ```{r}
-plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
-     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l')
-segments(x0 = gammai,x1 = gammai,y0 = 0, y1 = inner(gammai = gammai, y = y1, beta = beta, s2gamma = s2gamma), col = "lightblue")
+
+plot(
+  xv,
+  inner(
+    gammai = xv,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma
+  ),
+  ylab = "inner(gamma1)",
+  xlab = "gamma1",
+  type = 'l'
+)
+
+
+segments(
+  x0 = gammai,
+  x1 = gammai,
+  y0 = 0,
+  y1 = inner(
+    gammai = gammai,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma
+  ),
+  col = "lightblue"
+)
 abline(v = 0, col = "blue")
 ```
 
@@ -835,14 +894,14 @@ We can get around this problem by simply increasing the number of draws. However
 We can see this below that even when increasing the number of samples significantly that we cannot get the level of accuracy as some of the prior approaches:
 
 ```{r}
-# Increasing M to 10 million
-M = 10^7
+## Increasing M to 10 million
+  M = 10^7
 
-# draw samples from the target density f(gamma)
-gammai = rnorm(M, 0, sd = sqrt(s2gamma))
+## draw samples from the target density f(gamma)
+  gammai = rnorm(M, 0, sd = sqrt(s2gamma))
 
-# evaluate integral
-mean(sapply(gammai, h, y = y1, beta = beta))
+## evaluate integral
+  mean(sapply(gammai, h, y = y1, beta = beta))
 ```
 
 To address this issue, lets first circle back and revisit Gaussian Quadrature.  We will discuss an adaptive version of the approach that can address on this issue, improve accuracy, and also provide a general means to apply GQ to many different cases.  The problem that we describe above also impacts the performance of GQ in our GLMM application but could be overcome here by just using many more quadrature nodes.  
@@ -854,10 +913,25 @@ In general, this has implications in terms of being able to "automatically" fit 
 Our first attempt to apply GQ  simply refactored the integrand, and we found that most of the quadrature nodes did not overlap the parts of the integrand with the most mass under the curve. With the change of variable approach, the nodes that were being passed to  $h(\gamma_1)$ in this example were effectively being scaled such that they were now $\sqrt{2\sigma^2_\gamma}x_k$ rather than just $x_k$.  This "rescaling" also helped to ensure that the rescaled nodes also hit the area with most of the mass under the curve (visualized below):
 
 ```{r}
-xv = seq(range[1], range[2],length.out = 1000)
-plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
-     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l', xlim = range)
-abline(v = sqrt(2*s2gamma)*gh$nodes, lty = 2, col = "grey")
+# plot function over xv
+plot(
+  xv,
+  inner(
+    gammai = xv,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma
+  ),
+  ylab = "inner(gamma1)",
+  xlab = "gamma1",
+  type = 'l',
+  xlim = range
+)
+
+# plot nodes
+abline(v = sqrt(2 * s2gamma) * gh$nodes,
+       lty = 2,
+       col = "grey")
 ```
 
 However, as we saw earlier, the mode of the integrand does not correspond to the mode of $\phi(x)$ (or $w(x)$).  Therefore,   the quadrature nodes utilized here are centered around 0, whereas the mode of the distribution is not. This can contribute to a lack of accuracy in the integral being approximated. In practice, it is difficult to know evaluate how much this issue is playing out in the functions prior to integration.  For example, in our GLMM example we would have to evaluate this for each subject, as each subject $i$ has its own $\gamma_i$ that needs to be integrated out.  For the first subject, we see that ignoring this shift in the posterior mode will not have large impact with enough quadrature points, but for others this may not be the case.  This will have most impact when using a small number of quadrature nodes.  To get around this issue, we use AGQ. 
@@ -874,60 +948,89 @@ where the nodes $x_k$ and associated weights $A_k$, $k = 1\ldots M$, are calcula
 
 $$\int f(t)\phi(t; \mu, \sigma^2)dt\approx \sum_{k = 1}^M A^*_kf(t_k)$$
 
-where $\phi(\mu, \sigma^2) \sim N(\mu, \sigma^2)$,  $t=\mu + \sqrt{2\sigma^2}x_k$, and $A^*_k = A_k/\sqrt{\pi}$.  You might notice that we performed a change of variable here similar in nature to what was done earlier.  Now, we choose $\mu$ and $\sigma^2$ so that the new quadrature nodes $t_1,\ldots,t_M$ are essentially a recentered and rescaled version of the original ones $x_1,\ldots,x_M$, and will be placed in regions of highest mass of the original integrand, called say $g(t)$.  Here, we can choose $\hat{\mu}$ to correspond to the mode of the integrand $g(t)$, which we can do through standard optimization routines from our first lecture.  For $\hat{\sigma}^2$, we can calculate $$\hat{\sigma}^2 = \left(-\frac{\partial^2}{\partial t^2}\log(g(t))\rvert_{t=\hat{\mu}}\right)^{-1}$$, that is, the inverse second derivative of the integrand evaluated at the posterior mode.  
+where $\phi(\mu, \sigma^2) \sim N(\mu, \sigma^2)$,  $t=\mu + \sqrt{2\sigma^2}x_k$, and $A^*_k = A_k/\sqrt{\pi}$.  You might notice that we performed a change of variable here similar in nature to what was done earlier.  Now, we choose $\mu$ and $\sigma^2$ so that the new quadrature nodes $t_1,\ldots,t_M$ are essentially a recentered and rescaled version of the original ones $x_1,\ldots,x_M$, and will be placed in regions of highest mass of the original integrand, called say $g(t)$.  Here, we can choose $\hat{\mu}$ to correspond to the mode of the integrand $g(t)$, which we can do through standard optimization routines from our first lecture.  For $\hat{\sigma}^2$, we can calculate $$\hat{\sigma}^2 = \left(-\frac{\partial^2}{\partial t^2}\log(g(t))\rvert_{t=\hat{\mu}}\right)^{-1},$$ that is, the inverse second derivative of the integrand evaluated at the posterior mode.  
 
 Then, we can write the integral of $g(t)$ in the following form:
 
 \begin{align}
 \int g(t)dt &= h(t)\phi(t; \hat{\mu}, \hat{\sigma}^2)dt \\
 &\approx \sum_{k = 1}^M A^*_kh(t_k)\\
-&=\sum_{k = 1}^M A^*_kh\left(\hat{\mu} + \sqrt{2\hat{\sigma^2}}x_k\right)
+&=\sum_{k = 1}^M A^*_kh\left(\hat{\mu} + \sqrt{2\hat{\sigma}^2}x_k\right)
 \end{align}
 
 where $h(t) = \frac{g(t)}{\phi(t; \hat{\mu}, \hat{\sigma}^2)}$.  We demonstrate this approach below for the first sample in the Alzheimer's dataset.  Here, $h(t) = \frac{\prod_{j = 1}^{5}f(y_{1j} | \lambda_{1j})\phi(t| 0, \sigma^2_{\gamma})}{\phi(t; \hat{\mu}, \hat{\sigma}^2)}$, $\log(\lambda_{1j}) = \boldsymbol{x}_{1j}^T\boldsymbol{\beta} + t$,and $\hat{\mu}$ and $\hat{\sigma}^2$ are chosen in the manner described above. 
 
+Lets do this below:
+
 ```{r}
-# find posterior mode of the integrand wrt to t = gamma_1
-# starting value for gamma_1 set to 0
-library(optimx)
-pm = suppressWarnings(optimx(
-      par = 0, 
-      fn = function(x, y, beta, s2gamma){inner(gammai = x,y = y1, beta = beta, s2gamma = s2gamma)},  
-      y = y1, 
-      beta = beta, 
+## find posterior mode of the integrand wrt to t = gamma_1
+  # starting value for gamma_1 set to 0
+  # use nelder mead for simplocity, low dim problem
+  library(optimx)
+  pm = suppressWarnings(
+    optimx(
+      par = 0,
+      fn = function(x, y, beta, s2gamma) {
+        inner(
+          gammai = x,
+          y = y1,
+          beta = beta,
+          s2gamma = s2gamma
+        )
+      },
+      y = y1,
+      beta = beta,
       s2gamma = s2gamma,
       method = "Nelder-Mead",
       control = list(maximize = T)
-))
-print(pm$p1)
+    )
+  )
+  print(pm$p1)
 
-# now estimate second derivative about the posterior mode in the log integrand
-# you can write out the analytical form and plug in the value of the pm
-# for time purposes we are going to approximate it analytically using the hessian() function
-library(numDeriv)
-hess_pm = hessian(func = inner,x = pm$p1,y = y1, beta = beta, s2gamma = s2gamma, log = T)
-print(sqrt(-1/hess_pm)) # pretty similar to s2gamma
+## now estimate second derivative about the posterior mode in the log integrand
+  # you can write out the analytical form and plug in the value of the pm
+  # for time purposes we are going to approximate it analytically using the hessian() function
+  library(numDeriv)
+  hess_pm = hessian(
+    func = inner,
+    x = pm$p1,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma,
+    log = T
+  )
+  print(sqrt(-1 / hess_pm)) # pretty similar to s2gamma
+
 ```
 
 Now that we have these pieces, lets write the functions that we need to evaluate the integral
 
 ```{r}
-h_t = function(t, y,beta, s2gamma, pm, hess_pm){
+h_t = function(t, y, beta, s2gamma, pm, hess_pm) {
   # yi is of length 5
   # x is assumed to be 1:5
   # beta is a length 2 vector
   
   # calculate product over multiple potential values of gammai
   val = rep(NA, length(t))
-  for(i in 1:length(val)){
+  
+  for (i in 1:length(val)) {
+    
     # calculate lambda
-    lambda = exp(beta[1] + beta[2]*1:5 + t[i])
+    lambda = exp(beta[1] + beta[2] * 1:5 + t[i])
+    
     # plug into dpois
-    val0 = dpois(x = y, lambda = lambda) 
+    val0 = dpois(x = y, lambda = lambda)
+    
     # calculate product
-    val[i] = prod(val0)* 
-              dnorm(x = t[i],mean = 0,sd = sqrt(s2gamma))/
-              dnorm(x = t[i],mean = pm,sd = sqrt(-1/hess_pm)) # now dividing by N(muhat,sigma2hat)
+    # now dividing by N(muhat,sigma2hat)
+    val[i] = prod(val0) *
+      dnorm(x = t[i],
+            mean = 0,
+            sd = sqrt(s2gamma)) /
+      dnorm(x = t[i],
+            mean = pm,
+            sd = sqrt(-1 / hess_pm)) 
   }
   return(val)
 }
@@ -936,31 +1039,51 @@ h_t = function(t, y,beta, s2gamma, pm, hess_pm){
 Now let’s evaluate the integral
 
 ```{r, echo=TRUE}
-# set node number
-M = 5
+## set node number
+  M = 5
 
-# get the nodes for M = 5
-gh = gauss.quad(n = M, kind="hermite")
-x = gh$nodes
+## get the nodes for M = 5
+  gh = gauss.quad(n = M, kind = "hermite")
+  x = gh$nodes
 
-# recenter and rescale the nodes
-t = pm$p1 + sqrt(2*(-1/as.numeric(hess_pm)))*x
+## recenter and rescale the nodes
+  t = pm$p1 + sqrt(2 * (-1 / as.numeric(hess_pm))) * x
 
-# get the weights associated with each node for m = 5
-w = gh$weights/sqrt(pi)
+## get the weights associated with each node for m = 5
+  w = gh$weights / sqrt(pi)
 
-# now approximate the integral using GH quadrature
-val = sum(w*h_t(t = t, y = y1, beta = beta, s2gamma = s2gamma,pm = pm$p1,hess_pm = hess_pm))
-  
-print(val)
+## now approximate the integral using GH quadrature
+  val = sum(w * h_t(
+    t = t,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma,
+    pm = pm$p1,
+    hess_pm = hess_pm
+  ))
+
+  print(val)
 ```
 
 We can visualize the new nodes below:
 
 ```{r}
-xv = seq(range[1], range[2],length.out = 1000)
-plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
-     ylab = "inner(gamma1)", xlab = "gamma1", type = 'l', xlim = range)
+
+plot(
+  xv,
+  inner(
+    gammai = xv,
+    y = y1,
+    beta = beta,
+    s2gamma = s2gamma
+  ),
+  ylab = "inner(gamma1)",
+  xlab = "gamma1",
+  type = 'l',
+  xlim = range
+)
+
+# plot nodes
 abline(v = t, lty = 2, col = "grey")
 ```
 
@@ -1003,56 +1126,58 @@ So far, we have introduced the MC estimator for the integral  $\hat{\mu}_{MC} = 
 
 ## The general idea
 
-The main idea behind importance sampling is that we oversample regions of $\boldsymbol{x}$ where most of the mass under $h(\boldsymbol{x})f(\boldsymbol{x})$ is located, and then adjust for the fact that you are oversampling in these regions relative to the original target density.   
+The main idea behind importance sampling is that we oversample the regions of $\boldsymbol{x}$ where most of the mass under $h(\boldsymbol{x})f(\boldsymbol{x})$ is contained, and then adjust for the fact that you are oversampling in these regions relative to the original target density.   
 
-This is helpful in situations where the majority of the mass is concentrated in small region, or in a region that is far away from the mean of the target distribution.  In such situations, the majority of the samples drawn will not meaningfully contribute to the overall integral.  Also, the one or two samples that hit the regions of high mass will not allow you to accurately estimate the integral and would also subject the MC estimator to have high variance in this case.  
+This is helpful in situations where the majority of the mass is concentrated in small region, or in a region that is far away from the mean of the target distribution.  In such situations, the majority of the samples drawn will not meaningfully contribute to the overall integral.  Also, the one or two samples that hit the regions of high mass will not allow you to accurately estimate the integral, and would also subject the MC estimator to have high variance as well  
 
-For example, let’s say that we want to estimate the probability that some random variable $Y > 4$, where $Y \sim N(0,1)$.  We can estimate this directly in R:
+For example, let’s say that we want to estimate the probability that some random variable $Y$ is greater than 4, where $Y \sim N(0,1)$.  We can estimate this directly in R:
 
 ```{r, echo=TRUE}
 p = 1-pnorm(4)
 print(p)
 ```
 
-We can see that this probability is small as expected.  We can also use MCI to obtain this estimate as well.  Here, we are trying to compute $E[I[Y > 4]] = \int I[Y > 4]f(Y)dY = p(Y > 4)$, where $f(Y) \sim N(0,1)$.  Here we can approximate the integral such that $\int I[Y > 4]f(Y)dY = \sum_{k = 1}^{M}I[Y_k > 4]/M$ Let’s try to compute this value using $M = 10,000$ samples:
+We can see that this probability is small, as expected.  We can also use MCI to obtain this estimate as well.  Here, we are essentially trying to compute $E[I[Y > 4]] = \int I[Y > 4]f(Y)dY = p(Y > 4)$, where $f(Y) \sim N(0,1)$.  We can approximate this integral such that $\int I[Y > 4]f(Y)dY = \sum_{k = 1}^{M}I[Y_k > 4]/M$ , where $Y_k \sim N(0,1)$ for $k = 1,\ldots,M$.  Let’s try to compute this value using $M = 10,000$ samples:
 
 ```{r, echo=TRUE}
-# Num of MC samples
-M = 10^4
+## Num of MC samples
+  M = 10 ^ 4
 
-# draw from standard normal
-y = rnorm(M)
+## draw from standard normal
+  y = rnorm(M)
 
-# compute MC estimate of p(Y > 4)
-print(mean(y > 4))
+## compute MC estimate of p(Y > 4)
+  print(mean(y > 4))
 
-# compute MC variance for p(Y > 4)
-print(var(y > 4)/M)
+## compute MC variance for p(Y > 4)
+  print(var(y > 4) / M)
 ```
 
-So, the variance is still quite large, despite using 1,000 samples.  To illustrate this variability, just rerurn the code above a couple of times and see how the estimate varies around its true value.  
+So, the variance is still quite large, despite using 10,000 samples.  To illustrate this variability, just rerurn the code above a couple of times and see how the estimate varies around its true value.  
 
 We can also increase $M$  to 1,000,000 and see if that helps
 
 ```{r, echo=TRUE}
-# Num of MC samples
-M = 10^6
+## Num of MC samples
+  M = 10 ^ 6
 
-# draw from standard normal
-y = rnorm(M)
+## draw from standard normal
+  y = rnorm(M)
 
-# compute MC estimate of p(Y > 4)
-print(mean(y > 4))
+## compute MC estimate of p(Y > 4)
+  print(mean(y > 4))
 
-# compute MC variance for p(Y > 4)
-print(var(y > 4)/M)
+## compute MC variance for p(Y > 4)
+  print(var(y > 4) / M)
 ```
 
-It does, at the cost of many more samples.  So, how do we improve the efficiency of this approach?  A similar question is how do we reduce the variance of the MC estimator?
+It does imrpove, however at the cost of many more samples.  So, how do we improve the efficiency of this approach?  Similarly, how do we reduce the variance of the MC estimator?
 
 ## Importance sampling basics
 
-To reduce the variance of the estimator, we can instead sample from a different distribution $g(\boldsymbol{x})$ that will oversample in the portion of $\boldsymbol{x}$ where most of the mass under $h(\boldsymbol{x})f(\boldsymbol{x})$ is located.  This location in $x$ tends to have low probability of receiving samples from $f(\boldsymbol{x})$.  By making the hitting of this region shift from a rare event scenario to a common one, we are essentially reducing our MC variance and also improving our efficiency of estimating $\int h(\boldsymbol{x})f(\boldsymbol{x})d\boldsymbol{x}$.  However, since we are no longer sampling from $f(\boldsymbol{x})$, we must adjust for this, otherwise we are not estimating the same integral. 
+To reduce the variance of the estimator, we can instead sample from a different distribution $g(\boldsymbol{x})$ that will oversample in the portion of $\boldsymbol{x}$ where most of the mass under $h(\boldsymbol{x})f(\boldsymbol{x})$ is located.  This location in $x$ tends to have low probability of receiving samples from $f(\boldsymbol{x})$.  
+
+By making the hitting of this region shift from a rare event scenario to a common one, we are essentially reducing our MC variance and also improving our efficiency of estimating $\int h(\boldsymbol{x})f(\boldsymbol{x})d\boldsymbol{x}$.  However, since we are no longer sampling from $f(\boldsymbol{x})$, we must adjust for this, otherwise we are not estimating the same integral. 
 
 Here, we are rewriting the original integral as the following:  
 
@@ -1067,25 +1192,25 @@ Some notes regarding the choice of $g(\boldsymbol{x})$:  we want to ensure that 
 An example of this is the one given earlier, where we are trying to estimate the probability that $Y > 4$, where $Y$ is standard normal.  Here, if we choose $g(Y) \sim N(4,1)$, we then oversample this tail region, and undersample in regions that are not of interest, for example where $I[Y > 4] = 0$.  We show this below:
 
 ```{r}
-# Num of MC samples
-M = 10^6
+## Num of MC samples
+  M = 10 ^ 6
 
-# draw from importance sampling function N(2,1), instead of N(0,1)
-y_imp = rnorm(M, 4, 1)
+## draw from importance sampling function N(2,1), instead of N(0,1)
+  y_imp = rnorm(M, 4, 1)
 
-# compute importance weights
-wstar = dnorm(y_imp, 0, 1)/dnorm(y_imp, 4, 1)
+## compute importance weights
+  wstar = dnorm(y_imp, 0, 1) / dnorm(y_imp, 4, 1)
 
-# compute MC estimate of p(Y > 4)
-print(mean((y_imp > 4)*wstar))
+## compute MC estimate of p(Y > 4)
+  print(mean((y_imp > 4) * wstar))
 
-# compute MC variance for p(Y > 4)
-print(var((y_imp > 4)*wstar)/M)
+## compute MC variance for p(Y > 4)
+  print(var((y_imp > 4) * wstar) / M)
 ```
 
 So, we are able to achieve relatively good accuracy relative to the original approach with the same number of samples. 
 
-One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))}$$, where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to sampling $\hat{M}(g, f)$ samples from $f(\boldsymbol{x})$ under the original scheme. This is one way to measure the loss in precision in approximating $f$ with $g$, and is a useful measure for comparing different importance functions.  Here we have
+One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))},$$ where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to sampling $\hat{M}(g, f)$ samples from $f(\boldsymbol{x})$ under the original scheme. This is one way to measure the loss in precision in approximating $f$ with $g$, and is a useful measure for comparing different importance functions.  Here we have
 
 ```{r}
 # if we drew M samples from g, this would be the equivalent number of samples under directly sampling f
@@ -1097,17 +1222,17 @@ print(M/(1+var(wstar)))
 Using the same posterior mode and variance as in the AQG example, we can improve the approximation further by simply sampling from the importance sampling function $\phi(\hat{\mu}, \hat{\sigma}^2)$:
 
 ```{r}
-# Num of MC samples
-M = 10^3
+## Num of MC samples
+  M = 10 ^ 3
 
-# draw from importance sampling function
-y_imp = rnorm(M, pm$p1, sqrt(-1/hess_pm))
+## draw from importance sampling function
+  y_imp = rnorm(M, pm$p1, sqrt(-1 / hess_pm))
 
-# compute importance weights
-wstar = dnorm(y_imp, 0, sqrt(s2gamma))/dnorm(y_imp, pm$p1, sqrt(-1/hess_pm))
+## compute importance weights
+  wstar = dnorm(y_imp, 0, sqrt(s2gamma)) / dnorm(y_imp, pm$p1, sqrt(-1 / hess_pm))
 
-# compute MC estimate of integral
-print(mean(sapply(y_imp, h, y = y1, beta = beta)*wstar))
+## compute MC estimate of integral
+  print(mean(sapply(y_imp, h, y = y1, beta = beta) * wstar))
 
 ```
 
@@ -1141,7 +1266,7 @@ So, to summarize:
 
 
 # Extensions to Multidimensional integrals
-Keep in mind that so far, we are dealing with one dimensional integrals.   If we were dealing with a two-dimensional integral, for Newton-Cotes type methods we would need to define a two-dimensional grid to approximate the integral with respect to each variable.  This results in a dramatic increase in the computational time relative to the number of intervals chosen. 
+Keep in mind that so far we have primarily dealt with evaluating one-dimensional integrals.   If we were dealing with a two-dimensional integral, for Newton-Cotes type methods we would need to define a two-dimensional grid to approximate the integral with respect to each variable.  This results in a dramatic increase in the computational time relative to the number of intervals chosen. 
 
 For Gaussian Quadrature (assuming $M>1$), we would have to determine the nodes and weights with respect to each variable, and the integral is then approximated with a double summation.  That is, in one dimensional integration, if $M$ was chosen to be 5, then we would have 5 evaluations of the function $f$.  For a two dimensional integral, this would jump to 25 evaluations of $f$.  We again have this explosion in computational time for $M > 1$.  
 

@@ -11,7 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Maximization of poisson GLMM from lecture
 
-Now that we have discussed several approaches for numerical integration, lets now maximize the model given in lecture.  You may choose any maximization approach, as well as any numerical integration procedure, to obtain the MLE's for $\boldsymbol{\beta}$ and $\sigma_{\gamma}^2$.  Hint: You should evaluate a number of intervals/nodes, decreasing the convergence threshold, etc and evaluate its impact before reporting your final result. 
+Now that we have discussed several approaches for numerical integration, lets now maximize the model given in lecture.  You may choose any maximization approach, as well as any numerical integration procedure from lecture, to obtain the MLE's for $\boldsymbol{\beta}$ and $\sigma_{\gamma}^2$.  
+
+Hint: You should evaluate a number of intervals/nodes, decreasing the convergence threshold, etc and evaluate its impact before reporting your final result. We have shown how to perform, for example, AGQ and IS to obtain the likelihood pertaining to the first subject from class. 
 
 ```{r}
 ## Solution: place relevant helper functions pertaining to integration here 
