@@ -44,10 +44,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
-In the previous lecture we discussed Monte Carlo Integration (MCI), where we drew samples from some target distribution $f$ in order to approximate the integral $\int h(\x)f(\x)d\x$.  We also discussed ways to sample from an alternative density $g$ to reduce the variance of the standard MC estimator via importance sampling.  This could be applied even when the target density $f$ cannot be sampled from and is only known up to a multiplicative proportionality constant. Importance sampling can bring enormous gains with a good choice of $g$ by oversampling the "important" regions of the integrand, making an otherwise infeasible problem amenable to MCI. It can also backfire with a bad choice of $g$ , yielding an estimate
+In the previous lecture we discussed Monte Carlo Integration (MCI), where we drew samples from some target distribution $f$ in order to approximate the integral $\int h(\x)f(\x)d\x$.  We also discussed ways to sample from an alternative density $g$ to reduce the variance of the standard MC estimator via importance sampling.  This could be applied even when the target density $f$ cannot be sampled from and is only known up to a multiplicative proportionality constant. 
+
+Importance sampling can bring enormous gains with a good choice of $g$ by oversampling the "important" regions of the integrand, making an otherwise infeasible problem amenable to MCI. It can also backfire with a bad choice of $g$ , yielding an estimate
 with infinite variance when simple Monte Carlo would have had a finite variance.
 
-In our discussion of importance sampling, we are focused on integration.  But what if need to directly obtain samples from a target distribution $f$ when no software/method is available to do so?  This is common in Bayesian applications where sampling from some posterior distribution is required but is not easy to do (the exception is when conjugate priors are used).  The ability to sample exactly (or approximately) from $f$ can also be helpful for applying MCI. We will see later in this lecture that Markov Chain Monte Carlo (MCMC) approaches in particular may be preferable in cases where the dimension of the integral starts to become very large. We will discuss the relative pro's and cons of each approach introduced below, motivated by our Poisson GLMM example from the previous lecture. 
+In our discussion of importance sampling, we were focused on integration.  But what if need to directly obtain samples from a target distribution $f$ when no software/method is available to do so?  This is common in Bayesian applications where sampling from some posterior distribution is required but is not easy to do (the exception is when conjugate priors are used).  The ability to sample exactly (or approximately) from $f$ can also be helpful for applying MCI. 
+
+We will see later in this lecture that Markov Chain Monte Carlo (MCMC) approaches in particular may be preferable in cases where the dimension of the integral starts to become very large. We will discuss the relative pro's and cons of each approach introduced below, motivated by our Poisson GLMM example from the previous lecture. 
 
 # Motivating Example:  MCEM-based estimation of the Poisson GLMM example
 
@@ -57,54 +61,70 @@ $$L(\boldsymbol{\beta}, \sigma^2_{\gamma} | \boldsymbol{y}) = \prod_{i = 1}^{22}
 
 where $f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) = \prod_{j = 1}^5 f(y_{ij} | \lambda_{ij})$, $f(y_{ij} | \lambda_{ij})$ is the Poisson PMF with mean $\lambda_{ij}$ for the $i$th patient in the $j$th month, $\gamma_i$ is the unobserved subject-level random effect, $\log(\lambda_{ij}) = \boldsymbol{x}_{ij}\boldsymbol{\beta} + \gamma_i$, and $\phi(\gamma_i| 0, \sigma^2_{\gamma}) \sim N(0,\sigma^2_{\gamma})$.  Here  $\boldsymbol{x}_{ij} = (1, j)$ with corresponding $\boldsymbol{\beta} = (\beta_0,\beta_1)^T$, where $\beta_0$ is the population intercept $\beta_1$ is the regression coefficient for month.  Also,  $\boldsymbol{y} = (\boldsymbol{y}_1^T,\ldots,\boldsymbol{y}_n^T)^T$ is the vector of all observations in the study,  $\boldsymbol{y}_i$ is $5\times 1$ vector of words recalled in each month for subject $i$, $\boldsymbol{\lambda}_i = (\lambda_{i1},\ldots, \lambda_{i5})$,and $\boldsymbol{\gamma} = (\gamma_1,\ldots,\gamma_{22})$.
 
+
+## Complete Data Log Likelihood
+
 If we assume $\boldsymbol{\gamma}$ was known, then we could write the CDLL as 
 
-\begin{aligned}
+\begin{align}
 \log L_c(\boldsymbol{\beta}, \sigma^2_{\gamma} | \boldsymbol{y}, \boldsymbol{\gamma}) &= \log\left(\prod_{i = 1}^{22} f(\boldsymbol{y_{i}} | \boldsymbol{\lambda}_{i})\phi(\gamma_i| 0, \sigma^2_{\gamma})\right)\\
 &=\sum_{i = 1}^{22} \log f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log \phi(\gamma_i| 0, \sigma^2_{\gamma})\\
-\end{aligned}
+\end{align}
 
-where $\log f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) = \sum_{j = 1}^{5}\log f(y_{ij} | \lambda_{ij})$.  Then, the Q-function at step $t$ can we written as the following:
+where $\log f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) = \sum_{j = 1}^{5}\log f(y_{ij} | \lambda_{ij})$.  
 
-\begin{aligned}
+## Q-function 
+
+Given this, the Q-function at step $t$ can we written as the following:
+
+\begin{align}
 Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= E[\log L_c(\boldsymbol{\beta}, \sigma^2_{\gamma} | \y, \boldsymbol{\gamma}) | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}]\\
 &=\sum_{i = 1}^{22} \int \left[\log f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log \phi(\gamma_i| 0, \sigma^2_{\gamma})\right]f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\gamma_i
-\end{aligned}
+\end{align}
 
 where $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is the conditional expectation for $\gamma_i$ given the observed data and current parameter estimates.  This density has the following form
 
-\begin{aligned}
+\begin{align}
 f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) &= \frac{f(\gamma_i, \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)})}{f( \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)})}\\
 &=\frac{f(\boldsymbol{y}_o| \gamma_i ,\boldsymbol{\theta}^{(t)})f(\gamma_i |\boldsymbol{\theta}^{(t)})}{\int f(\boldsymbol{y}_o| \gamma_i ,\boldsymbol{\theta}^{(t)})f(\gamma_i |\boldsymbol{\theta}^{(t)}) d\gamma_i}\\
 &=\frac{f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})}{\int f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)}) d\gamma_i}\\
-\end{aligned}
+\end{align}
 
-where $\boldsymbol{\lambda}_i^{(t)} = (\lambda_{i1}^{(t)},\ldots, \lambda_{i5}^{(t)})$ and $\log(\lambda_{ij}^{(t)}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta}^{(t)} + \gamma_i$.  For a given subject $i$, we are evaluating a one-dimensional integral with respect to $\gamma_i$ to evaluate the Q-function.  Therefore, methods from the prior section may be computationally feasible to apply.  However, the denominator of the conditional density for $\gamma_i$ above also includes an integral.  This "normalizing constant" is exactly the (marginal) likelihood function given earlier for the $i$th subject, where we are integrating out the random effect $\gamma_i$.  The joint density $f(\gamma_i, \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)}) = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$ in the numerator is easily evaluable assuming $\gamma_i$ is known.  However, sampling from $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is not straight-forward, as no standard statistical software is available to directly sample from this distribution.  
+where $\boldsymbol{\lambda}_i^{(t)} = (\lambda_{i1}^{(t)},\ldots, \lambda_{i5}^{(t)})$ and $\log(\lambda_{ij}^{(t)}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta}^{(t)} + \gamma_i$.  For a given subject $i$, we are evaluating a one-dimensional integral with respect to $\gamma_i$ to evaluate the Q-function.  Therefore, methods from the prior section may be computationally feasible to apply.  However, the denominator of the conditional density for $\gamma_i$ above also includes an integral.  
 
-For these reasons we can utilize importance sampling with standardized weights to approximate this integral, as discussed in the last lecture. This takes care of the normalizing constant during integration, avoiding having to evaluate it separately. For low-dimensions, we could use the Laplace approximation of AGQ to approximate this integral, but would not be scalable to higher dimensions. 
+This "normalizing constant" is exactly the (marginal) likelihood function given earlier for the $i$th subject, where we are integrating out the random effect $\gamma_i$.  The joint density $f(\gamma_i, \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)}) = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$ in the numerator is easily evaluable assuming $\gamma_i$ is known.  However, sampling from $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is not straight-forward, as no standard statistical software is available to directly sample from this distribution.  
+
+
+## Importance Sampling Implementation
+
+For these reasons we can utilize importance sampling with standardized weights to approximate this integral, as discussed in the last lecture. This takes care of the normalizing constant during integration, avoiding having to evaluate it separately to compute the expectation. We also can sample from some other distribution $g$, which we should choose to be easy to sample from.  For low-dimensional integrals, we could use the Laplace approximation of AGQ to approximate this integral, but would not be scalable to higher dimensions. 
 
 That is, we can approximate the Q-function with respect to subject $i$ such that
 
-\begin{aligned}
+\begin{align}
 Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log\phi(\gamma_i| 0, \sigma^2_{\gamma})\right]f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\gamma_i\\
 &= \int \left[\log f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log\phi(\gamma_i| 0, \sigma^2_{\gamma})\right]\frac{f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{g(\gamma_i)}g(\gamma_i)d\gamma_i\\
 &= \int \left[\sum_{j = 1}^{5}\log f(y_{ij} | \lambda_{ij}) + \log\phi(\gamma_i| 0, \sigma^2_{\gamma})\right]\frac{f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{g(\gamma_i)}g(\gamma_i)d\gamma_i\\
-&=\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log f(y_{ij} | \lambda_{ijk}) + \log \phi(X_k| 0, \sigma^2_{\gamma})\right]w(\boldsymbol{X}_k)
-\end{aligned}
+&\approx \sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log f(y_{ij} | \lambda_{ijk}) + \log \phi(X_k| 0, \sigma^2_{\gamma})\right]w(\boldsymbol{X}_k)
+\end{align}
 
 where $w(\boldsymbol{X}_k) = \frac{ w^*(\boldsymbol{X}_k)}{\sum_{k =  1}^M w^*(\boldsymbol{X}_k)}$, $w^*(\boldsymbol{X}_k) = \frac{\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ijk}^{(t)})\phi(X_k| 0, (\sigma^2_{\gamma})^{(t)})}{g(\boldsymbol{X}_k)}$, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from some importance sampling distribution $g$. It should be noted that in the normalizing constant depends $\boldsymbol{\theta}^{(t)}$ and not $\boldsymbol{\theta}$, and therefore is irrelevant in the M-step.  It should also be noted that since we are using the standardized weights, we no longer divide the approximation by $M$.
 
 For the M-step, we can use again off-the shelf maximization routines for the above approximation for the Q-function.  
 
+## Choice of Importance Function
+
 The question now is what is a suitable choice for $g$?  Similar to AGQ and the Laplace Approximation, we may choose to sample from a Student t importance density whose mean and variance match the mode and curvature of $f(\gamma_i \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)})$. [Additional detail can be found here](https://www.jstor.org/stable/2680750?seq=1#metadata_info_tab_contents).  In general, however, the best choice may not be clear. 
 
-As the dimension increases, MCI and importance sampling retains its advantage over the quadrature-based approaches, as mentioned in the prior lecture.  However, alternative sampling approaches, such as some of the MCMC methods discussed in this lecture, may be more appropriate as we will see later. For importance sampling in particular, there may not always be a clear choice of $g$, which is critical to its success.  The choice between importance sampling and alternative approaches for evaluating the conditional expectation above may vary depending on the problem.  We will discuss these alternatives and how to choose between them in this lecture.  More generally, these alternative approaches provide a means to sample exactly or approximately from distributions where it is difficult to do so, such as from $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$.  
+As the dimension increases, MCI and importance sampling retains its advantage over the quadrature-based approaches, as mentioned in the prior lecture.  However, alternative sampling approaches, such as some of the MCMC methods discussed in this lecture, may be more appropriate as we will see later. 
+
+For importance sampling in particular, there may not always be a clear choice of $g$, which is critical to its success.  The choice between importance sampling and alternative approaches for evaluating the conditional expectation above may vary depending on the problem.  We will discuss these alternatives and how to choose between them in this lecture.  More generally, these alternative approaches provide a means to sample exactly or approximately from distributions where it is difficult to do so, such as from $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$.  
 
 # Exact/Direct sampling
 
-In the above example we find that we do not have a clear means to generate samples from the conditional density of $\gamma_i$.  We know that  $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is known up to a proportionality constant, but we do not have a clear means to sample from this distribution to allow for MCI to be applied.  One way to do this is to use a category of methods called "direct" or "exact" sampling, where one can directly sample from the target distribution $f$ rather than avoiding it completely (importance sampling) or approximately sampling it (MCMC).  
+In the above example we find that we do not have a clear means to generate samples from the conditional density of $\gamma_i$.  We know that  $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is known up to a proportionality constant, but we do not have a clear means to sample from this distribution to allow for MCI to be applied given these samples.  One way to do this is to use a category of methods called "direct" or "exact" sampling, where one can directly sample from the target distribution $f$ rather than avoiding it completely (importance sampling) or approximately sampling from it (MCMC).  
 
-We will show for the two classes of methods in this section, Rejection Sampling and Adaptive Rejection Sampling, that the samples drawn here are **independent** and originally drawn from an alternative distribution that is easier to sample from.  The latter sounds similar to importance sampling, with an important distinction: we are actually drawing samples from $f$, rather than drawing samples from $g$ and reweighting them in the integration process. These methods are applicable when $f$ is only known up to a proportionality constant.  Using the Rejection Sampling, we can generate sample from any density $f$ as long as we know the closed form of $f$.
+We will show for the two classes of methods in this section, Rejection Sampling and Adaptive Rejection Sampling, that the samples drawn here are **independent** and originally drawn from an alternative distribution that is easier to sample from.  The latter sounds similar to importance sampling, with an important distinction: we are actually drawing samples from $f$, rather than drawing samples from $g$ and reweighting them in the integration process. These methods are applicable when $f$ is only known up to a proportionality constant.  Using Rejection Sampling, we can generate samples from any density $f$ as long as we have a closed and evaluable form of $f$.
 
 ## Rejection Sampling
 
@@ -121,7 +141,7 @@ Then, we implement Rejection Sampling using the following procedure:
 of the random sample from the target distribution . Return to step 1 until you have accumulated a
 sample of the desired size.
 
-The retained draws then represent an i.i.d. sample from target distribution $f$.  Here, $\alpha$ can be interpreted as the expected proportion of candidates that are accepted.  We often repeat the steps above until we obtain the desired number of samples.  The total number of candidates draws needed to obtain that size sample depends on how efficient the algorithm is in accepting samples (mediated by $\alpha$).  Clearly, this is highly dependent on the choice of $e$.  We will address how best to select $e$ later on in this section. 
+The retained draws then represent an **i.i.d. sample** from the target distribution $f$.  Here, $\alpha$ can be interpreted as the expected proportion of candidates that are accepted.  We often repeat the steps above until we obtain the desired number of samples.  The total number of candidate draws needed to obtain that number of samples depends on how efficient the algorithm is in accepting samples (mediated by $\alpha$).  Clearly, this is highly dependent on the choice of $e$.  We will address how best to select $e$ later on in this section. 
 
 ### Why does this work?
 
@@ -157,52 +177,66 @@ that the envelope $e$ can be chosen so that it exceeds $f$ everywhere. In genera
 
 Clearly this is not an exact science, and how best to do this will vary by problem.  This is one of the downsides of Rejection Sampling, where sometimes determining the best envelope function can be difficult or time consuming.  In some examples this step is simple, but that will not case in all situations. 
 
-### Adaptive Rejection Sampling 
+## Adaptive Rejection Sampling 
 Adaptive Rejection Sampling is an automatic procedure to determine envelopes for the specific case where one has a 
 a continuous, differentiable, log-concave target density that one would like to sample from.  Here, the envelope and
 another function called the "squeezing function" are iteratively updated with the generation of samples. In this approach the amount of waste and the frequency with which $f$ must be evaluated both shrink as iterations increase. The implementation is more complicated than that of regular Rejection Sampling.  A tangent-based and a derivative-free based implementation of adaptive Rejection Sampling are available, the latter of which has been incorporated into the popular WinBUGS often used in Bayesian analyses.  We do not go into further detail here and direct students to GH 6.2.3.2 for more detail.  
 
-### Example:  Sampling from a posterior distribution
+## Example:  Sampling from a posterior distribution
 
-Let’s suppose we have 10 independent observations from GH Example 6.2 are observed from the model $X_i| \lambda \sim$  Poisson($\lambda$). We assume a lognormal prior distribution for $\lambda$, where  $\log(\lambda) \sim N(\log(4), 0.52)$. Here, we want to sample from the posterior distribution of $\lambda$ given the data.  
+Let’s suppose we have 10 independent observations from GH Example 6.2 are observed from the model $X_i| \lambda \sim$  Poisson($\lambda$). Let us assume a lognormal prior distribution for $\lambda$, where  $\log(\lambda) \sim N(\log(4), 0.5^2)$. Here, we want to sample from the posterior distribution of $\lambda$ given the data.  
 
 Let’s start with a histogram of the data and calculating $\bar{x}$ below.
 
 ```{r}
+# vector of observations 
 x = c(8, 3, 4, 3, 1, 7, 2, 6, 2, 7)
+
+# make histogram
 hist(x)
+
+# print the mean of x
 print(mean(x))
 ```
 
-Denote the likelihood as $L(\lambda|\boldsymbol{x})$ and the lognormal prior as $f(\lambda)$. We know that  $\hat{\lambda}  = \bar{x}$ maximizes the likelihood $L(\lambda|\boldsymbol{x})$ with respect to $\lambda$.   As a result, the unnormalized posterior, $q(\lambda|\boldsymbol{x}) = f(\lambda)L(\lambda|\boldsymbol{x})$
-is bounded above by $e(\lambda) = f (\lambda)L(4.3|\boldsymbol{x})$. We can show this below:
+Denote the likelihood as $L(\lambda|\boldsymbol{x})$ and the lognormal prior for $\lambda$ as $f(\lambda)$. We know that  $\hat{\lambda}  = \bar{x}$ maximizes the likelihood $L(\lambda|\boldsymbol{x})$ with respect to $\lambda$.   As a result, the unnormalized posterior, $q(\lambda|\boldsymbol{x}) = f(\lambda)L(\lambda|\boldsymbol{x})$
+is bounded above by the function $e(\lambda) = f (\lambda)L(4.3|\boldsymbol{x})$. We can show this visually below:
 
 ```{r}
 # unnormalized posterior function
-q = function(lambda, x){
-  prod(dpois(x, lambda = lambda))*dlnorm(x = lambda,meanlog = log(4),sdlog = 0.5)
+q = function(lambda, x) {
+  prod(dpois(x, lambda = lambda)) * dlnorm(x = lambda,
+                                           meanlog = log(4),
+                                           sdlog = 0.5)
 }
 
 # envelope function
-e = function(lambda, x){
-  # fixing lambda at the mean of x
-  prod(dpois(x, lambda = mean(x)))*dlnorm(x = lambda,meanlog = log(4),sdlog = 0.5)
+e = function(lambda, x) {
+  # fixing lambda at the mean of x in the likelihood
+  prod(dpois(x, lambda = mean(x))) * dlnorm(x = lambda,
+                                            meanlog = log(4),
+                                            sdlog = 0.5)
 }
 
 # plot setup
-lambda = seq(0, 20,,1000)
+lambda = seq(0, 20, , 1000)
 
 # plot the envelope
-plot(lambda, sapply(lambda, e, x = x),col = "black", type = 'l')
+plot(lambda, sapply(lambda, e, x = x), col = "black", type = 'l')
 
 # add plot for q
 lines(lambda, sapply(lambda, q, x = x), col = "red")
 
 # add a legend
-legend(c("e(x)","q(x)"), col = c(1, 2), lty = c(1,1) ,x = "topright")
+legend(
+  c("e(x)", "q(x)"),
+  col = c(1, 2),
+  lty = c(1, 1) ,
+  x = "topright"
+)
 ```
 
-One nice thing to note about the chosen envelope is that the prior is proportional to $e$. Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ from the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
+One nice thing to note about the chosen envelope is that the prior is proportional to $e$ (likelihood fixed at the mean is now a constant). Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ from the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
 
 ```{r}
 set.seed(100)
@@ -210,15 +244,14 @@ set.seed(100)
 M = 100
 
 # specify max number of iterations in case alpha is low (can increase later if needed)
-maxit = M*10^4
+maxit = M * 10 ^ 4
 
 # specify vector to hold samples
 posterior_lambda = rep(0, M)
 
 # start rejection algorithm
 i = index = 1
-while(i <= M & index < maxit){
-  
+while (i <= M & index < maxit) {
   # sample from lognormal prior
   lambdai = rlnorm(1, meanlog = log(4), sdlog = 0.5)
   
@@ -228,21 +261,21 @@ while(i <= M & index < maxit){
   # calculate ratio
   Lq = prod(dpois(x, lambda = lambdai))
   Le = prod(dpois(x, lambda = mean(x)))
-  r = Lq/Le
+  r = Lq / Le
   
   # if Step 3 condition met, save sample
-  if(Ui < r){
+  if (Ui < r) {
     posterior_lambda[i] = lambdai
     # update iterator
-    i = i+1
+    i = i + 1
   }
   
   # keep track of total number of samples drawn
-  index = index +1
+  index = index + 1
 }
 
 # acceptance rate
-print(M/index)
+print(M / index)
 ```
 
 Although not terribly efficient with an acceptance rate of about 26%, it is relatively easy to implement.
@@ -253,12 +286,12 @@ Let’s make a histogram of the samples from the posterior:
 hist(posterior_lambda )
 ```
 
-### Pros and cons of Rejection Sampling 
+## Pros and cons of Rejection Sampling 
 
 So, to summarize we have the following advantages and disadvantages of Rejection Sampling 
 
 *  Pros
-    *  Sample is truly iid from target density $f$, no approximation
+    *  Sample is truly iid from target density $f$, no approximation and samples are indendent
 *  Cons
     *  Designing a good envelope function $e$ may not be straightforward or easy to do
     *  Many candidates draws may be needed to obtain a sample of size $M$, depends on choice of $e$ 
@@ -268,7 +301,7 @@ Regarding the last point above, it becomes harder in general to accept multivari
 
 In higher dimensional settings we will see that the MCMC approaches discussed in the second half of this lecture are more efficient relative to Rejection Sampling.  
 
-###  Application to the MCEM Example
+##  Application to the MCEM Example
 
 We can similarly apply Rejection Sampling to draw iid samples from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})  = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$.  The question here is what is the best envelope function to use.
 
@@ -276,133 +309,240 @@ Similar to the previous example, one obvious option is simply $e(\gamma_i | \bol
 
 Then similar to before, our proposal density $g$ can be $\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$.  We also draw $U$ separately from a standard uniform distribution.  Then, candidate $X$ drawn from $g$ is kept if $U < \frac{q(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{e(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})} = \frac{f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})}{f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{*(t)})}$, where $\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$ cancels out in the numerator and denominator.  
 
-We will use this sampling step to perform MCI in the E-step.   In contrast to the importance sampling setup given eerier, we can approximate the Q-function in the i$th$ sample using
+We will use this sampling step to perform MCI in the E-step.   In contrast to the importance sampling setup given earlier, we can approximate the Q-function in the $i^{th}$ sample using
 
-\begin{aligned}
+\begin{align}
 Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log (f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log\left(\phi(\gamma_i| 0, \sigma^2_{\gamma})\right)\right]f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\gamma_i\\
 &= \int \left[\sum_{j = 1}^{5}\log(f(y_{ij} | \lambda_{ij}) + \log\left(\phi(\gamma_i| 0, \sigma^2_{\gamma})\right)\right]f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\gamma_i\\
 &=\frac{1}{M}\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log\left(f(y_{ij} | \lambda_{ijk})\right) + \log\left(\phi(X_k| 0, \sigma^2_{\gamma})\right)\right]
-\end{aligned}
+\end{align}
 
-since we are now able to draw iid samples from the posterior using Rejection Sampling.  Here, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$. 
+since we are now able to draw iid samples from the posterior using Rejection Sampling.  Here, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$. Then, we can carry out the M step using standard optimization routines, for example, using NR or BFGS from our optimization lecture.  
 
-Then, we can carry out the M step using standard optimization routines.  For $\boldsymbol{\beta}$, an easier approach is simply using Poisson regression, repeating each observation $\boldsymbol{y_{i}}$ and corresponding predictor in the design matrix $M$ times, filling in $\boldsymbol{X}_k$ for each repeated row for $\gamma_i$ in the linear predictor above.  Each repeated row is weighted with $1/M$.  We can also show that the solution for $\sigma^2_{\gamma}$ is simply the sum of the squared samples divided by $nM$.  
+However, for $\boldsymbol{\beta}$, an easier approach is simply using Poisson regression to maximize the Q-function in the M-step, and therefore avoiding the need to derive any analytical derivatives of the likelihood.  To do this, we repeat each observation $\boldsymbol{y_{i}}$ and corresponding predictor in the design matrix $M$ times, filling in $\boldsymbol{X}_k$ for each repeated row for $\gamma_i$ in the linear predictor above.  Each repeated row is weighted with $1/M$.  We can also show that the solution for $\sigma^2_{\gamma}$ is simply the sum of the squared $X_k$'s divided by $nM$.  
+
+### Implementing the E-step Rejection sampler
 
 First, let’s set up the rejection sampler:
 
 ```{r}
-## function for Rejection Sampling, utilized in E-step of MCEM
-  # yi is a 5 x 1 vector containing the observations for sample i
+## function for Rejection Sampling in the MCEM E-step for subject i
+  # yi is a 5 x 1 vector containing the monthly observations for sample i
   # M is the total number of iid samples desired from the posterior
   # maxit is the max number of iterations (to prevent runaway looping)
   # betat is  the estimate for beta at EM iteration t
   # s2gammat is the estimate for s2gamma at EM iteration t
-## Returns list object with samples and acceptance rate
+## Returns a list object with accepted samples and the acceptance rate
 
-rejection.sample.gamma.posterior = function(yi, M, maxit, betat, s2gammat, trace = 0 ){
+rejection.sample.gamma.posterior.i = function(yi, M, maxit, betat, s2gammat, trace = 0) {
   
-  ## envelope function setup, done once 
-    # obtain gamma_hat for envelope function, optimizing over gammai
+  ## envelope function setup, done once
+    # obtain gamma_hat to create the envelope function, optimizing Likel. wrt gammai
     # can use any optimization routine, here using IRLS holding XB fixed as an offset
-    gamma_hat = glm(yi ~ 1, family = poisson(), offset = betat[1] + betat[2]*1:5)$coef
+    # log(lambda_i) = X%*%beta_t + gamma_i --> fix X and beta_t, treat gamma_i as coefficient
+    gamma_hat = glm(yi ~ 1, family = poisson(),
+                    offset = betat[1] + betat[2] * 1:5)$coef
     
     # calculate lambda values for rejection ratio denominator
-    lambda_star = exp(betat[1] + betat[2]*1:5 + gamma_hat)
+    lambda_star = exp(betat[1] + betat[2] * 1:5 + gamma_hat)
     
     # calculate rejection ratio denominator
-    Le = prod(dpois(yi, lambda = lambda_star))  
+    Le = prod(dpois(yi, lambda = lambda_star))
     
   ## specify vector to hold samples
-  posterior_gammai = rep(0, M)
-    
+    posterior_gammai = rep(0, M)
+  
   ## start rejection sampler
-  i = index = 1
-  while(i <= M & index < maxit){
-    # sample from normal prior
-    gammai = rnorm(1, 0, sqrt(s2gammat))
-    
-    # sample Ui from standard uniform
-    U = runif(1)
-    
-    # calculate lambda values for rejection ratio numerator
-    lambdai = exp(betat[1] + betat[2]*1:5 + gammai)
-    
-    # calculate ratio numerator
-    Lq = prod(dpois(yi, lambda = lambdai))
-
-    # calculate ratio
-    r = Lq/Le
-    
-    # if step 3 met, save sample
-    if(U < r){
-      posterior_gammai[i] = gammai
-      # update iterator
-      i = i+1
+    m = index = 1
+    while (m <= M & index < maxit) {
+      
+      # sample from normal prior (proposal density here)
+      gammai = rnorm(1, 0, sqrt(s2gammat))
+      
+      # calculate lambda values for rejection ratio numerator
+      lambdai = exp(betat[1] + betat[2] * 1:5 + gammai)
+      
+      # calculate ratio numerator
+      Lq = prod(dpois(yi, lambda = lambdai))
+      
+      # calculate ratio
+      r = Lq / Le
+      
+      # sample Ui from standard uniform
+      U = runif(1)
+      
+      # if step 3 met, save sample
+      if (U < r) {
+        posterior_gammai[m] = gammai
+        
+        # update num current acceptances
+        m = m + 1
+      }
+      
+      # keep track of total number of samples drawn
+      index = index + 1
     }
     
-    # keep track of total number of samples drawn
-    index = index +1
+  ## acceptance rate
+    if (trace > 0)
+      print(M / index)
+  
+  ## return accepted samples and accepted rate in a list
+    return(list(gammai = posterior_gammai, ar = M / index))
+}
+
+
+## wrapper function for Rejection Sampling over all observations
+  # data is the main data.table object
+  # data_aug is the augmented data.table object
+  # other arguments same as above
+## Returns data_aug with updated rejection samples column
+
+rejection.sample.gamma.posterior.all = function(data,
+                                                data_aug,
+                                                M,
+                                                maxit,
+                                                betat,
+                                                s2gammat,
+                                                trace = 0) {
+  ## set n
+  n = length(unique(data[,subject]))
+ 
+  ## looping over subjects
+  for (i in 1:n) {
+    
+    if(trace > 0) print(i) 
+    
+    # draw M samples from the posterior for gamma_i
+    rejection.samples.i =
+      rejection.sample.gamma.posterior.i(
+        yi = data[subject == i, words],
+        M = M,
+        maxit = maxit,
+        betat = betat,
+        s2gammat = s2gammat,
+        trace = trace
+      )$gammai
+    
+    # since months in each subject share same gamma_i, we repeat
+    # the draw for each month in a subject
+    rejection.samples.i = rejection.samples.i[rep(1:M, each = 5)]
+    
+    # fill in last col of augmented matrix with drawn samples for subj i
+    data_aug[subject == i, rejection.samples := rejection.samples.i]
+    
+        if(trace > 0) print("saved data") 
+    
   }
   
-  # acceptance rate
-  if(trace > 0) print(M/index)
-
-  return(list(gammai = posterior_gammai, ar = M/index))
+  ## return data_aug
+  return(data_aug)
 }
 ```
 
-Now that we have that setup, lets now write out the setup for the EM algorithm in this example.
+### Other Helper Functions
+
+ To simplify the implementation of the EM algorithm using only off the shelf methods for maximization in the M-step, we augment the data matrices used in this example by repeating the data pertaining to each subject $M$ times in the original data matrix.  This will also facilitate vectorized evaluations of the Q-function in the E-step.  We introduce a function below to help with this (we will circle back to how this works in a bit)
 
 ```{r}
-## read in the data
-alz = read.table("alzheimers.dat", header = T)
+augment = function(data, M){
+  
+  # convert data to data.table
+  if(!is.data.table(data)) data = data.table(data)
+  
+  # repeat each row M times
+  data_aug = data[rep(1:nrow(data),  M),]
+  
+  # append a column indicating the index of M for each draw in each obs
+  data_aug$M = rep(1:M, each = nrow(data))
+  
+  # resort by subject, M, then month. This repeats the 5 row
+  #  block of data for each subject M times
+  data_aug = data_aug[order(subject, M, month),]
+  
+  # add another column to hold the M poterior draws per i later
+  # initialize column to 0, will update later with actual draws
+  data_aug$rejection.samples = rep(0, nrow(data_aug))
+  
+  # create repeated design matrix corresponding to data_aug
+  X_aug = model.matrix(~ 1 + month, data = data_aug)
+  
+## return values
+  return(list(data_aug, X_aug))
+}
+```
 
+### Setup for the MCEM algorithm
+
+Now that we have this helper function, lets read in the data and set up everything for the EM algorithm
+
+```{r}
+## read in the data, convert to data.table
+  library(data.table)
+  alz = read.table("alzheimers.dat", header = T)
+  alz = data.table(alz)
+
+    
 ## set initial parameters
+  
+  # number of subjects
+  n = length(unique(alz$subject))
+  
+  # relative convergence threshold
   tol = 10^-5
+  
+  # max number of iterations
   maxit = 100
+  
+  # initialize iteration counter, epsilon, qfunction value to avoid triggering while loop
   iter = 0
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
+
+    
+## starting values for beta/s2gamma
   
-## starting values
+  # fixed effects, same as before
   beta = c(1.804, 0.165)
+  
+  # random intercept variance, same as before
   s2gamma =  0.000225 + .01 
 
-## fix at 5000 draws from posterior per observation in E-step
-  M = 50
+  
+## set M = 10000 draws from posterior per observation in E-step
+  M = 10000
 
-## Repeat the data from same observation M times 
-## This allows for easy vectorization of the sum shown in the Q-function approximation over n and M
-  # create repeat index vector
-  repeat_index = NULL
-  for(i in 1:22) repeat_index = c(repeat_index, rep(which(alz$subject == i), M)) 
-  head(repeat_index, 10)
   
-  # now create repeated dataset
-  alz_M_aug = alz[repeat_index,]
+## Repeat the data pertaining to y_i, X_i M times 
+  # This allows for easy vectorization of the sum shown in the Q-function approximation over n and M
   
-  # add another column to hold the M poterior draws per gamma_i
-  rejection.samples = rep(0, nrow(alz_M_aug))
-  alz_M_aug = cbind(alz_M_aug, rejection.samples) 
+  # run the function to do the repeating from above
+  aug = augment(data = alz, M = M)
   
-  # each individual's data repeated M times, last col to be filled with RS draws
-  head(alz_M_aug, 10) 
+  # extract alz matrix with data pertaining to i'th obs repeated M times 
+  alz_M_aug = aug[[1]]
   
-  # create design matrix to hold fixed effects covariate matrix pertaining to alz_M_aug
-  X_m_aug = model.matrix(~ 1 + month, data = alz_M_aug)
-  
-## Dimensions of original vs augmented matrix for M step
+  # extract predictor matrix with rows repeated in same manner as alz_M_aug
+  X_m_aug = aug[[2]]
+
+  # Check Dimensions of original vs augmented matrix for M step
   dim(alz)     # originally (22*5) rows
   dim(alz_M_aug) # now (22*5*M) rows
+  
+  # peak at each to see the difference
+  head(alz, 10)
+  head(alz_M_aug, 10)
 
 ```
 
-Let’s test out the Rejection sampler on just the first sample, given the starting values:
+### Testing the Rejection Sampler
+
+Let’s test out the Rejection Sampler on just the first sample, given the starting values:
 
 ```{r}
 # run RS
-test_sample = rejection.sample.gamma.posterior(
-                yi = alz$words[alz$subject == 1], 
+test_sample = rejection.sample.gamma.posterior.i(
+                yi = alz[subject == 1, words], 
                 M = M, 
                 maxit = maxit*M, 
                 betat = beta, 
@@ -422,8 +562,9 @@ print(var(test_sample$gammai))
 hist(test_sample$gammai)
 ```
 
+### Now run the MCEM algorithm
 
-Now that thats out of the way, lets apply EM.
+Now that thats out of the way, lets apply the MCEM algorithm.
 
 ```{r}
   
@@ -435,56 +576,56 @@ Now that thats out of the way, lets apply EM.
   
   ## Begin E-step
 
-    posterior.rejection.samples = list()
+    # update rejection.samples column with the new draws
+    alz_M_aug = rejection.sample.gamma.posterior.all(
+      data = alz,
+      data_aug = alz_M_aug,
+      M = M,
+      maxit = maxit * M,
+      betat = beta,
+      s2gammat = s2gamma
+    )
     
-    # looping over subjects
-    for(i in 1:max(alz$subject)){
+  ## evaluate  qfunction given drawn samples, current param estimates
+    #lambda
+      lambda_M_aug = exp(X_m_aug %*% beta + alz_M_aug[, rejection.samples])
       
-      # draw M samples from the posterior for gamma_i 
-      posterior.rejection.samples[[i]] = 
-        rejection.sample.gamma.posterior(
-              yi = alz$words[alz$subject == i], 
-              M = M, 
-              maxit = maxit*M, 
-              betat = beta, 
-              s2gammat = s2gamma 
-        )
+    # qfunction calculation (vectorized)
+      qfunction = 
+        # sum over first part of Q
+        sum(dpois(alz_M_aug[, words], lambda = lambda_M_aug, log = T)) + 
+        # sum over second part of Q, no need to use repeated gamma over months here
+        sum(dnorm(alz_M_aug[month == 1, rejection.samples], 
+              mean = 0,
+              sd = sqrt(s2gamma),
+              log = T))
       
-      # fill in last col of augmented matrix with drawn samples
-      alz_M_aug$rejection.samples[alz_M_aug$subject == i] =
-           rep(posterior.rejection.samples[[i]]$gammai, each = 5)
-    
-    }
-      
-    ## evaluate  qfunction given drawn samples, current param estimates
-    lambda_M_aug = exp(X_m_aug %*% beta + alz_M_aug$rejection.samples)
-    qfunction = dpois(alz_M_aug$words, lambda = lambda_M_aug, log = T) +
-                   dnorm(alz_M_aug$rejection.samples, mean = 0, sd = sqrt(s2gamma), log = T)
-    # average over M
-    qfunction = sum(qfunction)/M 
+    # take average over M
+      qfunction = (qfunction) / M 
     
   ## End E-step
     
   ## Calculate relative change in qfunction from prior iteration
-    eps  = abs(qfunction-qfunction0)/abs(qfunction0)
+    eps  = abs(qfunction - qfunction0) / abs(qfunction0)
     
   ## Start M-step
     
-    # s2gamma, MLE for sigma^2 from normal with mean 0, averaged over M
-    # closed form derived from Q function approximation
-    s2gamma = sum(alz_M_aug$rejection.samples[seq(1, nrow(alz_M_aug), by = 5)]^2)/(max(alz$subject))
-    s2gamma = s2gamma/M
+    # s2gamma, derived similar as the MLE for sigma^2 from normal with mean 0, averaged over M
+    # closed form derived from Q function approximation given earlier
+    s2gamma = sum(alz_M_aug[month == 1, rejection.samples] ^ 2) / n
+    s2gamma = s2gamma / M
     
     # beta, poisson glm with gammai's filled in with M posterior draws/subject
     # averaging over M draws, so weight = 1/M for each repeated row with draw filled in
     # posterior draws for gamma_i area are filled in as offsets in the glm
-    fit = glm(alz_M_aug$words ~ X_m_aug -1, 
-              family = poisson(), 
-              weights = rep(1/M, nrow(X_m_aug)), 
-              offset = alz_M_aug$rejection.samples,
-              # use starting value from previous step
-              start = beta
-            )
+    fit = glm(
+      alz_M_aug$words ~ X_m_aug - 1,
+      family = poisson(),
+      weights = rep(1 / M, nrow(X_m_aug)),
+      offset = alz_M_aug$rejection.samples,
+      # use starting value from previous step
+      start = beta
+    )
     beta = as.vector(fit$coefficients)
   
   ## update iterator
@@ -514,7 +655,7 @@ In addition, the posterior modes of the random effects are also similar:
 print(ranef(fit)$subject)
 
 # RS
-print(mean(posterior.rejection.samples[[1]]$gammai))
+print(alz_M_aug[,mean(rejection.samples), by = subject])
 ```
 
 We can also take a look at the final augmented matrix to see what it looks like 
