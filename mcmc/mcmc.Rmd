@@ -319,7 +319,7 @@ Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log (f(\boldsy
 
 since we are now able to draw iid samples from the posterior using Rejection Sampling.  Here, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$. Then, we can carry out the M step using standard optimization routines, for example, using NR or BFGS from our optimization lecture.  
 
-However, for $\boldsymbol{\beta}$, an easier approach is simply using Poisson regression to maximize the Q-function in the M-step, and therefore avoiding the need to derive any analytical derivatives of the likelihood.  To do this, we repeat each observation $\boldsymbol{y_{i}}$ and corresponding predictor in the design matrix $M$ times, filling in $\boldsymbol{X}_k$ for each repeated row for $\gamma_i$ in the linear predictor above.  Each repeated row is weighted with $1/M$.  We can also show that the solution for $\sigma^2_{\gamma}$ is simply the sum of the squared $X_k$'s divided by $nM$.  
+However, for $\boldsymbol{\beta}$, an easier approach is simply using Poisson regression to maximize the Q-function in the M-step, and therefore avoiding the need to derive any analytical derivatives of the Q-function  To do this, we repeat each observation $\boldsymbol{y_{i}}$ and corresponding predictor in the design matrix $M$ times, filling in $\boldsymbol{X}_k$ for each repeated row for $\gamma_i$ in the linear predictor above.  Each repeated row is weighted with $1/M$.  We can also show that the solution for $\sigma^2_{\gamma}$ is simply the sum of the squared $X_k$'s divided by $nM$.  
 
 ### Implementing the E-step Rejection sampler
 
