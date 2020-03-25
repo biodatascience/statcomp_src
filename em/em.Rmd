@@ -360,7 +360,7 @@ We wont wrap this in a function just yet so that its easier to explore and inspe
     ## calculate LL (Sec 2.2.1)
       # Calculate sum across K inside the log for each subject
       interior_sum = rep(0, length(y))
-      for(i in 1:K) interior_sum = interior_sum + pi[k]*dpois(y,lambda = fit[[k]]$fitted) 
+      for(k in 1:K) interior_sum = interior_sum + pi[k]*dpois(y,lambda = fit[[k]]$fitted) 
       # Take the log of each, then sum across the n subjects to get the ll
       ll = sum(log(interior_sum))
       

@@ -11,7 +11,7 @@ output:
 # Why put your code into a package?
 
 There are two compelling reasons to move your code from a set of
-scripts to a package:
+scripts to a package:  
 
 * Versioning
 * Documentation

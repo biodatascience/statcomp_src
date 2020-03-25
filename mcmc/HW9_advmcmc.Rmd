@@ -1,0 +1,54 @@
+---
+title: "HW 9 - MCMC"
+author: "Naim Rashid"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Maximization of poisson GLMM from lecture
+
+Lets now maximize the poisson GLMM model given in lecture, now using an MCEM approach.  In a previous HW, you used numerical integration tools to approximate the likelihood for this model, then applied numerical optimization to obtain the estimates of the model parameters.  
+
+Here we wish to use MCEM, where in lecture we have already gone over a similar implementation using a rejection sampler in the E-step.  For this HW, please use a Metropolis Hastings Random Walk proposal distribution to appoximate the Q-function in the E-step.   Specify your proposal distribution.  Write functions implementing the E-step, the M-step, and then write the main code for the MCEM algorithm.  Free to reuse/modify the lecture code to do this, however you can implement the M-step and other parts of the EM algorithm however you please.
+
+```{r}
+## Solution: place relevant helper functions pertaining to the E step here 
+
+## End Solution
+
+
+## Solution: place relevant helper functions pertaining to the M step here 
+
+## End Solution
+
+
+## Solution: place primary code for the MCEM algorithm here, calling functions in the above two sections
+## Remember to print your primary results and use the following starting values, and evaluate chain diagnostics for the final model
+
+# set initial parameters
+  tol = 10^-5
+  maxit = 100
+  iter = 0
+  eps = 10000
+  qfunction = rep(-10000,maxit) # using Qfunction for convergence
+  
+# starting values, taken from rejection sampling example
+  beta = c(1.804, 0.165) 
+  s2gamma =  0.000225 + .01 
+
+# Length of chain
+  M = 10000
+
+# burn in
+  burn.in = 2000
+
+  
+    
+## End Solution
+
+
+```

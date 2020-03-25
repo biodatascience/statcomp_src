@@ -860,7 +860,7 @@ plot(
   xv,
   inner(
     gammai = xv,
-    y = y1,
+    yi = y1,
     beta = beta,
     s2gamma = s2gamma
   ),
@@ -876,7 +876,7 @@ segments(
   y0 = 0,
   y1 = inner(
     gammai = gammai,
-    y = y1,
+    yi = y1,
     beta = beta,
     s2gamma = s2gamma
   ),
@@ -918,7 +918,7 @@ plot(
   xv,
   inner(
     gammai = xv,
-    y = y1,
+    yi = y1,
     beta = beta,
     s2gamma = s2gamma
   ),
@@ -973,7 +973,7 @@ Lets do this below:
       fn = function(x, y, beta, s2gamma) {
         inner(
           gammai = x,
-          y = y1,
+          yi = y1,
           beta = beta,
           s2gamma = s2gamma
         )
@@ -994,7 +994,7 @@ Lets do this below:
   hess_pm = hessian(
     func = inner,
     x = pm$p1,
-    y = y1,
+    yi = y1,
     beta = beta,
     s2gamma = s2gamma,
     log = T
@@ -1073,7 +1073,7 @@ plot(
   xv,
   inner(
     gammai = xv,
-    y = y1,
+    yi = y1,
     beta = beta,
     s2gamma = s2gamma
   ),
@@ -1239,9 +1239,9 @@ Using the same posterior mode and variance as in the AQG example, we can improve
 We can see that we improved on the original accuracy from the regular MCI approach with only $M = 10^3$ compared to $M  = 10^7$ earlier!  We can also visualize this below:
 
 ```{r}
-plot(xv,inner(gammai = xv, y = y1, beta = beta, s2gamma = s2gamma), 
+plot(xv,inner(gammai = xv, yi = y1, beta = beta, s2gamma = s2gamma), 
      ylab = "inner(gamma1)", xlab = "gamma1", type = 'l')
-segments(x0 = y_imp,x1 = y_imp,y0 = 0, y1 = inner(gammai = y_imp, y = y1, beta = beta, s2gamma = s2gamma), col = "lightblue")
+segments(x0 = y_imp,x1 = y_imp,y0 = 0, y1 = inner(gammai = y_imp, yi = y1, beta = beta, s2gamma = s2gamma), col = "lightblue")
 abline(v = pm$p1, col = "blue")
 ```
 
