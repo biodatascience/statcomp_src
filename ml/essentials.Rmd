@@ -44,10 +44,7 @@ evaluation metrics are:
 Two common definitions for predictive $R^2$ are the squared Pearson
 correlation of the true values with the predicted values (which cannot
 be negative) and 1 - sum of squared residuals / total sum of
-squares (which can be negative). If a predictive $R^2$ using the
-second metric is negative, it means the prediction was worse than just
-guessing the mean value, which could indicate a bug or that the model
-has a lot of variance.
+squares. 
 
 For categorical data, there are also various evaluation metrics. If
 the outcome is binary, it is common to consider sensitivity,
@@ -111,7 +108,7 @@ We will create some random Normally distributed data to demonstrate
 the basic concept of overfitting. We can see that despite there being
 no relationship between the outcome and the predictors (`y` consists
 simply of 1,000 random Normal data points), we can obtain a strong
-correlation between the predicted values. This is one of the main
+correlation with the predicted values. This is one of the main
 concerns of machine learning methods: to find a way to combine
 information in the predictors that will *generalize* to new data,
 while not getting "tricked" into finding spurious patterns or
@@ -441,8 +438,8 @@ makeData <- function(n) {
   sd <- .5
   x1 <- c(rnorm(.5*n,-.5,sd),rnorm(.5*n,.5,sd))
   x2 <- c(rnorm(.5*n,-.5,sd),rnorm(.5*n,.5,sd))
-  idx <- sample(n, .05*n)
-  x1[idx] <- -5 * x1[idx]
+  idx <- sample(n, .025*n)
+  x1[idx] <- -10 * x1[idx]
   y <- factor(rep(c(1,2),n*c(.5,.5)))
   data.frame(x1,x2,y)
 }
