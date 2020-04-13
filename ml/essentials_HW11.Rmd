@@ -39,25 +39,3 @@ x <- faithful[,1:2]
 y <- faithful[,3]
 ```
 
-# Circle classifier
-
-In the lecture notes we found that algorithms *f* which are of the
-form: 
-
-$$ \textrm{sign}(a x_1 + b x_2 + c) $$
-
-with $a,b > 0$, could _not_ shatter a set of two points along the
-NE-SW axis, e.g. $\{(-1,-1), (1,1)\}$.
-
-Using four plots, demostrate that the following algorithm *f* _can_
-shatter these two points, $\{(-1,-1), (1,1)\}$:
-
-$$ \textrm{sign}((x_1 - a)^2 + (x_2 - b)^2 - c^2) $$
-
-with $a,b,c \in \mathcal{R}$.
-
-Now, without drawing the plots, but using geometric intuition, do you
-think *f* can shatter at least one set of three points? Four points?
-Proving that an algorithm *f* cannot shatter a set of points is not
-trivial. Just using geometric intuition, What do you think is the VC
-dimension of *f*? 
