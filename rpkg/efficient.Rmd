@@ -13,6 +13,7 @@ output:
 In this document we will discuss some strategies for writing readable
 and efficient code in R (the strategies may sometimes extend to
 other high-level programming languages like python, Julia, or Matlab).
+
 First, why do we care about these *secondary* properties of our
 code. Perhaps the most important thing about an implementation of a
 statistical method is that it *works*. You want it to be accurate, in
@@ -42,20 +43,24 @@ similar across whatever language you use.
   vertical chunks, and code within a project is broken into meaningful
   files (this varies a bit from person to person). Use spaces between
   operators, e.g. `x <- 1` rather than `x<-1`.
+  
 * *Non-repeating:* Functions are used to define operations that will
   be repeated more than once. There should almost never be any code
   that looks as if it were *copy-pasted* within a project. Variations
   among similar code chunks can be turned into arguments of a
   function.
+  
 * *Inline documentation:* User-facing functions should have arguments
   that are documented above the function, along with a description of
   what the function returns. (We will discuss strategies for doing
   this in R using *roxygen2* and the *devtools* package.)
+  
 * *Comments:* Use lots of comments to describe the choices that are
   made in the code. It's difficult to actually provide *too many*
   comments. This helps others, and it will certainly help yourself in
   the future as you return to your code to make sense of what you were
   trying to do.
+  
 * *Meaningful names:* Function and variable naming is actually quite
   difficult. Simple and descriptive is good. If you have a function
   that estimates weights, e.g.  `estimateWeights`. For the main
@@ -69,6 +74,8 @@ similar across whatever language you use.
   (`estimate_weights`) for functions or periods for variables names
   `robust.est.var`. This is not so important, but try to be consistent
   within a project. 
+
+<--!Notes to add: code profiling and parallelization-->
 
 # Efficient code
 
@@ -110,6 +117,7 @@ languages.
   small overhead in saving and looking up the precomputed values, but
   if the degree of repeated input is high, the savings of memoization
   can be large. The *memoise* package helps with this in R.
+* *Parallelization:*  One can think of the standard for loop as a serial operation: the $i+1$th    iteration is always ran after the $(i)$th iteration has completed.  On machines with more than one CPU available, say with $P$ CPUs, parallelization of iterations may allow for the execution of up to $P$ iterations of the for loop at the same time. This is particularly helpful when there are a large number of loop iterations that are non-recursive, meaning the next iteration of the loop does not depend on the prior one (simulations for example).  One thing to note is that each parallel instance invoked in R requires additional memory, and therefore in memory-intensive operations this may quickly exhaust the available memory on your machine if you are not careful.    
 
 # Learning more about efficient code
 
@@ -122,13 +130,13 @@ this online textbook by Colin Gillespie and Robin Lovelace:
 
 * [Efficient R Programming](https://csgillespie.github.io/efficientR/)
 
-For example, they have a section on 
+<--! For example, they have a section on 
 [code profiling](https://csgillespie.github.io/efficientR/code-profiling.html),
 which is a really useful way to figure out what lines of code are
 causing the greatest bottlenecks in your package. We don't have time
 to sufficiently cover this in this note, but it's worth reading on
 your own, and using code profiling if you end up making a package
-where speed and memory usage are a critical factors.
+where speed and memory usage are a critical factors. -->
 Some of the topics in this book, for example usage of *Rcpp* and
 *data.table* will be covered in later lecture notes.
 
@@ -244,7 +252,7 @@ $x$ and $b$ are vectors, then we will incur a cost in speed.
 
 ```{r}
 n <- 50
-m <- 100
+m <- 1000
 a <- matrix(rnorm(n*n),nrow=n)
 x <- matrix(rnorm(n*m),nrow=n)
 b <- a %*% x
@@ -267,3 +275,87 @@ x2 <- slow.solve(a, b)
 all.equal(x1, x2)
 microbenchmark(solve(a,b), slow.solve(a,b))
 ```
+
+## Parallelization
+
+The *parallel* package in R is commonly use for parallelizing functions. Let see how much faster we can speed up the slow.solve function by parallelizing it. First we have to load the parallel library and detect the max number of cores available on your machine.
+
+```{r}
+library("parallel")
+no_of_cores = detectCores()
+```
+
+Then, we can utilize the parallelized version of sapply, apply, and lapply from the parallel package (parSapply, parApply, and parLapply). We start by requesting the number of cores we would like to use (here we use two).
+
+```{r}
+## creates a set of copies of R running in parallel
+cl = makeCluster(2)
+
+## now we create a function representing the inner portion of the slow.solve for loop
+# bi is assumed to be the i'th column of b being passed to slow.solve.i
+slow.solve.i = function(bi, a){
+  xxi <- solve(a, bi)
+  return(xxi)
+}
+
+## now run benchmark comparing slow.solve, the apply version, and the parApply version
+microbenchmark(
+  slow.solve(a,b), 
+  apply(X = b, MARGIN = 2, FUN = slow.solve.i, a = a), 
+  parApply(cl = cl, X = b,  FUN = slow.solve.i, MARGIN = 2, a = a)
+)
+
+# Close the cores after use of parApply to prevent memory leaks
+stopCluster(cl)
+```
+
+We see that the parallelized version is twice as fast than slow.solve and the apply function.   Still, it is not as fast as using a vectorized function. For a smaller number of iterations paralellization may not be as helpful given the overhead required to coordinate tasks across cores. If using within a function, sometimes an error in the function may cause it to terminate earlier.  Adding "on.exit(stopCluster(cl))" after makeCluster() above helps to simplify this issue, where whatever function is within on.exit() will be executed regardless of how the function ends. 
+
+On linux and mac, one can alternatively ue the mcapply() and mclapply() functions, where the main difference is that one does not need to explictly start and stop the cluster objects as in the above example. This simplifies its use, especially when nested within other functions. 
+
+One important note when using parallelization on high performance computing clusters.  Such clusters consist of multiple compute nodes connected to a login node.  Typically jobs that are submitted to the cluster are handled from the login nodes and distributed to the compute nodes.  A single job may also request multiple cpu's to run operations within the job in parallel. However for the parallel package and most other parallelized routines in R, parallelization cannot go beyond a single node, and is therefore limited to the number of CPUs on that node.  For parallelization across a large number of CPUs, one needs to utilize Message Passing Interface (MPI) enabled versions of R, with accompanying MPI-enabled R packages (*Rmpi*) and cluster software (*openMPI*). 
+
+Additional detail can be found in Section 7.5 of the Efficient R Programming book. 
+
+# Monte-Carlo integration 
+
+Suppose we wish to estimate the integral
+\[
+\int_0^1 x^2 dx
+\]
+using a Monte-Carlo Integration We will learn more about this in Module 2, but for now, we focus on the programming aspect.
+
+_Monte Carlo Integration Psuedocode_
+
+1. Initialise: `hits = 0`
+1. __for i in 1:N__
+1. $~~~$ Generate two random numbers, $U_1, U_2$, between 0 and 1
+1. $~~~$ If $U_2 < U_1^2$, then `hits = hits + 1`
+1. __end for__
+1. Area estimate = `hits/N`
+
+Implementing this Monte-Carlo algorithm in R would typically lead to something like:
+
+```{r tidy=FALSE}
+monte_carlo = function(N) {
+  hits = 0
+  for (i in seq_len(N)) {
+    u1 = runif(1)
+    u2 = runif(1)
+    if (u1 ^ 2 > u2)
+      hits = hits + 1
+  }
+  return(hits / N)
+}
+```
+
+In R this takes a few seconds
+
+```{r cache=TRUE}
+N = 500000
+system.time(monte_carlo(N))
+```
+
+Derive a more R-centric, vectorized approach to the above function to make it faster.  Can you explain the intuition behind why this algorithm works for estimating the value of an integral?
+
+
