@@ -130,7 +130,7 @@ this online textbook by Colin Gillespie and Robin Lovelace:
 * [Efficient R Programming](https://csgillespie.github.io/efficientR/)
 
 For example, they have a section on 
-[code profiling](https://csgillespie.github.io/efficientR/code-profiling.html),
+[code profiling](https://csgillespie.github.io/efficientR/performance.html#performance-profvis),
 which is a really useful way to figure out what lines of code are
 causing the greatest bottlenecks in your package. We don't have time
 to sufficiently cover this in this note, but it's worth reading on
