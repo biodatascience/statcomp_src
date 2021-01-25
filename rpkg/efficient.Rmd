@@ -102,8 +102,7 @@ languages.
   they don't need to be avoided at all cost.
 * *Avoid copying large objects:* This goes along with the above point,
   but copying large objects takes up a lot of time in R. To the extent
-  that you can avoid making copies of a data object, you will avoid
-  unnecessary slowdowns. We will discuss this in more detail later.
+  that you can avoid [making copies](https://adv-r.hadley.nz/names-values.html) of a data object, you will avoid unnecessary slowdowns. We will discuss this in more detail later.
 * *Go to C or C++:* You can typically gain a lot of speed by moving a
   repetitive operation from R to C or C++. We will see how to do this
   easily and in a way that the code is still readable in later lecture
