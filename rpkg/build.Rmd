@@ -302,6 +302,7 @@ And we can include the following at the end of scripts to include all
 package versions (and other important details):
 
 ```{r}
+library(devtools)
 session_info()
 ```
 
