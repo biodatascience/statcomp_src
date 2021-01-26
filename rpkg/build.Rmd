@@ -77,16 +77,17 @@ add <- function(x,y,negative=FALSE) {
 }
 ```
 
-Let's say we will create an R package called *foo*. We can start with
+We will assume that we are running the following code on the class virtual machine, which uses R version 4.0.3.  Let's say we will create an R package called *foo*. We can start with
 the following:
 
 ```{r eval=FALSE}
 library(usethis)
-create_package("foo", rstudio=FALSE)
+create_package("foo", roxygen=FALSE)
 ```
 
 This will make a directory called `foo` in the current working
-directory, and will then change the working directory to `foo`.
+directory, and will then change the working directory to `foo`.  For now, we set Roxygen equal to FALSE since we have not covered Roxygen yet.  This option allows for automatic exporting of functions to the namespace when FALSE.  If set to TRUE (default), the function assumes you will be using Roxygen to document functions and will export functions in accordance to your Roxygen documention, leaving the NAMESPACE file blank upon creation.   If you using an R version prior to R 4.0, you may not need to specify the Roxygen option.  
+
 (This Rmarkdown however needs to point to the `foo` directory to look
 inside.)
 
@@ -97,16 +98,18 @@ list.files("foo")
 It will start with a DESCRIPTION file that looks like:
 
 ```
-Package: foobar
+Package: foo
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
-Authors@R:
+Authors@R: 
     person(given = "First",
            family = "Last",
            role = c("aut", "cre"),
-           email = "first.last@example.com")
+           email = "first.last@example.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
-License: What license it uses
+License: `use_mit_license()`, `use_gpl3_license()` or friends to
+    pick a license
 Encoding: UTF-8
 LazyData: true
 ```
@@ -153,6 +156,7 @@ lecture note.
 We can build a shareable package "tarball" using the `build` function:
 
 ```{r eval=FALSE}
+library(devtools)
 build("foo")
 ```
 
@@ -267,8 +271,7 @@ explicit `library(foo)` call afterward.
 install.packages("foo_0.0.1.tar.gz", repos=NULL)
 ```
 
-Another easy way to share your package is to put all of the files into
-a GitHub repository. Then others can install the package on their
+You may need to restart your R session, or try this is another R session if you already have loaded the foo package in certain versions of R.  Another easy way to share your package is to put all of the files into a GitHub repository. Then others can install the package on their
 machines simply with `install_github("username/foo")` using the
 *devtools* package. Again, this requires a `library(foo)` call
 afterward to load the package.

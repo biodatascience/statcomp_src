@@ -312,7 +312,7 @@ On linux and mac, one can alternatively ue the mcapply() and mclapply() function
 
 One important note when using parallelization on high performance computing clusters.  Such clusters consist of multiple compute nodes connected to a login node.  Typically jobs that are submitted to the cluster are handled from the login nodes and distributed to the compute nodes.  A single job may also request multiple cpu's to run operations within the job in parallel. However for the parallel package and most other parallelized routines in R, parallelization cannot go beyond a single node, and is therefore limited to the number of CPUs on that node.  For parallelization across a large number of CPUs, one needs to utilize Message Passing Interface (MPI) enabled versions of R, with accompanying MPI-enabled R packages (*Rmpi*) and cluster software (*openMPI*). 
 
-Additional detail can be found in Section 7.5 of the Efficient R Programming book. 
+Additional detail can be found in Section 7.5 of the Efficient R Programming book. An up to date listing of other R packages that enable parallel computing can be [found here](https://cran.r-project.org/web/views/HighPerformanceComputing.html).  Examples include *Rmpi*, which is an R-wrapper for MPI, as well as *foreach*, which is an R package that allows for the execution of parallelized loops in R. 
 
 # Monte-Carlo integration 
 

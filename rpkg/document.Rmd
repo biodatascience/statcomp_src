@@ -24,6 +24,17 @@ both the `.Rd` files that go in the `man` directory, and it will
 populate the `NAMESPACE` file which specifies what is exported and
 what is imported by your package.
 
+Since we did not use Roxygen in the last lecture, lets recreate our foo package with Roxygen in mind from the start.  In newer versions of R, this helps to avoid issues not overwriting the existing NAMESPACE file when we use the document() function later.  
+
+Lets run the following to prep our foo package.  If you do not want to rewrite your DESCRIPTION file, you can elect not to overwrite it when asked below.  But, definitely choose to overwrite your existing NAMESPACE file. 
+
+Alternatively, you can delete your existing foo folder and start from scratch.  Just make sure to add the add function to the R/ directory in an R script file. 
+
+```{r, eval = F}
+library(usethis)
+create_package("foo", roxygen=TRUE)
+```
+
 # Writing help for functions
 
 Suppose we have a function in one of our R scripts, which is located
