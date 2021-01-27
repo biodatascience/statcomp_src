@@ -50,7 +50,7 @@ This file stays the same way, and we will write new `.R` files that go
 into `tests/testthat` which will implement the package tests.
 
 Suppose we run `use_test("add")` for our *foo* package, and we want to
-write a test for our `add` function. We can do this by opening up the
+write a test for our `add` function (make sure the *usethis* pakage is loaded). We can do this by opening up the
 file `tests/testthat/test-add.R`, and adding some tests. The default
 file has some dummy code to show you the style:
 
@@ -150,5 +150,6 @@ test_package("foo")
 # Session info
 
 ```{r}
+library(devtools)
 session_info()
 ```
