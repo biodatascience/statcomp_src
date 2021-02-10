@@ -366,7 +366,6 @@ To summarize, the following concepts are important for understanding the set of 
 
 In the next few sections we will go into detail regarding various approaches for numerical optimization and their pros and cons for use. We will also discuss algorithm-specific aspects of computational complexity and convergence speed of each approach to help you decide which algorithm may be better to utilize for your specific application. 
 
-
 ## Newton-Raphson
 In the previous illustration we used a common technique called **Newton-Raphson** (NR) to optimize the function of interest with respect to $\theta$. This approach is also referred to as Newton's Method, and is an iterative updating scheme to arrive at $\hat{\theta}$.  
 
