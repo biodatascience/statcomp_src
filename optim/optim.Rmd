@@ -40,16 +40,17 @@ knitr::opts_chunk$set(echo = TRUE)
 # Introduction
 
 A common task in statistics is maximizing (or minimizing) complex univariate or multivariate functions.  This is typically done in the context of maximizing likelihood functions with respect to a vector of unknown parameters, given the observed data.  
-The term "parameter estimation" may be one that you may have commonly heard in the past during discussions of fitting statistical models to data.  In doing so, One seeks to find a set of parameter values that "best fit"" or "explain" the data.  
+
+The term "parameter estimation" may be one that you may have commonly heard in the past during discussions of fitting statistical models to data.  In doing so, one seeks to find a set of parameter values that "best fit"" or "explain" the data.  
 
 More generally, this task pertains to an "optimization" problem, where we seek to finding a set of parameter values that minimizes or maximizes some pre-defined objective function.  When this objective function is a log likelihood function, this reduces to the problem of maximum likelihood estimation.  
 
-As we will see in this lecture, there are many potential approaches to use for optimization in this context.  How best to optimize a function of interest depends on the nature of the function to be optimized as well as practical concerns regarding the complexity of the procedures considered. As such, another goal of this lecture is to help indicate the pro's and con' of various approaches to help determine which approach best fits your problem.  
+As we will see in this lecture, there are many potential approaches to use for optimization in this context.  How best to optimize a function of interest depends on the nature of the function to be optimized, as well as practical concerns regarding the the procedure considered. As such, another goal of this lecture is to help indicate the pro's and con' of various approaches to help determine which approach best fits your problem.  
 
-Our discussion of optimization in this lecture will give a broad overview of existing approaches for unconstrained optimization, touching the many of the special cases that may have been covered in previous coursework.  In a later lecture we will discuss the topic of "constrained" optimization, where the potential set of allowable solutions is no longer unrestricted. We focus on the class of problems where the function to be optimized is smooth, real valued, and is differentiable.
+Our discussion of optimization in this lecture will give a broad overview of existing approaches for unconstrained optimization, touching the many of the special cases that may have been covered in previous coursework. In a later lecture we will discuss the topic of "constrained" optimization, where the potential set of allowable solutions is no longer unrestricted. We focus on the class of problems where the function to be optimized is smooth, real valued, and is differentiable.
 
 ## Example: Height data
-Let us assume that we have obtained a random sample of 100 individuals from Chapel Hill.  Let us define $\mathbf{y} = (y_1,\ldots,y_{100})$, where $y_i$ pertains to the measured height of the $i$th individual in inches, $i =1,\ldots,100$. 
+Let us assume that we have obtained a random sample of 100 individuals from Chapel Hill.  Let us define $\mathbf{y} = (y_1,\ldots,y_{100})$, where $y_i$ pertains to the measured height of the $i^{th}$ individual in inches, for $i =1,\ldots,100$. 
 
 Let us further assume that the distribution of these heights is distributed normally with some unknown mean $\mu$ and **known** variance $\sigma^2 = 10$.  That is, we assume that $y_i \sim N(\mu,\sigma^2)$, where $\sigma = 10$.  
 
@@ -57,7 +58,7 @@ A common question in this situation is what is the "best" estimate of $\mu$ give
 
 From introductory statistical courses, one may remember that an estimator for $\mu$, say $\hat{\mu}$ , in this setting may be $\bar{\y}$, or the mean of the observed heights.  In more advanced statistical courses, you may have shown why this is the case via **analytically** deriving the maximum likelihood estimator for $\mu$, and proving its optimality relative to other potential estimators.  
 
-We can also rexpress the original form of this problem as an intercept-only linear regression model:  $$y_i = \X_i\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X_i = 1$, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
+We can also re-express the original form of this problem as an intercept-only linear regression model:  $$y_i = \X_i\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X_i = 1$, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
 
 Regardless of the approach used here, we can show that we can obtain $\hat{\mu}$ analytically via optimizing some function of the data with respect to the parameters of interest $\mu$.  In the linear regression case, we are minimizing the residual sum of squares of the model with respect to $\beta$ ($\mu$), and in the latter, we are maximizing the likelihood function assumed for the data with respect to $\mu$.  
 
@@ -84,7 +85,7 @@ We can illustrate this approach using the following simulation example:
 
 ```{r, echo=TRUE}
 ## set simulation parameters
-mu = 67 
+mu = 67
 sigma2 = 10
 n = 100
 
@@ -97,7 +98,7 @@ cat("mean of y\n")
 
 ## print estimate of mu in linear model framework (intercept only model)
 cat("beta_hat from intercept only linear model\n")
-print(lm(y ~1)$coef)
+print(lm(y ~ 1)$coef)
 
 ```
 
@@ -106,12 +107,12 @@ Now, lets write some functions that will help generate some figures in the next 
 ```{r, echo=TRUE}
 ## returns a vector of likelihood values over a given range of mu values
 ## helps for plotting later
-lik = function(mu, sigma2, y){
+lik = function(mu, sigma2, y) {
   # create empty vector
   likelihood.vector = rep(NA, length(mu))
   
   # for each mu, calculate the likelihood value
-  for(i in 1:length(likelihood.vector)){
+  for (i in 1:length(likelihood.vector)) {
     likelihood.vector[i] = prod(dnorm(y, mu[i], sqrt(sigma2)))
   }
   
@@ -120,12 +121,12 @@ lik = function(mu, sigma2, y){
 }
 
 ## define the log-likelihood function with respect to mu
-loglik = function(mu, sigma2, y){
-  # create empty vector  
+loglik = function(mu, sigma2, y) {
+  # create empty vector
   log.likelihood.vector = rep(NA, length(mu))
   
   # calculate log likelihood
-  for(i in 1:length(log.likelihood.vector)){
+  for (i in 1:length(log.likelihood.vector)) {
     log.likelihood.vector[i] = sum(dnorm(y, mu[i], sqrt(sigma2), log = T))
   }
   
@@ -133,13 +134,13 @@ loglik = function(mu, sigma2, y){
 }
 
 ## define the residual sum of squares function with respect to mu
-RSS = function(mu, sigma2, y){
-  # create empty vector  
+RSS = function(mu, sigma2, y) {
+  # create empty vector
   RSS.vector = rep(NA, length(mu))
   
   # calculate log likelihood
-  for(i in 1:length(RSS.vector)){
-    RSS.vector[i] = sum((y - mu[i])^2)
+  for (i in 1:length(RSS.vector)) {
+    RSS.vector[i] = sum((y - mu[i]) ^ 2)
   }
   
   return(RSS.vector)
@@ -152,36 +153,53 @@ Now that we got that out of the way, lets plot each of these functions with resp
 
 ```{r, echo=TRUE}
 ## range of mu to plot over
-range = seq(45, 85,,1000)
+range = seq(45, 85,, 1000)
 
 ## arrange the two plots in 1 row, three columns
-par(mfrow = c(1,3)) 
+par(mfrow = c(1, 3))
 
 ## likelihood plot
-plot(range, lik(mu = range,sigma2 = sigma2, y = y), type = "l", ylab = "likelihood", xlab = "mu")
+plot(
+  range,
+  lik(mu = range, sigma2 = sigma2, y = y),
+  type = "l",
+  ylab = "likelihood",
+  xlab = "mu"
+)
 
 # add vertical line at the mean of y
-abline(v = mean(y), lty = 2, col = "grey") 
+abline(v = mean(y), lty = 2, col = "grey")
 
 ## log likelihood plot
-plot(range, loglik(mu = range,sigma2 = sigma2, y = y), type = "l", ylab = "log likelihood", xlab = "mu")
+plot(
+  range,
+  loglik(mu = range, sigma2 = sigma2, y = y),
+  type = "l",
+  ylab = "log likelihood",
+  xlab = "mu"
+)
 
 # vertical line at the mean of y
-abline(v = mean(y), lty = 2, col = "grey" ) 
+abline(v = mean(y), lty = 2, col = "grey")
 
 ## RSS plot
-plot(range, RSS(mu = range,sigma2 = sigma2, y = y), type = "l", ylab = "RSS", xlab = "mu")
+plot(
+  range,
+  RSS(mu = range, sigma2 = sigma2, y = y),
+  type = "l",
+  ylab = "RSS",
+  xlab = "mu"
+)
 
 # vertical line at the mean of y
-abline(v = mean(y), lty = 2, col = "grey" ) 
+abline(v = mean(y), lty = 2, col = "grey") 
 ```
-
 
 We can clearly see that the maximum of the likelihood, log-likelihood, and RSS functions occurs at the MLE of $\mu$, $\hat{\mu}=$ `r round(mean(y),5)`.  At the MLE, we can see that the derivative of each of the functions are equal to zero, following the intuition of the procedures used to solve for $\hat{\mu}$.  We will see that many of the algorithms proposed in this section are based upon this principle when trying to find the minimum/maximum of a function when no closed form solutions are available. 
 
 ## Calculating the MLE for $\lambda$ for the mean of the Poisson Distribution
 
-We know that the pmf for a Poisson random variable $Y$ with mean $\lambda$ may be written as $$Po(Y=y | \lambda) = \frac{e^{-\lambda}\lambda^y}{y!},$$ where $y$ is a draw from this distribution.  Suppose we draw a sample of $n$ observations from this distribution and we wish to determine the MLE of $\lambda$, $\hat{\lambda}$.  
+We know that the PMF for a Poisson random variable $Y$ with mean $\lambda$ may be written as $$Po(Y=y | \lambda) = \frac{e^{-\lambda}\lambda^y}{y!},$$ where $y$ is a draw from this distribution.  Suppose we draw a sample of $n$ observations from this distribution and we wish to determine the MLE of $\lambda$, $\hat{\lambda}$.  
 
 As discussed in prior courses, the MLE can be obtained by simply taking the first derivative of the likelihood (or more easily, the log likelihood), setting it equal to 0, and then solving for the parameter of interest. 
 
@@ -193,9 +211,9 @@ In this example, as in the prior one, we can derive closed form solutions to obt
 
 ### Something Less Straightforward :  Poisson Regression 
 
-For example, what if instead $\lambda = \exp(\X\betab)$, where $\X$ is an $n \times p$ matrix of covariates, and $\betab$ is a $p$-dimensional vector of unknown regression coefficients?  Here we wish to maximize the log likelihood with respect to $\betab$.  This is equivalent to fitting a Poisson GLM, which we will talk about later in this lecture.  
+For example, what if instead $\lambda = \exp(\X\boldsymbol{\beta})$, where $\X$ is an $n \times p$ matrix of covariates, and $\boldsymbol{\beta}$ is a $p$-dimensional vector of unknown regression coefficients?  Here we wish to maximize the log likelihood with respect to $\boldsymbol{\beta}$.  This is equivalent to fitting a Poisson GLM, which we will talk about later in this lecture.  
 
-The log likelihood would then be $$\mathcal{l}(\betab) =   \sum_{i=1}^n \left(y_iX_i\betab -e^{\X_i\betab}-\log(y_i!)\right).$$  Not so easy to obtain a closed form solution for the derivative here... 
+The log likelihood would then be $$\mathcal{l}(\boldsymbol{\beta}) =   \sum_{i=1}^n \left(y_iX_i\boldsymbol{\beta} -e^{\X_i\boldsymbol{\beta}}-\log(y_i!)\right).$$  Not so easy to obtain a closed form solution for the derivative here... 
 
 This problem gets at the heart of why we need to use numerical optimization.   
 
@@ -210,13 +228,19 @@ Here,  $$f'(\theta) = \frac{1+\theta - \theta\log(\theta)}{\theta(1+\theta)^2}.$
 Lets first plot this function to determine its shape:
 
 ```{r, echo=TRUE}
-# define function 
-f1 = function(theta){
-  log(theta)/(1+theta)
+# define function
+f1 = function(theta) {
+  log(theta) / (1 + theta)
 }
 
 # make a plot with this function, where the x-axis ranges from 0 to 10
-plot(f1, from = 0, to = 10, ylab = "f(theta)", xlab = "theta")
+plot(
+  f1,
+  from = 0,
+  to = 10,
+  ylab = "f(theta)",
+  xlab = "theta"
+)
 ```
 
 Plotting this function, the maximum of $f(\theta)$ appears to be between 3 and 4. So how exactly do we find the maximum of this function, and the value of $\theta$ that pertains to the maximum, $\hat{\theta}$?  
@@ -389,14 +413,16 @@ If you are starting in some arbitrary interval $[a,b]$, you can check the follow
 3.  $f'(a)f'(b) < 0$, and
 4.  $|f'(a)/f''(a)| < b-a$ and $|f'(b)/''(b)| < b-a$
 
-These statements follow from the proof given in GH 2.1.1.  In practice most do not manually evaluate these statements  before applying NR, but in cases were problems arise, can help explain problems relating to convergence if observed.  Rephrased, we can translate these conditions into the following:
+These statements follow from the proof given in GH 2.1.1.  In practice most do not manually evaluate these statements  before applying NR, but in cases where problems arise, can help explain problems relating to convergence if observed.  Rephrased, we can translate these conditions into the following:
 
 1.  The 2nd derivative is never equal to zero in the interval $\rightarrow$ $f'(\theta)$ is never flat on $[a,b]$ $\rightarrow$ $f'(\theta)$ can potentially intersect 0 in the interval $\rightarrow$ $f'(\theta)$ has the potential to have a root in $[a,b]$ 
 2.  The third derivative does not change sign on $[a,b]$ $\rightarrow$ the sign of the second derivative stays the same in the interval on $[a,b]$ \rightarrow no change in convexity/concavity in interval
 3.  Implies that the 1st derivative at $a$ is positive and negative at $b$ (or vice versa) $\rightarrow$ $f'(\theta)$ changes sign at some point in $[a,b]$ $\rightarrow$ implies a root for $f'(\theta)$ must exist in $[a,b]$
 4.  The absolute value of $h$ at $a$ or at $b$ is less than the length of the interval $\rightarrow$ the step size (refinement) assuming $\theta^{(0)} = a$ or $\theta^{(0)} = b$ is smaller than the length of the interval being considered.  If this is not true, the update will definitely not be contained in $[a,b]$. 
 
-Using similar arguments, we can show that the convergence order for NR is *quadratic*, meaning the accuracy of the solution will double with each iteration $t$.   Higher convergence order implies that accurate approximations for the parameter(s) of interest are achieved in fewer iterations.  However, we will see that algorithms with higher convergence orders may also be less robust to different conditions and may fail more frequently than slower algorithms.  For example, NR is relatively more sensitive to the starting value compared to other methods.  
+Using similar arguments, we can show that the convergence order for NR is *quadratic*, meaning the accuracy of the solution will double with each iteration $t$.   Higher convergence order implies that accurate approximations for the parameter(s) of interest are achieved in fewer iterations.  
+
+However, we will see that algorithms with higher convergence orders may also be less robust to different conditions and may fail more frequently than slower algorithms.  For example, NR is relatively more sensitive to the starting value compared to other methods.
 
 
 ### Pros and Cons
@@ -407,7 +433,12 @@ Using similar arguments, we can show that the convergence order for NR is *quadr
     + Relatively more sensitive to the choice of starting value
     + In the multivariate setting, need checks on the hessian to avoid singularities, other issues
   
-If the derivatives and/or likelihood are complicated, NR may not be an attractive choice  In addition, if the derivatives required additional work for evaluation (such as likelihoods involving integration), performing additional evaluations in the 1st and 2nd derivatives may similarly be unattractive. 
+If the derivatives and/or likelihood are complicated, NR may not be an attractive choice  In addition, if the derivatives required additional work for evaluation (such as likelihoods involving integration), performing additional evaluations in the 1st and 2nd derivatives may similarly be unattractive. With respect to NR, John Nash in "Nonlinear parameter optimization using R tools" summarizes 
+
+> There are lots of dangerous beasts in the night-time optimization forest.
+
+Some of the difficulties with NR it was not included in the original R general-purpose optimization functions *optim* and *optimx*.
+
 
 ### Example of NR applied to the simpler Poisson problem
 
@@ -429,20 +460,20 @@ Now lets get our functions in order
 
 ```{r, echo=TRUE}
 # loglikelihood function
-logLik = function(lambda, y){
+logLik = function(lambda, y) {
   value = sum(dpois(y, lambda = lambda, log = T))
   return(value)
 }
 
 # lets write a function for the first derivative
-d1 = function(lambda, y){
-  first = -length(y) + sum(y)/lambda
+d1 = function(lambda, y) {
+  first = -length(y) + sum(y) / lambda
   return(first)
 }
 
 # now the second
-d2 = function(lambda, y){
-  second = -sum(y)/lambda^2
+d2 = function(lambda, y) {
+  second = -sum(y) / lambda ^ 2
   return(second)
 }
 ```
@@ -458,28 +489,29 @@ maxit = 50
 iter = 0
 eps = Inf
 start = Sys.time()
-while(eps > tol & iter < maxit){
+while (eps > tol & iter < maxit) {
   # save the previous value
   lam0 = lam
   
   # calculate h, the increment
-  h = - d1(lambda = lam, y = y)/d2(lambda = lam, y = y)
+  h = -d1(lambda = lam, y = y) / d2(lambda = lam, y = y)
   
   # update lambda
   lam = lam + h
   
-  # update the log likelihood 
-  logL = logLik(lambda = lam, y= y)
+  # update the log likelihood
+  logL = logLik(lambda = lam, y = y)
   
   # calculate the diff in lambda, could also use the log likelihood if we wanted
   eps  = abs(lam - lam0)
   
   # update the iteration number
   iter = iter + 1
-  if(iter == maxit) warning("Iteration limit reached without convergence")
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
   
   # print out info to keep track
-  cat(sprintf("Iter: %d logL: %f lam: %f h: %f eps:%f\n",iter, logL,lam, h, eps))
+  cat(sprintf("Iter: %d logL: %f lam: %f h: %f eps:%f\n", iter, logL, lam, h, eps))
 }
 end = Sys.time()
 print(end - start)
@@ -490,31 +522,38 @@ We can also visualize this below
 
 
 ```{r chunk-label_poisNR, fig.show='animate', ffmpeg.format='gif', dev='jpeg', echo = F}
- 
-  
+
+
+
 tol = 10^-4
 lam = 0.1
 maxit = 50
 iter = 0
 eps = Inf
 
-range = seq(0.001,30,,1000)
-plot(range,sapply(range,logLik, y = y), ylab = "logLik(lambda)", xlab = "lambda", type = 'l')
+range = seq(0.001, 30, , 1000)
+plot(
+  range,
+  sapply(range, logLik, y = y),
+  ylab = "logLik(lambda)",
+  xlab = "lambda",
+  type = 'l'
+)
 points(lam0, logLik(lam0, y = y), pch = 19, cex = 2)
 abline(v = mean(y))
 
-while(eps > tol & iter < maxit){
+while (eps > tol & iter < maxit) {
   # save the previous value
   lam0 = lam
   
   # calculate h, the increment
-  h = - d1(lambda = lam, y = y)/d2(lambda = lam, y = y)
+  h = -d1(lambda = lam, y = y) / d2(lambda = lam, y = y)
   
   # update lambda
   lam = lam + h
   
-  # update the log likelihood 
-  logL = logLik(lambda = lam, y= y)
+  # update the log likelihood
+  logL = logLik(lambda = lam, y = y)
   
   # calculate the diff, could also use the log likelihood if we wanted
   eps  = abs(lam - lam0)
@@ -522,7 +561,13 @@ while(eps > tol & iter < maxit){
   # update the iteration number
   iter = iter + 1
   
-  plot(range,sapply(range,logLik, y = y), ylab = "logLik(lambda)", xlab = "lambda", type = 'l')
+  plot(
+    range,
+    sapply(range, logLik, y = y),
+    ylab = "logLik(lambda)",
+    xlab = "lambda",
+    type = 'l'
+  )
   points(lam, logLik(lam, y = y), pch = 19, cex = 2)
   abline(v = mean(y))
 }
@@ -575,31 +620,33 @@ iter = 0
 eps = Inf
 
 start = Sys.time()
-while(eps > tol & iter < maxit){
+while (eps > tol & iter < maxit) {
   # save the previous value
   lam0 = lam
   
   # calculate h, the increment
-  h = -d1(lambda = lam, y = y)/(-n/lam)
+  h = -d1(lambda = lam, y = y) / (-n / lam)
   
   # update lambda
   lam = lam + h
   
   # lambda cant be less than or equal to 0, so put a check for this
-  if(lam <= 0) stop("lambda leq 0")
+  if (lam <= 0)
+    stop("lambda leq 0")
   
-  # update the log likelihood 
-  logL = logLik(lambda = lam, y= y)
+  # update the log likelihood
+  logL = logLik(lambda = lam, y = y)
   
   # calculate the diff, could also use the log likelihood if we wanted
   eps  = abs(lam - lam0)
   
   # update the iteration number
   iter = iter + 1
-  if(iter == maxit) warning("Iteration limit reached without convergence")
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
   
   # print out info to keep track
-  cat(sprintf("Iter: %d logL: %f lam: %f h: %f eps:%f\n",iter, logL,lam, h, eps))
+  cat(sprintf("Iter: %d logL: %f lam: %f h: %f eps:%f\n", iter, logL, lam, h, eps))
 }
 end = Sys.time()
 print(end - start)
@@ -647,43 +694,43 @@ Note that the last three distributions have conditional membership to this famil
 
 For these distributions, we  can factor their densities into the form above to determine $b(\theta)$, $a(\phi)$, and $c(y,\phi)$.  We can then utilize these quantities to estimate the parameters of interest in our model in a general unified framework.  For example, we can show that $E[Y] = b'(\theta)$ and $var[Y] = b''(\theta)a(\phi)$.  
 
-Similar to linear regression, we often wish to model $Y_i$ with respect to some vector of covariates $\X_i$, the $i$th row of an $n \times p$ matrix of covariates $\X$.  Let us define $\mu_i =E[Y_i |\X_i]$.  In this particular model, we assume that the relationship between $\X_i$ and $\mu_i$ are related such that $g(\mu_i) = \X_i\betab = \eta_i$, where $\betab$ is a vector of unknown parameters to be estimated, $g$ is called the "link function", and $\eta_i$ is the "linear predictor".  The inverse link function, $g^{-1}(\eta_i) = \mu_i$, can be used to back transform the linear predictor for subject $i$ to obtain $\mu_i$.  That is, we can model some function of $E[Y_i |\X_i]$ with a set of regression coefficients, where this function is the selected link function $g$.   
+Similar to linear regression, we often wish to model $Y_i$ with respect to some vector of covariates $\X_i$, the $i$th row of an $n \times p$ matrix of covariates $\X$.  Let us define $\mu_i =E[Y_i |\X_i]$.  In this particular model, we assume that the relationship between $\X_i$ and $\mu_i$ are related such that $g(\mu_i) = \X_i\boldsymbol{\beta} = \eta_i$, where $\boldsymbol{\beta}$ is a vector of unknown parameters to be estimated, $g$ is called the "link function", and $\eta_i$ is the "linear predictor".  The inverse link function, $g^{-1}(\eta_i) = \mu_i$, can be used to back transform the linear predictor for subject $i$ to obtain $\mu_i$.  That is, we can model some function of $E[Y_i |\X_i]$ with a set of regression coefficients, where this function is the selected link function $g$.   
 
-For example, in linear regression $g$ is simply the "identity link" where $E[Y_i |\X_i] =\mu_i =  \X_i\betab$ and no transformation is performed.  For each member of the exponential family, different link functions may be utilized, although some may be more mathematically convenient to use than others as we will see.  In general, if we find that $b'(\theta_i) = \mu_i = g^{-1}(\theta_i)$, then this implies that $\theta_i = \eta_i$ and that $g(\cdot)$ is the "canonical" link function and is an example of such a mathematically convenient link function.  Here $g^{-1}(\cdot)$ is the inverse link function.  If this is new to you, dont worry we will walk through an example of this in a bit.  
+For example, in linear regression $g$ is simply the "identity link" where $E[Y_i |\X_i] =\mu_i =  \X_i\boldsymbol{\beta}$ and no transformation is performed.  For each member of the exponential family, different link functions may be utilized, although some may be more mathematically convenient to use than others as we will see.  In general, if we find that $b'(\theta_i) = \mu_i = g^{-1}(\theta_i)$, then this implies that $\theta_i = \eta_i$ and that $g(\cdot)$ is the "canonical" link function and is an example of such a mathematically convenient link function.  Here $g^{-1}(\cdot)$ is the inverse link function.  If this is new to you, dont worry we will walk through an example of this in a bit.  
 
-Given the wide range of distributions that may be covered by the exponential family, a general estimation framework to obtain $\hat{\betab}$ may be advantageous for modeling, as separate algorithms for different distributions can be avoided.  You will learn more about these models and various link functions in Bios 762.  
+Given the wide range of distributions that may be covered by the exponential family, a general estimation framework to obtain $\hat{\boldsymbol{\beta}}$ may be advantageous for modeling, as separate algorithms for different distributions can be avoided.  You will learn more about these models and various link functions in Bios 762.  
 
 #### Logistic Regression Example
-If we take the example of logistic regression, we assume that the response variable $Y_i$ is distributed Bernoulli with parameter $\pi_i$, where $E[Y_i |\x_i] = \mu_i = \pi_i$ and $i =  1,\ldots,n$.  We wish to model the probability of success for each individual $i$, $\pi_i$,  with respect to an $1 \times p$ vector of predictors $\X_i$ and a set of unknown regression coefficients $\betab$, a $p\times 1$ vector. The log likelihood can be written as $$\mathcal{l}(\pi_i) = \sum_{i=1}^n y_i\log\left(\frac{\pi_i}{1-\pi_i}\right) + \log(1-\pi_i).$$ 
+If we take the example of logistic regression, we assume that the response variable $Y_i$ is distributed Bernoulli with parameter $\pi_i$, where $E[Y_i |\x_i] = \mu_i = \pi_i$ and $i =  1,\ldots,n$.  We wish to model the probability of success for each individual $i$, $\pi_i$,  with respect to an $1 \times p$ vector of predictors $\X_i$ and a set of unknown regression coefficients $\boldsymbol{\beta}$, a $p\times 1$ vector. The log likelihood can be written as $$\mathcal{l}(\pi_i) = \sum_{i=1}^n y_i\log\left(\frac{\pi_i}{1-\pi_i}\right) + \log(1-\pi_i).$$ 
 
-Since this distribution is part of the exponential family, we can factor the PDF into exponential family form such that the natural parameter is $\theta_i = \log(\frac{\pi_i}{1-\pi_i})$, $a(\phi) = 1$, and $b(\theta_i) = \log(1+exp(\theta_i))$.  If we choose $g(\mu_i) = \log(\frac{\pi_i}{1-\pi_i})$, we can show that this link function, often called the logit function, is also the "canonical"" link function: $$b'(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i = g^{-1}(\theta),$$  and therefore $\theta_i = \eta_i = X_i\betab$. We will see why this is convenient when we rewrite the likelihood below.  The inverse link function here is  $g^{-1}(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i$.  
+Since this distribution is part of the exponential family, we can factor the PDF into exponential family form such that the natural parameter is $\theta_i = \log(\frac{\pi_i}{1-\pi_i})$, $a(\phi) = 1$, and $b(\theta_i) = \log(1+exp(\theta_i))$.  If we choose $g(\mu_i) = \log(\frac{\pi_i}{1-\pi_i})$, we can show that this link function, often called the logit function, is also the "canonical"" link function: $$b'(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i = g^{-1}(\theta),$$  and therefore $\theta_i = \eta_i = X_i\boldsymbol{\beta}$. We will see why this is convenient when we rewrite the likelihood below.  The inverse link function here is  $g^{-1}(\theta_i) = \frac{e^\theta_i}{1+e^\theta_i} = \mu_i$.  
 
 We can  show that the likelihood for this model can then be written in the form 
 
 \begin{align}
 l(\thetab) &= \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) \\
-&= \sum_{i = 1}^n Y_i\X_i\betab - b(\theta_i) \\
-&= \Y^T\X\betab - \textbf{b}^T(\theta)\mathbf{1},
+&= \sum_{i = 1}^n Y_i\X_i\boldsymbol{\beta} - b(\theta_i) \\
+&= \Y^T\X\boldsymbol{\beta} - \textbf{b}^T(\theta)\mathbf{1},
 \end{align}
 
-where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\betab$ through the use of the canonical link function. 
+where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\boldsymbol{\beta}$ through the use of the canonical link function. 
 
 #### NR-based approach to maximization (assuming canonical link)
-Using similar logic as before to maximize the likelihood with respect to $\betab$, let us try to find $\betab$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\betab) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with respect to each element of $\betab$, which is also $p$-dimensional.  
+Using similar logic as before to maximize the likelihood with respect to $\boldsymbol{\beta}$, let us try to find $\boldsymbol{\beta}$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\boldsymbol{\beta}) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with respect to each element of $\boldsymbol{\beta}$, which is also $p$-dimensional.  
 
-The second derivative of the likelihood function (called the "Hessian") is given as $$\l''(\betab) = \frac{d}{d\betab}(\X^T(\Y-\pib)) = -\left(\frac{d\pib}{d\betab}\right)^T\X = -\X^T\W\X,$$ where $\W$ is a diagonal matrix with the $i$th diagonal element having value equal to $\pi_i(1-\pi_i)$.  Note that the Hessian is a matrix.  
+The second derivative of the likelihood function (called the "Hessian") is given as $$\l''(\boldsymbol{\beta}) = \frac{d}{d\boldsymbol{\beta}}(\X^T(\Y-\pib)) = -\left(\frac{d\pib}{d\boldsymbol{\beta}}\right)^T\X = -\X^T\W\X,$$ where $\W$ is a diagonal matrix with the $i$th diagonal element having value equal to $\pi_i(1-\pi_i)$.  Note that the Hessian is a matrix.  
 
 Plugging in these values into the NR algorithm defined earlier, the updating algorithm is given as 
 
 \begin{align}
-\beta^{(t+1)}& = \beta^{(t)} - \l''(\betab)^{-1}l'(\beta^{(t+1)})\\ 
+\beta^{(t+1)}& = \beta^{(t)} - \l''(\boldsymbol{\beta})^{-1}l'(\beta^{(t+1)})\\ 
 &=  \beta^{(t)} + (\X^T\W^{(t)}\X)^{-1}\X^T(\Y - \pib^{(t)})\\
 &= \beta^{(t)} + \h^{(t)},
 \end{align}
 
-where $\pib^{(t)}$ depends on $\betab^{(t)}$ and $\W$ is a function of $\pib^{(t)}$.  
+where $\pib^{(t)}$ depends on $\boldsymbol{\beta}^{(t)}$ and $\W$ is a function of $\pib^{(t)}$.  
 
-Given the fact that the Hessian **does not** depend on the observed data, we can see that the expected Fisher Information Matrix is equal to the Observed information matrix, where $\I(\betab) = E[-\l''(\betab)]  = E[\X^T\W\X] = -l''(\betab)$.  
+Given the fact that the Hessian **does not** depend on the observed data, we can see that the expected Fisher Information Matrix is equal to the Observed information matrix, where $\I(\boldsymbol{\beta}) = E[-\l''(\boldsymbol{\beta})]  = E[\X^T\W\X] = -l''(\boldsymbol{\beta})$.  
 
 As a result, FS and NR for this particular example are exactly the same when the link function is chosen as the canonical link!  However,  this will not always hold in other scenarios).  
 
@@ -691,11 +738,11 @@ As a result, FS and NR for this particular example are exactly the same when the
 
 Under non-canonical links, the derivatives of the likelihood function become much more complicated, and methods such as FS may be more amenable to implement in this scenario.
 
-More generally, we can show that FS (for both canonical and non-canonical links) in this setting is similar to performing weighted least squares, where we can defined an "error" or "residual" value $$e_i^{(t)} = g'\left(\mu_i^{(t)}\right)(Y_i - \mu_i^{(t)}),$$ a "working response" value $$z_i^{(t)} = \X_i\betab^{(t)} + e_i^{(t)},$$ and a weight value $$w_i^{(t)} =   \left(g'\left(\mu_i^{(t)}\right)^2b''(\theta^{(t)})\alpha(\phi^{(t)})\right)^{-1}.$$ Then, we can solve for $\betab^{(t+1)}$ such that $$\betab^{(t+1)} = (\X^T\W^{(t)}\X)^{-1}\X^T\W^{(t)}z^{(t)},$$ where $\W^{(t)} = diag(w_1^{(t)},\ldots,w_n^{(t)})$ and $z = (z_1^{(t)},\ldots,z_n^{(t)})^T$.     
+More generally, we can show that FS (for both canonical and non-canonical links) in this setting is similar to performing weighted least squares, where we can defined an "error" or "residual" value $$e_i^{(t)} = g'\left(\mu_i^{(t)}\right)(Y_i - \mu_i^{(t)}),$$ a "working response" value $$z_i^{(t)} = \X_i\boldsymbol{\beta}^{(t)} + e_i^{(t)},$$ and a weight value $$w_i^{(t)} =   \left(g'\left(\mu_i^{(t)}\right)^2b''(\theta^{(t)})\alpha(\phi^{(t)})\right)^{-1}.$$ Then, we can solve for $\boldsymbol{\beta}^{(t+1)}$ such that $$\boldsymbol{\beta}^{(t+1)} = (\X^T\W^{(t)}\X)^{-1}\X^T\W^{(t)}z^{(t)},$$ where $\W^{(t)} = diag(w_1^{(t)},\ldots,w_n^{(t)})$ and $z = (z_1^{(t)},\ldots,z_n^{(t)})^T$.     
 
-This result comes from again a Taylors Series expansion approximating the score function.  Looking to results from Bios 663, it is clear that this expression has a form somewhat similar to the estimate for $\hat{\betab}$ in the standard linear model ($(\X^T\X)^{-1}\X^ty)$, except instead of $\y$ we have the working response vector $\z$ and a weight matrix $\W$ involved.  This diagonal weight matrix is often found in weighted linear regression, where such weights are used to correct for non-constant variance between observations (heteroscedasticity).  Therefore, no special computation is needed to complete the update, provided that $\W$ and $\z$ are specified.  
+This result comes from again a Taylors Series expansion approximating the score function.  Looking to results from Bios 663, it is clear that this expression has a form somewhat similar to the estimate for $\hat{\boldsymbol{\beta}}$ in the standard linear model ($(\X^T\X)^{-1}\X^ty)$, except instead of $\y$ we have the working response vector $\z$ and a weight matrix $\W$ involved.  This diagonal weight matrix is often found in weighted linear regression, where such weights are used to correct for non-constant variance between observations (heteroscedasticity).  Therefore, no special computation is needed to complete the update, provided that $\W$ and $\z$ are specified.  
 
-In any case, in each iteration we update the estimate of $\betab^{(t+1)}$ given the current values of $\e^{(t)}$ and $\W^{(t)}$, then then in turn update these intermediate quantities given $\betab^{(t+1)}$, continuing until convergence.  This update for $\betab^{(t+1)}$ can be computed manually using matrix computation, or using existing off the shelf software/algorithms for weighted least squares.  **We call this iterative approach of applying weighted least squares as Iteratively Reweighted Least Squares (IRLS).** 
+In any case, in each iteration we update the estimate of $\boldsymbol{\beta}^{(t+1)}$ given the current values of $\e^{(t)}$ and $\W^{(t)}$, then then in turn update these intermediate quantities given $\boldsymbol{\beta}^{(t+1)}$, continuing until convergence.  This update for $\boldsymbol{\beta}^{(t+1)}$ can be computed manually using matrix computation, or using existing off the shelf software/algorithms for weighted least squares.  **We call this iterative approach of applying weighted least squares as Iteratively Reweighted Least Squares (IRLS).** 
 
 The ease in the application of this algorithm to broad variety of models is one reason why we see IRLS as the standard approach for maximizing GLMs in R and SAS.  Its connection to weighted least squares is another reason why it is often used in tandem with penalized likelihood approaches for high dimensional variable selection, as one can apply the similar procedures used in linear models to GLMs given the framework above. 
 
@@ -736,7 +783,7 @@ data.matrix = cbind(log(y+1), x1, x2)
 pairs(data.matrix)
 ```
 
-Now lets write out the derivative functions, using the likelihood given earlier in this lecture.  We have $l'(\betab) = \sum_{i=1}^n (y_i - exp(X_i\betab))X^T_i$ and $l''(\betab) = \sum_{i=1}^n exp(X_i\betab))X_iX_i^T$
+Now lets write out the derivative functions, using the likelihood given earlier in this lecture.  We have $l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - exp(X_i\boldsymbol{\beta}))X^T_i$ and $l''(\boldsymbol{\beta}) = \sum_{i=1}^n exp(X_i\boldsymbol{\beta}))X_iX_i^T$
 
 ```{r, echo=TRUE}
 # loglikelihood function
@@ -816,7 +863,7 @@ We get the same thing
 
 Now lets try IRLS.  We can show $\theta_i = g(\mu_i) = g(\lambda_i)  = \log(\lambda_i)$, $a(\phi) = 1$, and $b(\theta_i) = e^\theta_i = \lambda_i$.   Here, $g(\mu_i)$ is the chosen link function for this case, where $g^{-1}(\eta_i) =e^\eta_i$.  We can show that this link function, often called the log link function, is also the canonical link function: $$b'(\theta_i) = e^\theta_i = g^{-1}(\theta_i),$$  and therefore $\theta_i = \eta_i = \X_i\beta$.
 
-The IRLS update here can be written in general as the following: $$e_i^{(t)} = g'\left(\mu_i^{(t)}\right)(Y_i - \mu_i^{(t)}) = e^{-X_i\betab^{(t)}}\left(Y_i - e^{X_i\betab^{(t)}}\right),$$ $$z_i^{(t)} = \X_i\betab^{(t)} + e_i^{(t)},$$ and a weight value $$w_i^{(t)} =   \left(g'\left(\mu_i^{(t)}\right)^2b''(\theta^{(t)})\alpha(\phi^{(t)})\right)^{-1} =  \left(e^{-2X_i\betab^{(t)}}e^{X_i\betab^{(t)}}\right)^{-1} = e^{X_i\betab^{(t)}}$$. Then, we can solve for $\betab^{(t+1)}$ such that $$\betab^{(t+1)} = (\X^T\W^{(t)}\X)^{-1}\X^T\W^{(t)}z^{(t)},$$ where $\W^{(t)} = diag(w_1^{(t)},\ldots,w_n^{(t)})$ and $z^{(t)} = (z_1^{(t)},\ldots,z_n^{(t)})^T$. 
+The IRLS update here can be written in general as the following: $$e_i^{(t)} = g'\left(\mu_i^{(t)}\right)(Y_i - \mu_i^{(t)}) = e^{-X_i\boldsymbol{\beta}^{(t)}}\left(Y_i - e^{X_i\boldsymbol{\beta}^{(t)}}\right),$$ $$z_i^{(t)} = \X_i\boldsymbol{\beta}^{(t)} + e_i^{(t)},$$ and a weight value $$w_i^{(t)} =   \left(g'\left(\mu_i^{(t)}\right)^2b''(\theta^{(t)})\alpha(\phi^{(t)})\right)^{-1} =  \left(e^{-2X_i\boldsymbol{\beta}^{(t)}}e^{X_i\boldsymbol{\beta}^{(t)}}\right)^{-1} = e^{X_i\boldsymbol{\beta}^{(t)}}$$. Then, we can solve for $\boldsymbol{\beta}^{(t+1)}$ such that $$\boldsymbol{\beta}^{(t+1)} = (\X^T\W^{(t)}\X)^{-1}\X^T\W^{(t)}z^{(t)},$$ where $\W^{(t)} = diag(w_1^{(t)},\ldots,w_n^{(t)})$ and $z^{(t)} = (z_1^{(t)},\ldots,z_n^{(t)})^T$. 
 
 
 
@@ -968,11 +1015,11 @@ The intuition behind this approach may be described as to trying to find one's w
 
 Gradient Descent, depending on who you talk to, may be throught as a more general form of steepest descent that instead fixes $\alpha{(t)}$ (sometimes called the "learning rate") rather than letting it vary within each iteration.  Regardless, the idea is similar in that it avoids computing the hessian and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems (no need to store or approximate a $p \times p$ hessian). 
 
-However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\betab^{(t)})$ where we wish to estimate $\betab$ in the prior Poisson regression example: $$\betab^{(t+1)} = \betab^{(t)} - \alpha{(t)}l'(\betab^{(t)}).$$  One thing that is clear from here is that $$l'(\betab) = \sum_{i=1}^n (y_i - \exp(X_i\betab))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
+However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\boldsymbol{\beta}^{(t)})$ where we wish to estimate $\boldsymbol{\beta}$ in the prior Poisson regression example: $$\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha{(t)}l'(\boldsymbol{\beta}^{(t)}).$$  One thing that is clear from here is that $$l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - \exp(X_i\boldsymbol{\beta}))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
 
 ## Stochastic Gradient Descent (SGD)
 
-Stochastic gradient descent instead randomly subsamples the data and performs an update for $\betab$ with a random observation drawn from the data.  Rather than updating $\betab$ with a full pass over the data, we instead update $\betab$ with a single draw from the data, such that now $$\betab^{s+1} = \betab^{(s)} - \alpha l_{i(s)}'(\betab^{(s)}),$$ where $s>0$ is the subsample index, $i(s)$ is the index of the sample that is randomly drawn in the $s$th subsample, and $l_{i(s)}'(\betab^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\betab^{s+1}$, which may take multiple loops over the entire data set.  
+Stochastic gradient descent instead randomly subsamples the data and performs an update for $\boldsymbol{\beta}$ with a random observation drawn from the data.  Rather than updating $\boldsymbol{\beta}$ with a full pass over the data, we instead update $\boldsymbol{\beta}$ with a single draw from the data, such that now $$\boldsymbol{\beta}^{s+1} = \boldsymbol{\beta}^{(s)} - \alpha l_{i(s)}'(\boldsymbol{\beta}^{(s)}),$$ where $s>0$ is the subsample index, $i(s)$ is the index of the sample that is randomly drawn in the $s$th subsample, and $l_{i(s)}'(\boldsymbol{\beta}^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\boldsymbol{\beta}^{s+1}$, which may take multiple loops over the entire data set.  
 
 Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
 
