@@ -205,7 +205,7 @@ As discussed in prior courses, the MLE can be obtained by simply taking the firs
 
 The log likelihood here is $$\mathcal{l}(\lambda) = -n\lambda + \left(\sum_{i = 1}^{n} y_i \right)\log(\lambda) - \sum_{i = 1}^{n}\log(y_i!).$$ Then, taking the first derivative of the log likelihood, also known as the score function, we then solve the following:  $$0 = -n + \left(\sum_{i = 1}^{n} y_i \right)/\lambda$$ which gives the MLE $\hat{\lambda} = \left(\sum_{i = 1}^{n} y_i \right)/n$.  
 
-In this example, as in the prior one, we can derive closed form solutions to obtain a parameter estimate for $\lambda$ by maximizing log-likelihood function. 
+In this example, as in the prior one, we can derive closed form solutions to obtain a parameter estimate for $\lambda$ by maximizing log-likelihood function. You can imagine the task of optimization as not too different from that of root finding.  In the context of maximim likelihood estimation, this is akin to finding the root of the score equation. 
 
 **However, what if we do not have such nice closed-form solutions for the model at hand?**  
 
@@ -352,7 +352,10 @@ Now lets try something further away, $\theta^{(0)} = 8$.
 
 In some cases, the end result of the algorithm is the same regardless of the chosen starting point of the algorithm, however fewer iterations may be required for $\theta^{(t)} \rightarrow \theta^*$ (due to a better starting point).  In other cases, you can see that the model may converge to a value other than $\theta^*$, representing a **local optimum** rather than the **global optimum**.   Or, the algorithm may not converge at all (diverges), as in the last example above.  
 
-In general, utilizing a starting value closer to $\theta^*$ results in convergence in fewer iterations.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application. Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. 
+In general, utilizing a starting value closer to $\theta^*$ results in convergence in fewer iterations.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application. 
+
+Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. Other strategies include graphing/plotting, preliminary estimates (based off simpler models, or methods-of-moments estimates)
+, educated guesses, or...trial and error. 
 
 ### Basics of Numerical Optimization Summary 
 To summarize, the following concepts are important for understanding the set of optimization algorithms covered in the rest of this module:
@@ -1185,7 +1188,7 @@ print(fit)
 # For more detail
 
 See Givens and Hoeting Chapters 1 and 2
-
+Nonlinear Parameter Optimization Using R Tools (John Nash)
 
 
 
