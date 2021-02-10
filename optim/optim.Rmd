@@ -52,7 +52,7 @@ Our discussion of optimization in this lecture will give a broad overview of exi
 ## Example: Height data
 Let us assume that we have obtained a random sample of 100 individuals from Chapel Hill.  Let us define $\mathbf{y} = (y_1,\ldots,y_{100})$, where $y_i$ pertains to the measured height of the $i^{th}$ individual in inches, for $i =1,\ldots,100$. 
 
-Let us further assume that the distribution of these heights is distributed normally with some unknown mean $\mu$ and **known** variance $\sigma^2 = 10$.  That is, we assume that $y_i \sim N(\mu,\sigma^2)$, where $\sigma = 10$.  
+Let us further assume that the distribution of these heights is distributed normally with some unknown mean $\mu$ and **known** variance $\sigma^2 = 10$.  That is, we assume that $y_i \sim N(\mu,\sigma^2)$, where $\sigma^2 = 10$.  
 
 A common question in this situation is what is the "best" estimate of $\mu$ given the data, and how do we obtain it?   Answering this question can depend on the domain of the question being asked.
 
@@ -68,7 +68,7 @@ The likelihood function $L(\thetab)$, given the assumptions we made, for this sa
 \begin{eqnarray}
 L(\thetab) &=& f(y_1 | \mu, \sigma^2)f(y_2 | \mu, \sigma^2)\ldots f(y_{100} | \mu, \sigma^2)\\
   &=& \prod_{i=1}^{100} f(y_i | \mu, \sigma^2)\\
-  &=& \frac{1}{(2\sigma^{2})^{n/2}}e^{-\frac{1}{2\sigma}\sum_{i=1}^{100}(y_i-\mu)^2}
+  &=& \frac{1}{(2\sigma^{2})^{n/2}}e^{-\frac{1}{2\sigma^2}\sum_{i=1}^{100}(y_i-\mu)^2}
 \end{eqnarray}
 
 Here, $\thetab = \mu$ since we are assuming that $\sigma^2$ is known.  Taking logs of both sides, we can write the optimization of $L(\thetab)$ above in terms of the optimization of $\mathcal{l}(\thetab)$, the log-likelihood, as it is a monotonic transformation of the original likelihood function.  
@@ -205,7 +205,7 @@ As discussed in prior courses, the MLE can be obtained by simply taking the firs
 
 The log likelihood here is $$\mathcal{l}(\lambda) = -n\lambda + \left(\sum_{i = 1}^{n} y_i \right)\log(\lambda) - \sum_{i = 1}^{n}\log(y_i!).$$ Then, taking the first derivative of the log likelihood, also known as the score function, we then solve the following:  $$0 = -n + \left(\sum_{i = 1}^{n} y_i \right)/\lambda$$ which gives the MLE $\hat{\lambda} = \left(\sum_{i = 1}^{n} y_i \right)/n$.  
 
-In this example, as in the prior one, we can derive closed form solutions to obtain a parameter estimate for $\lambda$ by maximizing log-likelihood function. You can imagine the task of optimization as not too different from that of root finding.  In the context of maximim likelihood estimation, this is akin to finding the root of the score equation. 
+In this example, as in the prior one, we can derive closed form solutions to obtain a parameter estimate for $\lambda$ by maximizing log-likelihood function. You can imagine the task of optimization as not too different from that of root finding.  In the context of maximum likelihood estimation, this is akin to finding the root of the score equation. 
 
 **However, what if we do not have such nice closed-form solutions for the model at hand?**  
 
@@ -387,7 +387,7 @@ There may be situations where the algorithm may not converge or do so in a suita
 ### Rationale and Derivation
 Let us suppose that $f'(\theta)$ is continually differentiable, $f''(\theta)$ exists, and that $f''(\theta) \neq 0$ (suggesting that the first derivative is non-constant).  At a given iteration $t$, $f'(\theta^*)$ can be approximated by a linear Taylor Series Expansion about $\theta^*$, the unknown true value of $\theta$ that maximized $f(\theta)$.  Yes, we do not know what $\theta^*$ is in reality, but this term is important when we talk about the conditions that may impact the performance of this approach later on. 
 
-Under this approximation, we have $$0 = f'(\theta^*)  \approx f'(\theta^*) + (\theta^* - \theta^{(t)})f''(\theta^{(t)}).$$  Lets unpack what this means for one second.  If you recall, most analytic approaches to optimizing algorithms start with setting the 1st derivative to 0 and solving for the value of $\theta$ satisfying this equality.  In this setting, we assume that such an analytic solution does not exist.  Therefore, we approximate this derivative using this linear Taylor Series approximation around $\theta^*$, and then set this approximation to zero.  Here, $f'(\theta^*)$ is approximated by its tangent line at $\theta^{(t)}$ (see figure below).  
+Under this approximation, we have $$0 = f'(\theta^*)  \approx f'(\theta^{(t)}) + (\theta^* - \theta^{(t)})f''(\theta^{(t)}).$$  Lets unpack what this means for one second.  If you recall, most analytic approaches to optimizing algorithms start with setting the 1st derivative to 0 and solving for the value of $\theta$ satisfying this equality.  In this setting, we assume that such an analytic solution does not exist.  Therefore, we approximate this derivative using this linear Taylor Series approximation around $\theta^*$, and then set this approximation to zero.  Here, $f'(\theta^*)$ is approximated by its tangent line at $\theta^{(t)}$ (see figure below).  
  
 ![*Example of Newton Raphson in the context of the previous illustration.  The algorithm approximates $g'$ by its tangent line at $\theta^{(t)}$, whose root $\theta^{(t+1)}$ serves as the next approximation of the true root $\theta^{*}$.*](chap2figgoodnewt.jpg){width=65%}
 
