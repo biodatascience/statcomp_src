@@ -27,9 +27,6 @@ include-before:
 - '$\def \x \bfm{x}$'
 - '$\def \X \bfm{X}$'
 - '$\def \z \bfm{z}$'
-- '$\def \thetab \boldsymbol{\theta}$'
-- '$\def \betab \boldsymbol{\beta}$'
-- '$\def \pib \boldsymbol{\pi}$'
 ---
 
 
@@ -63,17 +60,17 @@ We can also re-express the original form of this problem as an intercept-only li
 Regardless of the approach used here, we can show that we can obtain $\hat{\mu}$ analytically via optimizing some function of the data with respect to the parameters of interest $\mu$.  In the linear regression case, we are minimizing the residual sum of squares of the model with respect to $\beta$ ($\mu$), and in the latter, we are maximizing the likelihood function assumed for the data with respect to $\mu$.  
 
 ### Writing out the likelihood
-The likelihood function $L(\thetab)$, given the assumptions we made, for this sample can be written as 
+The likelihood function $L(\boldsymbol{\theta})$, given the assumptions we made, for this sample can be written as 
 
 \begin{eqnarray}
-L(\thetab) &=& f(y_1 | \mu, \sigma^2)f(y_2 | \mu, \sigma^2)\ldots f(y_{100} | \mu, \sigma^2)\\
+L(\boldsymbol{\theta}) &=& f(y_1 | \mu, \sigma^2)f(y_2 | \mu, \sigma^2)\ldots f(y_{100} | \mu, \sigma^2)\\
   &=& \prod_{i=1}^{100} f(y_i | \mu, \sigma^2)\\
   &=& \frac{1}{(2\sigma^{2})^{n/2}}e^{-\frac{1}{2\sigma^2}\sum_{i=1}^{100}(y_i-\mu)^2}
 \end{eqnarray}
 
-Here, $\thetab = \mu$ since we are assuming that $\sigma^2$ is known.  Taking logs of both sides, we can write the optimization of $L(\thetab)$ above in terms of the optimization of $\mathcal{l}(\thetab)$, the log-likelihood, as it is a monotonic transformation of the original likelihood function.  
+Here, $\boldsymbol{\theta} = \mu$ since we are assuming that $\sigma^2$ is known.  Taking logs of both sides, we can write the optimization of $L(\boldsymbol{\theta})$ above in terms of the optimization of $\mathcal{l}(\boldsymbol{\theta})$, the log-likelihood, as it is a monotonic transformation of the original likelihood function.  
 
-Why does this matter? This implies that the maximum of one function will be the maximum of the other function, as the log transformation is a one-to-one mapping from the likelihood to the log-likelihood (example in figure below).  Using approaches from prior courses, we can show that this function is smooth and convex in $\thetab$, and therefore the maximum of the log-likelihood (and hence the likelihood) will be attained at the value of $\thetab$ where the first derivative of $\mathcal{l}(\thetab)$ is equal to zero.  
+Why does this matter? This implies that the maximum of one function will be the maximum of the other function, as the log transformation is a one-to-one mapping from the likelihood to the log-likelihood (example in figure below).  Using approaches from prior courses, we can show that this function is smooth and convex in $\boldsymbol{\theta}$, and therefore the maximum of the log-likelihood (and hence the likelihood) will be attained at the value of $\boldsymbol{\theta}$ where the first derivative of $\mathcal{l}(\boldsymbol{\theta})$ is equal to zero.  
 
 In the current problem, the MLE for $\mu$, $\hat{\mu} = \bar{\y}$, is then obtained  by setting the 1st derivative of the log-likelihood (also known as the "score function") equal to 0 and then solving for $\mu$ (can you show this?).  In other words, we find the root of the score function with respect to $\mu$.  For the regression based approach, we are simply minimizing the residual sum of squares (RSS), defined as $\sum_{i = 1}^{100} (y_i - \mu)^2$.
 
@@ -286,9 +283,9 @@ Clearly, larger values of $\epsilon$ will result in convergence in fewer iterati
 
 Other criteria for determining convergence exist.  You may notice from the definition above that the algorithm converges if the raw difference in $\theta^{(t+1)}$ and $\theta^{(t)}$ becomes small.  However, if  $\theta^*$  is generally large in scale (say, typically > 10000 in value), an $\epsilon$ of $10^{-6}$ may be too restrictive or difficult to reach, whereas if $\theta^*$ is in the range of $10^{-12}-10^{-16}$, an of $\epsilon$ of $10^{-6}$ may simply be too liberal.  All in all, the threshold's stringency may depend on the scale of $\theta^*$.  
 
-For these reasons some may prefer a relative convergence threshold, such as $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}|} < \epsilon$, where convergence is now met if the change relative to $\theta^{(t)}$ is smaller than some proportion $\epsilon$. For example we may instead want to terminate the algorithm when the change is less than say $1\%$ of the previous value, rather than specifying an exact value of the difference.   However, relative convergence criteria can become problematic if $\theta^{(t)}$ or $\theta^*$ is very close to zero. In that case, an alternative criterion $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}| + \epsilon} < \epsilon$ may help prevent instability in the criterion. 
+For these reasons some may prefer a **relative** convergence threshold, such as $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}|} < \epsilon$, where convergence is now met if the change relative to $\theta^{(t)}$ is smaller than some proportion $\epsilon$. For example we may instead want to terminate the algorithm when the change is less than say $1\%$ of the previous value, rather than specifying an exact value of the difference.   However, relative convergence criteria can become problematic if $\theta^{(t)}$ or $\theta^*$ is very close to zero. In that case, an alternative criterion $\frac{|\theta^{(t+1)} - \theta^{(t)}|}{|\theta^{(t)}| + \epsilon} < \epsilon$ may help prevent instability in the criterion. 
 
-It is also helpful to add a maximum iteration limit to prevent runaway divergence or to halt poorly converging algorithms (sometimes indicative of bad starting points).  This limit may also be reached if your convergence threshold is too stringent, and/or the iteration limit is too low.  Printing a warning message when this limit is reached is common among algorithms.  
+It is also helpful to add a **maximum iteration limit** to prevent runaway divergence or to halt poorly converging algorithms (sometimes indicative of bad starting points).  This limit may also be reached if your convergence threshold is too stringent, and/or the iteration limit is too low.  Printing a warning message when this limit is reached is common among algorithms.  
 
 ### Impact of starting values on convergence
 Lets now examine the impact of a different starting point for the algorithm, $\theta^{(0)} = 1$.  
@@ -354,8 +351,7 @@ In some cases, the end result of the algorithm is the same regardless of the cho
 
 In general, utilizing a starting value closer to $\theta^*$ results in convergence in fewer iterations.  This illustrates the importance of choosing an informative starting point for the algorithm, and there are several strategies to do this and can vary by application. 
 
-Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. Other strategies include graphing/plotting, preliminary estimates (based off simpler models, or methods-of-moments estimates)
-, educated guesses, or...trial and error. 
+Evaluating several starting points (perhaps chosen randomly) and choosing the starting point the ends in the best value of the objective function is the best way to avoid getting trapped in a local optimum or hitting convergence failures. Other strategies include graphing/plotting, preliminary estimates (based off simpler models, or methods-of-moments estimates), educated guesses, or...trial and error. 
 
 ### Basics of Numerical Optimization Summary 
 To summarize, the following concepts are important for understanding the set of optimization algorithms covered in the rest of this module:
@@ -387,16 +383,16 @@ There may be situations where the algorithm may not converge or do so in a suita
 ### Rationale and Derivation
 Let us suppose that $f'(\theta)$ is continually differentiable, $f''(\theta)$ exists, and that $f''(\theta) \neq 0$ (suggesting that the first derivative is non-constant).  At a given iteration $t$, $f'(\theta^*)$ can be approximated by a linear Taylor Series Expansion about $\theta^*$, the unknown true value of $\theta$ that maximized $f(\theta)$.  Yes, we do not know what $\theta^*$ is in reality, but this term is important when we talk about the conditions that may impact the performance of this approach later on. 
 
-Under this approximation, we have $$0 = f'(\theta^*)  \approx f'(\theta^{(t)}) + (\theta^* - \theta^{(t)})f''(\theta^{(t)}).$$  Lets unpack what this means for one second.  If you recall, most analytic approaches to optimizing algorithms start with setting the 1st derivative to 0 and solving for the value of $\theta$ satisfying this equality.  In this setting, we assume that such an analytic solution does not exist.  Therefore, we approximate this derivative using this linear Taylor Series approximation around $\theta^*$, and then set this approximation to zero.  Here, $f'(\theta^*)$ is approximated by its tangent line at $\theta^{(t)}$ (see figure below).  
+Under this approximation, we have $$0 = f'(\theta^*)  \approx f'(\theta^{(t)}) + (\theta^* - \theta^{(t)})f''(\theta^{(t)}).$$  Lets unpack what this means for one second.  If you recall, most analytic approaches to optimizing algorithms start with setting the **1st derivative to 0** and solving for the value of $\theta$ satisfying this equality.  In this setting, we assume that such an analytic solution does not exist.  Therefore, we approximate this derivative using this **linear** Taylor Series approximation around $\theta^*$, and then set **this** approximation to zero.  Here, $f'(\theta^*)$ is approximated by the tangent line at $\theta^{(t)}$ (see figure below).  
  
 ![*Example of Newton Raphson in the context of the previous illustration.  The algorithm approximates $g'$ by its tangent line at $\theta^{(t)}$, whose root $\theta^{(t+1)}$ serves as the next approximation of the true root $\theta^{*}$.*](chap2figgoodnewt.jpg){width=65%}
 
-Since we are approximating $f'(\theta^*)$ with  its tangent line at $\theta^{(t)}$, it makes sense that we can approximate the root of $f'(\theta^*)$ (the point at which it equals 0) with the root of the tangent line at  $\theta^{(t)}$ (see example in above figure at step 1).  Under this rationale, we solve for $\theta^{(*)}$ in the linear Taylor Series approximation above.  Doing this, we have $$\theta^*  = \theta^{(t)} - \frac{f'(\theta^{(t)})}{f''(\theta^{(t)})} = \theta^{(t)} + h^{(t)}.$$  In other words, the value for $\theta^*$ is approximated using the current guess $\theta^{(t)}$ and a refinement step $h^{(t)}$, and sucessive iterations of this approach will yield closer and closer approximations to $\theta^*$.  
+Since we are approximating $f'(\theta^*)$ with  its **tangent line** at $\theta^{(t)}$, it makes sense that we can approximate the root of $f'(\theta^*)$ (the point at which it equals 0) with **the root of the tangent line** at  $\theta^{(t)}$ (see example in above figure at step 1).  Under this rationale, we solve for $\theta^{(*)}$ in the linear Taylor Series approximation above.  Doing this, we have $$\theta^*  = \theta^{(t)} - \frac{f'(\theta^{(t)})}{f''(\theta^{(t)})} = \theta^{(t)} + h^{(t)}.$$  In other words, the value for $\theta^*$ at iteration $t$ is approximated using the current guess $\theta^{(t)}$ and a refinement step $h^{(t)}$.   Sucessive iterations of this approach will yield closer and closer approximations to $\theta^*$.  
 
 ### Updating Equation
 Using the above rationale, we can define the updating strategy as  $$\theta^{(t+1)}  = \theta^{(t)} - \frac{f'(\theta^{(t)})}{f''(\theta^{(t)})} = \theta^{(t)} + h^{(t)}.$$  
 
-When the optimization of $g$ corresponds to maximum likelihood estimation, where $\hat{\theta}$ is the solution to $l'(\theta) = 0$, the updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - \frac{l'(\theta^{(t)})}{l''(\theta^{(t)})}.$$  
+When the optimization of $f$ corresponds to maximum likelihood estimation, where $\hat{\theta}$ is the solution to $l'(\theta) = 0$, the updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - \frac{l'(\theta^{(t)})}{l''(\theta^{(t)})}.$$  
 
 
 ### Requirements and Convergence
@@ -418,7 +414,7 @@ If you are starting in some arbitrary interval $[a,b]$, you can check the follow
 These statements follow from the proof given in GH 2.1.1.  In practice most do not manually evaluate these statements  before applying NR, but in cases where problems arise, can help explain problems relating to convergence if observed.  Rephrased, we can translate these conditions into the following:
 
 1.  The 2nd derivative is never equal to zero in the interval $\rightarrow$ $f'(\theta)$ is never flat on $[a,b]$ $\rightarrow$ $f'(\theta)$ can potentially intersect 0 in the interval $\rightarrow$ $f'(\theta)$ has the potential to have a root in $[a,b]$ 
-2.  The third derivative does not change sign on $[a,b]$ $\rightarrow$ the sign of the second derivative stays the same in the interval on $[a,b]$ \rightarrow no change in convexity/concavity in interval
+2.  The third derivative does not change sign on $[a,b]$ $\rightarrow$ the sign of the second derivative stays the same in the interval on $[a,b]$ $\rightarrow$ no change in convexity/concavity in interval
 3.  Implies that the 1st derivative at $a$ is positive and negative at $b$ (or vice versa) $\rightarrow$ $f'(\theta)$ changes sign at some point in $[a,b]$ $\rightarrow$ implies a root for $f'(\theta)$ must exist in $[a,b]$
 4.  The absolute value of $h$ at $a$ or at $b$ is less than the length of the interval $\rightarrow$ the step size (refinement) assuming $\theta^{(0)} = a$ or $\theta^{(0)} = b$ is smaller than the length of the interval being considered.  If this is not true, the update will definitely not be contained in $[a,b]$. 
 
@@ -439,7 +435,7 @@ If the derivatives and/or likelihood are complicated, NR may not be an attractiv
 
 > There are lots of dangerous beasts in the night-time optimization forest.
 
-Some of the difficulties with NR it was not included in the original R general-purpose optimization functions *optim* and *optimx*.
+The apparent difficulties with NR in the multivariate setting is why it was not included in the original R general-purpose optimization functions *optim* and *optimx*.
 
 
 ### Example of NR applied to the simpler Poisson problem
@@ -461,7 +457,7 @@ mean(y)
 Now lets get our functions in order
 
 ```{r, echo=TRUE}
-# loglikelihood function
+# log likelihood function
 logLik = function(lambda, y) {
   value = sum(dpois(y, lambda = lambda, log = T))
   return(value)
@@ -480,7 +476,7 @@ d2 = function(lambda, y) {
 }
 ```
 
-Now lets apply NR.  We pick a tolerance level and starting value.  Here the choice of starting value is arbitrary. We can vary this to see its impact on the final value later.   It's also helpful to specify a maximum number of iterations to halt the algorithm so it does not loop infinitely if there is a convergence issue.  We can also add conditions to check whether $\lambda^{(t)} > 0$.  
+Now lets apply NR.  We pick a tolerance level (**tol**) and starting value (**lam**).  Here the choice of starting value is arbitrary. We can vary this to see its impact on the final value later.   It's also helpful to specify a maximum number of iterations (**maxit**) to halt the algorithm so it does not loop infinitely if there is a convergence issue.  We can also add conditions to check whether $\lambda^{(t)} > 0$.  
 
 ```{r, echo=TRUE}
 # now lets apply NR. First lets set the tolerance and choose a starting value
@@ -488,9 +484,10 @@ Now lets apply NR.  We pick a tolerance level and starting value.  Here the choi
 tol = 10^-4
 lam = 0.1
 maxit = 50
-iter = 0
-eps = Inf
-start = Sys.time()
+iter = 0 # iteration counter
+eps = Inf # keeps track of current difference
+start = Sys.time() # record start time
+
 while (eps > tol & iter < maxit) {
   # save the previous value
   lam0 = lam
@@ -577,9 +574,9 @@ while (eps > tol & iter < maxit) {
  
 
 ## Fisher Scoring
-Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$ is simply an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptotic properties for NR and FS are similar. 
+Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$, also known as the **observed Fisher Information** is an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptotic properties for NR and FS are similar. 
 
-The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(t)})^{-1}l'(\theta^{(t)}).$$ Given the particular problem at hand, NR or FS may be easier to derive analytically, where the latter only needs knowledge of the 1st derivatives and avoids computation of the 2nd derivatives. According to GH, FS may be used in early iterations for rapid improvements, and NR can be used to make better refinements near the end.  
+The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(t)})^{-1}l'(\theta^{(t)}).$$ Given the particular problem at hand, NR or FS may be easier to derive analytically, where the latter only needs knowledge of the **1st derivatives** and avoids computation of the 2nd derivatives. According to GH, FS may be used in early iterations for rapid improvements, and NR can be used to make better refinements near the end.  
 
 * Pros
     + Avoids derivation and computation of the 2nd derivative
@@ -590,7 +587,7 @@ The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(
     + May not be as fast for refinement near end 
 
 ## Secant Method
-This approach is similar to NR, except that the second derivative in the updating equation is replaced with a finite-difference approximation, where now the updating equation is $$\theta^{(t+1)}  = \theta^{(t)} - f'(\theta^{(t)})\frac{\theta^{(t)} - \theta^{(t-1)}}{f'(\theta^{(t)}) - f'(\theta^{(t-1)})}.$$ Conditions for convergence are similar to NR, but we can show through similar arguments that that the convergence order for the secant method is 1.62 instead of 2.  To initialize this approach, two starting values have to be provided.  Typically the first value is picked in a manner not dissimilar to the other approaches described in this lecture, and the second value is picked relatively close to the first one.  Then we may compute the first update and proposal for $\theta^{(1)}$ and start the algorithm.
+This approach is similar to NR, except that the second derivative in the updating equation is replaced with a finite-difference approximation, where now the updating equation is $$\theta^{(t+1)}  = \theta^{(t)} - f'(\theta^{(t)})\frac{\theta^{(t)} - \theta^{(t-1)}}{f'(\theta^{(t)}) - f'(\theta^{(t-1)})}.$$ Conditions for convergence are similar to NR, but we can show through similar arguments that that the convergence order for the secant method is 1.62 instead of 2.  To initialize this approach, two starting values have to be provided.  Typically the first value is picked in a manner not dissimilar to the other approaches described in this lecture, and the second value is picked relatively close to the first one.  Then we may compute the first update and proposal for $\theta^{(1)}$ and start the algorithm. 
 
 * Pros
     + Avoids derivation and computation of the 2nd derivative
@@ -615,7 +612,7 @@ We can see this has a nice form and avoids having to analytically determine a se
 ```{r, echo=TRUE}
 # now lets apply FS using same framework as before
 # the start
-tol = 10^-4
+tol = 10 ^ -4
 lam = 0.1
 maxit = 50
 iter = 0
@@ -657,26 +654,30 @@ print(end - start)
 
 # Multivariate Optimization
 
-The approaches that we have described also extend to the multivariate setting, where we seek to optimize a function with respect to more than one parameter at the same time.  More formally, we see to find the optimum of some real valued function $f(\thetab)$, where $\thetab$ is now some $p-$dimensional vector of parameters such that $\thetab = (\theta_1,\ldots,\theta_p)^T$.  Similar to before, the estimate of $\thetab$ at step $t$ will be denoted as $\thetab^{(t)}$.  Most of the prior concepts covered in univariate maximization, such as regarding starting points, iterative updating, and specification of convergence criteria for termination, also applies here.  
+The approaches that we have described also extend to the multivariate setting, where we seek to optimize a function with respect to more than one parameter at the same time.  More formally, we see to find the optimum of some real valued function $f(\boldsymbol{\theta})$, where $\boldsymbol{\theta}$ is now some $p-$dimensional vector of parameters such that $\boldsymbol{\theta} = (\theta_1,\ldots,\theta_p)^T$.  Similar to before, the estimate of $\boldsymbol{\theta}$ at step $t$ will be denoted as $\boldsymbol{\theta}^{(t)}$.  Most of the prior concepts covered in univariate maximization, such as regarding starting points, iterative updating, and specification of convergence criteria for termination, also applies here.  
 
 ## Note about convergence in the multivariate setting 
 
-Obviously in the multivariate setting we cannot directly utilize the same convergence criteria defined earlier.  To extend this to the multivariate setting, we may use distance-based measures for convergence, for example based one the sum of the absolute differences between iterations $$D(\mathbf{u},\mathbf{v}) = \sum_{i-1}^p | u_i - v_i|$$ or the Euclidean distance between iterations $$D(\mathbf{u},\mathbf{v}) = \sqrt{\left(\sum_{i-1}^p (u_i - v_i)^2\right)}$$.  The output of these functions are scalars, so given a particular choice of $D(\mathbf{u},\mathbf{v})$, we can define a particular absolute convergence threshold $\epsilon$ to terminate the algorithm such that $D(\thetab^{(t+1)},\thetab^{(t)}) < \epsilon$.  We can similarly define a relative convergence threshold $\epsilon$ such that $$\frac{D(\thetab^{(t+1)},\thetab^{(t)})}{D(\thetab^{(t)},0)} < \epsilon$$.  
+Obviously in the multivariate setting we cannot directly utilize the same convergence criteria defined earlier.  To extend this to the multivariate setting, we may use distance-based measures for convergence, for example based one the sum of the absolute differences between iterations $$D(\mathbf{u},\mathbf{v}) = \sum_{i-1}^p | u_i - v_i|$$ or the Euclidean distance between iterations $$D(\mathbf{u},\mathbf{v}) = \sqrt{\left(\sum_{i-1}^p (u_i - v_i)^2\right)}$$.  The output of these functions are scalars, so given a particular choice of $D(\mathbf{u},\mathbf{v})$, we can define a particular absolute convergence threshold $\epsilon$ to terminate the algorithm such that $D(\boldsymbol{\theta}^{(t+1)},\boldsymbol{\theta}^{(t)}) < \epsilon$.  We can similarly define a relative convergence threshold $\epsilon$ such that $$\frac{D(\boldsymbol{\theta}^{(t+1)},\boldsymbol{\theta}^{(t)})}{D(\boldsymbol{\theta}^{(t)},0)} < \epsilon$$.  
+
+As before, we may also decide to use the value of **the objective function itself** as the basis for our criterion for convergence (the estimated likelihood at iteration $t$ for example).  In some cases, particularly when the dimension of the parameter space is high, this approach may be simpler to utilize. 
 
 We will now discuss multivariate extensions to the methods introduced in the previous section.  
 
 ##  Newton-Raphson and Fisher Scoring
 
-Using the rationale described in the univariate setting, we can define the updating algorithm in this setting using a quadratic Taylor Series expansion around $f(\thetab^*)$:  $$f(\thetab^*) = f(\thetab^{(t)}) + (\thetab^* - \thetab^{(t)})^T f'(\theta^{(t)}) + \frac{1}{2}(\thetab^* - \thetab^{(t)})^T f''(\theta^{(t)})(\thetab^* - \thetab^{(t)}).$$ If we take the derivative of this expansion and set it equal to zero, we get $$0 = f'(\thetab^{(t)}) + f''(\thetab^{(t)})(\thetab^* - \thetab^{(t)}),$$  which provides the update $$\thetab^{(t+1)} = \thetab^{(t)} - f''(\thetab^{(t)})^{-1}f'(\thetab^{(t)}).$$ 
+Using the rationale described in the univariate setting, we can define the NR updating algorithm in this setting using a quadratic Taylor Series expansion around $f(\boldsymbol{\theta}^*)$:  $$f(\boldsymbol{\theta}^*) = f(\boldsymbol{\theta}^{(t)}) + (\boldsymbol{\theta}^* - \boldsymbol{\theta}^{(t)})^T f'(\theta^{(t)}) + \frac{1}{2}(\boldsymbol{\theta}^* - \boldsymbol{\theta}^{(t)})^T f''(\theta^{(t)})(\boldsymbol{\theta}^* - \boldsymbol{\theta}^{(t)}).$$ If we take the derivative of this expansion and set it equal to zero, we get $$0 = f'(\boldsymbol{\theta}^{(t)}) + f''(\boldsymbol{\theta}^{(t)})(\boldsymbol{\theta}^* - \boldsymbol{\theta}^{(t)}),$$  which provides the update $$\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} - f''(\boldsymbol{\theta}^{(t)})^{-1}f'(\boldsymbol{\theta}^{(t)}).$$ 
 
-As a side note, if you recall, in our derivation from the univariate setting we started with a linear Taylor Series expansion of $f'(\theta^*)$.  Doing the same here would allow us to arrive at the same expression given above (her we take the derivative of the expansion around $f(\theta^*)$).  So, our increment $\mathbf{h}^{(t)}$ is simply  $\mathbf{h}^{(t)} = -f''(\thetab^{(t)})^{-1}f'(\thetab^{(t)})$.  Fisher scoring in this case also has a similar updating function $$\thetab^{(t+1)} = \thetab^{(t)} - \I(\thetab^{(t)})^{-1}\l'(\thetab^{(t)}).$$  The properties of these algorithms will be similar to those described in the univariate section.  
+As a side note, if you recall, in our derivation from the univariate setting we started with a linear Taylor Series expansion of $f'(\theta^*)$.  Doing the same here would allow us to arrive at the same expression given above (her we take the derivative of the expansion around $f(\theta^*)$).  So, our increment $\mathbf{h}^{(t)}$ is simply  $\mathbf{h}^{(t)} = -f''(\boldsymbol{\theta}^{(t)})^{-1}f'(\boldsymbol{\theta}^{(t)})$.  
+
+**Fisher scoring** in this case also has a similar updating function $$\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} - \I(\boldsymbol{\theta}^{(t)})^{-1}\l'(\boldsymbol{\theta}^{(t)}).$$  The properties of these algorithms will be similar to those described in the univariate section.  
 
 We will illustrate these multivariate results with an example in the next section. 
 
 ### GLMs: NR, FS, and IRLS
 Generalized Linear Models (GLMs) encompass a large family of models including linear regression, logistic regression (binary responses), Poisson regression (count responses), and many others.  In contrast to linear regression, the class of models encompassed by GLMs can handle response variables of different distributions, where such distributions are members of what we call the "exponential family" of distributions.  
 
-This family has the general form $$f(y; \theta,\phi) = \exp\left[(y\theta-b(\theta)]/a(\phi)) + c(y,\phi)\right],$$ where $\theta$ is called the "natural" or "canonical" parameter and $\phi$ is a fixed dispersion parameter.  The following distributions can be factored into this form, and therefore belong to the exponential family:
+The exponential family has the general form $$f(y; \theta,\phi) = \exp\left[(y\theta-b(\theta)]/a(\phi)) + c(y,\phi)\right],$$ where $\theta$ is called the "natural" or "canonical" parameter and $\phi$ is a fixed dispersion parameter.  The following distributions can be factored into this form, and therefore belong to the exponential family:
 
 * Bernoulli
 * Poisson
@@ -696,9 +697,11 @@ Note that the last three distributions have conditional membership to this famil
 
 For these distributions, we  can factor their densities into the form above to determine $b(\theta)$, $a(\phi)$, and $c(y,\phi)$.  We can then utilize these quantities to estimate the parameters of interest in our model in a general unified framework.  For example, we can show that $E[Y] = b'(\theta)$ and $var[Y] = b''(\theta)a(\phi)$.  
 
-Similar to linear regression, we often wish to model $Y_i$ with respect to some vector of covariates $\X_i$, the $i$th row of an $n \times p$ matrix of covariates $\X$.  Let us define $\mu_i =E[Y_i |\X_i]$.  In this particular model, we assume that the relationship between $\X_i$ and $\mu_i$ are related such that $g(\mu_i) = \X_i\boldsymbol{\beta} = \eta_i$, where $\boldsymbol{\beta}$ is a vector of unknown parameters to be estimated, $g$ is called the "link function", and $\eta_i$ is the "linear predictor".  The inverse link function, $g^{-1}(\eta_i) = \mu_i$, can be used to back transform the linear predictor for subject $i$ to obtain $\mu_i$.  That is, we can model some function of $E[Y_i |\X_i]$ with a set of regression coefficients, where this function is the selected link function $g$.   
+Similar to linear regression, we often wish to model $Y_i$ with respect to some vector of covariates $\X_i$, the $i$th row of an $n \times p$ matrix of covariates $\X$.  Let us define $\mu_i =E[Y_i |\X_i]$.  In this particular model, we assume that the relationship between $\X_i$ and $\mu_i$ are related such that $g(\mu_i) = \X_i\boldsymbol{\beta} = \eta_i$, where $g$ is called the "link function", $\boldsymbol{\beta}$ is a vector of unknown parameters to be estimated, and $\eta_i$ is called the "linear predictor".  The inverse link function, $g^{-1}(\eta_i) = \mu_i$, can be used to back-transform the linear predictor for subject $i$ to obtain $\mu_i$.  That is, we can model some function of $E[Y_i |\X_i]$ with a set of regression coefficients, where this function is the selected link function $g$.   
 
-For example, in linear regression $g$ is simply the "identity link" where $E[Y_i |\X_i] =\mu_i =  \X_i\boldsymbol{\beta}$ and no transformation is performed.  For each member of the exponential family, different link functions may be utilized, although some may be more mathematically convenient to use than others as we will see.  In general, if we find that $b'(\theta_i) = \mu_i = g^{-1}(\theta_i)$, then this implies that $\theta_i = \eta_i$ and that $g(\cdot)$ is the "canonical" link function and is an example of such a mathematically convenient link function.  Here $g^{-1}(\cdot)$ is the inverse link function.  If this is new to you, dont worry we will walk through an example of this in a bit.  
+For example, in linear regression $g$ is simply the "identity link" where $E[Y_i |\X_i] =\mu_i =  \X_i\boldsymbol{\beta}$, and no transformation is performed.  For each member of the exponential family, different link functions may be utilized, although some may be more mathematically convenient to use than others, as we will see.  
+
+In general, if we find that $b'(\theta_i) = g^{-1}(\theta_i)$, then this implies that $\theta_i = \eta_i$ and that $g(\cdot)$ is the "canonical" link function, an example of such a mathematically convenient link function.   If this is new to you, dont worry we will walk through an example of this in a bit.  
 
 Given the wide range of distributions that may be covered by the exponential family, a general estimation framework to obtain $\hat{\boldsymbol{\beta}}$ may be advantageous for modeling, as separate algorithms for different distributions can be avoided.  You will learn more about these models and various link functions in Bios 762.  
 
@@ -710,7 +713,7 @@ Since this distribution is part of the exponential family, we can factor the PDF
 We can  show that the likelihood for this model can then be written in the form 
 
 \begin{align}
-l(\thetab) &= \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) \\
+l(\boldsymbol{\theta}) &= \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) \\
 &= \sum_{i = 1}^n Y_i\X_i\boldsymbol{\beta} - b(\theta_i) \\
 &= \Y^T\X\boldsymbol{\beta} - \textbf{b}^T(\theta)\mathbf{1},
 \end{align}
@@ -718,23 +721,23 @@ l(\thetab) &= \sum_{i = 1}^n Y_i\theta_i - b(\theta_i) \\
 where we can conveniently replace $\log(\frac{\pi_i}{1-\pi_i})$ in the original log likelihood with $\X_i\boldsymbol{\beta}$ through the use of the canonical link function. 
 
 #### NR-based approach to maximization (assuming canonical link)
-Using similar logic as before to maximize the likelihood with respect to $\boldsymbol{\beta}$, let us try to find $\boldsymbol{\beta}$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\boldsymbol{\beta}) = \X^T(\Y - \pib),$$ where $\pib = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with respect to each element of $\boldsymbol{\beta}$, which is also $p$-dimensional.  
+Using similar logic as before to maximize the likelihood with respect to $\boldsymbol{\beta}$, let us try to find $\boldsymbol{\beta}$ such that the first derivative of the likelihood function above is equal to zero.  We can show that the first derivative of the likelihood function (also called the score function) can be written as $$\l'(\boldsymbol{\beta}) = \X^T(\Y - \boldsymbol{\pi}),$$ where $\boldsymbol{\pi} = (\pi_1,\ldots,\pi_n)$.  Notice that this expression is now a $p$-dimensional vector, as we are taking the derivative of the likelihood with respect to each element of $\boldsymbol{\beta}$, which is also $p$-dimensional.  
 
-The second derivative of the likelihood function (called the "Hessian") is given as $$\l''(\boldsymbol{\beta}) = \frac{d}{d\boldsymbol{\beta}}(\X^T(\Y-\pib)) = -\left(\frac{d\pib}{d\boldsymbol{\beta}}\right)^T\X = -\X^T\W\X,$$ where $\W$ is a diagonal matrix with the $i$th diagonal element having value equal to $\pi_i(1-\pi_i)$.  Note that the Hessian is a matrix.  
+The second derivative of the likelihood function (called the "Hessian") is given as $$\l''(\boldsymbol{\beta}) = \frac{d}{d\boldsymbol{\beta}}(\X^T(\Y-\boldsymbol{\pi})) = -\left(\frac{d\boldsymbol{\pi}}{d\boldsymbol{\beta}}\right)^T\X = -\X^T\W\X,$$ where $\W$ is a diagonal matrix with the $i$th diagonal element having value equal to $\pi_i(1-\pi_i)$.  Note that the Hessian is a matrix.  
 
 Plugging in these values into the NR algorithm defined earlier, the updating algorithm is given as 
 
 \begin{align}
-\beta^{(t+1)}& = \beta^{(t)} - \l''(\boldsymbol{\beta})^{-1}l'(\beta^{(t+1)})\\ 
-&=  \beta^{(t)} + (\X^T\W^{(t)}\X)^{-1}\X^T(\Y - \pib^{(t)})\\
-&= \beta^{(t)} + \h^{(t)},
+\boldsymbol{\beta}^{(t+1)}& = \boldsymbol{\beta}^{(t)} - \l''(\boldsymbol{\beta}^{(t)})^{-1}\l'(\boldsymbol{\beta}^{(t)})\\ 
+&=  \boldsymbol{\beta}^{(t)} + (\X^T\W^{(t)}\X)^{-1}\X^T(\Y - \boldsymbol{\pi}^{(t)})\\
+&= \boldsymbol{\beta}^{(t)} + \h^{(t)},
 \end{align}
 
-where $\pib^{(t)}$ depends on $\boldsymbol{\beta}^{(t)}$ and $\W$ is a function of $\pib^{(t)}$.  
+where $\boldsymbol{\pi}^{(t)}$ depends on $\boldsymbol{\beta}^{(t)}$ and $\W$ is a function of $\boldsymbol{\pi}^{(t)}$.  
 
 Given the fact that the Hessian **does not** depend on the observed data, we can see that the expected Fisher Information Matrix is equal to the Observed information matrix, where $\I(\boldsymbol{\beta}) = E[-\l''(\boldsymbol{\beta})]  = E[\X^T\W\X] = -l''(\boldsymbol{\beta})$.  
 
-As a result, FS and NR for this particular example are exactly the same when the link function is chosen as the canonical link!  However,  this will not always hold in other scenarios).  
+As a result, FS and NR for this particular example are exactly the same, and holds for the more general case when the link function is chosen as the canonical link!  However, this will not always hold in other scenarios.  
 
 #### FS and IRLS-based approach to maximization for arbitrary link functions (including non-canonical links)
 
@@ -768,13 +771,13 @@ n = 100
 # create X from two normally distributed predictors, assume intercept
 x1 = rnorm(100)
 x2 = rnorm(100)
-X = model.matrix(~1+x1+x2)
+X = model.matrix( ~ 1 + x1 + x2)
 
 # pick beta
 beta = c(1, 1, 1)
 
 # simulate samples
-lambda = exp(X%*%beta) 
+lambda = exp(X %*% beta)
 y = rpois(n, lambda)
 ```
 
@@ -785,30 +788,32 @@ data.matrix = cbind(log(y+1), x1, x2)
 pairs(data.matrix)
 ```
 
-Now lets write out the derivative functions, using the likelihood given earlier in this lecture.  We have $l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - exp(X_i\boldsymbol{\beta}))X^T_i$ and $l''(\boldsymbol{\beta}) = \sum_{i=1}^n exp(X_i\boldsymbol{\beta}))X_iX_i^T$
+Now lets write out the derivative functions, using the likelihood given earlier in this lecture.  We have $l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - exp(X_i\boldsymbol{\beta}))\boldsymbol{X}^T_i$ and $l''(\boldsymbol{\beta}) = \sum_{i=1}^n exp(X_i\boldsymbol{\beta}))\boldsymbol{X}_i\boldsymbol{X}_i^T$
 
 ```{r, echo=TRUE}
 # loglikelihood function
-logLik.reg = function(beta, y, X){
-  lambda_hat = exp(X%*%beta)
+logLik.reg = function(beta, y, X) {
+  lambda_hat = exp(X %*% beta)
   value = sum(dpois(y, lambda = lambda_hat, log = T))
   return(value)
 }
 
 # lets write a function for the first derivative
-d1.reg = function(beta, y, X){
+d1.reg = function(beta, y, X) {
   lambda_hat = exp(X %*% beta)
   r = y - lambda_hat
   first = matrix(0, ncol = 1, nrow = ncol(X))
-  for(i in 1:length(y)) first =  first + r[i]*X[i,] # also can be done with colSums(sweep(X,MARGIN=2,r,`*`))
+  for (i in 1:length(y))
+    first =  first + r[i] * X[i, ] # also can be done with colSums(sweep(X,MARGIN=2,r,`*`))
   return(first)
 }
 
 # now the second
-d2.reg = function(beta, y, X){
+d2.reg = function(beta, y, X) {
   lambda_hat = exp(X %*% beta)
-  second = 0 
-  for(i in 1:length(y)) second =  second + -lambda_hat[i]*X[i,] %*% t(X[i,])
+  second = 0
+  for (i in 1:length(y))
+    second =  second+-lambda_hat[i] * X[i, ] %*% t(X[i, ])
   return(second)
 }
 ```
@@ -817,15 +822,14 @@ Now lets apply this:
 
 ```{r, echo=TRUE}
 # the start
-tol = 10^-4
-beta = c(log(mean(y)),0,0) # multivariate now
+tol = 10 ^ -4
+beta = c(log(mean(y)), 0, 0) # multivariate now
 maxit = 50
 iter = 0
 eps = Inf
 
-# given this, the result below will be the same as NR
 start = Sys.time()
-while(eps > tol & iter < maxit){
+while (eps > tol & iter < maxit) {
   # save the previous value
   beta0 = beta
   
@@ -835,18 +839,29 @@ while(eps > tol & iter < maxit){
   # update lambda
   beta = beta + h
   
-  # update the log likelihood 
-  logL = logLik(lambda = exp(X%*%beta), y= y)
+  # update the log likelihood
+  logL = logLik(lambda = exp(X %*% beta), y = y)
   
   # calculate the euclidean distance, could also use the log likelihood if we wanted
-  eps  = sqrt(sum((beta - beta0)^2))
+  eps  = sqrt(sum((beta - beta0) ^ 2))
   
   # update the iteration number
   iter = iter + 1
-  if(iter == maxit) warning("Iteration limit reached without convergence")
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
   
   # print out info to keep track
-  cat(sprintf("Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f\n",iter, logL,beta[1],beta[2],beta[3],eps))
+  cat(
+    sprintf(
+      "Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f\n",
+      iter,
+      logL,
+      beta[1],
+      beta[2],
+      beta[3],
+      eps
+    )
+  )
 }
 end = Sys.time()
 print(end - start)
@@ -871,15 +886,14 @@ The IRLS update here can be written in general as the following: $$e_i^{(t)} = g
 
 ```{r, echo=TRUE}
 # the start
-tol = 10^-4
-beta = c(log(mean(y)),0,0) # multivariate now
+tol = 10 ^ -4
+beta = c(log(mean(y)), 0, 0) # multivariate now
 maxit = 50
 iter = 0
 eps = Inf
 
-# given this, the result below will be the same as NR
 start = Sys.time()
-while(eps > tol & iter < maxit){
+while (eps > tol & iter < maxit) {
   # save the previous value
   beta0 = beta
   
@@ -888,7 +902,7 @@ while(eps > tol & iter < maxit){
     eta_t = X %*% beta0
     
     # e
-    e = exp(-eta_t)*(y - exp(eta_t))
+    e = exp(-eta_t) * (y - exp(eta_t))
     
     # weight vector used in next step
     w = exp(eta_t)
@@ -897,24 +911,35 @@ while(eps > tol & iter < maxit){
     W = diag(as.vector(w))
     
     # z
-    z = eta_t + e 
-  
+    z = eta_t + e
+    
   # solve for beta(t+1)
-  beta = solve(t(X) %*% W %*% X)%*% t(X)%*%W %*% z
+  beta = solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z
   
-  # update the log likelihood 
-  eta_t1 = X%*%beta
-  logL = logLik(lambda = exp(eta_t1), y= y)
+  # update the log likelihood
+  eta_t1 = X %*% beta
+  logL = logLik(lambda = exp(eta_t1), y = y)
   
   # calculate the euclidean distance, could also use the log likelihood if we wanted
-  eps  = sqrt(sum((beta - beta0)^2))
+  eps  = sqrt(sum((beta - beta0) ^ 2))
   
   # update the iteration number
   iter = iter + 1
-  if(iter == maxit) warning("Iteration limit reached without convergence")
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
   
   # print out info to keep track
-  cat(sprintf("Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f\n",iter, logL,beta[1],beta[2],beta[3],eps))
+  cat(
+    sprintf(
+      "Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f\n",
+      iter,
+      logL,
+      beta[1],
+      beta[2],
+      beta[3],
+      eps
+    )
+  )
 }
 end = Sys.time()
 print(beta)
@@ -930,19 +955,21 @@ A wide variety of "Newton-Like" or "Quasi-Newton" approaches exist, where the up
 
 This is helpful when the second derivatives may be difficult to derive, have a complicated form, or are computationally expensive to evaluate in practice. 
 
-In this class of methods we may write the updating equation as $$\thetab^{(t+1)} = \thetab^{(t)} - (\M^{(t)})^{-1}f'(\thetab),$$ where $\M^{(t)}$ is a $p\times p$ matrix approximating the Hessian $f''(\thetab)$ (assuming $\thetab$ is a $p$-dimensional vector).  We may choose to do this because either evaluating the Hessian is too computationally expensive, or the steps selected by NR **may not go uphill** (if maximizing), as it is not guarunteed that $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ when we are maximizing some function $f(\thetab)$ (see NR divergence example from earlier).  We will talk about the the method of "steepest ascent/descent" later that tries to ensure improvements in the objective function with each update. 
+In this class of methods we may write the updating equation as $$\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} - (\M^{(t)})^{-1}f'(\boldsymbol{\theta}),$$ where $\M^{(t)}$ is a $p\times p$ matrix approximating the Hessian $f''(\boldsymbol{\theta})$ (assuming $\boldsymbol{\theta}$ is a $p$-dimensional vector).  
 
-Alternatively, we can choose an $\M^{(t)}$ that can guarantee $f(\thetab^{(t+1)}) > f(\thetab^{(t)})$ (ascent).  Due to time purposes, we will not cover Discrete Newton, Fixed Point Methods or Gauss-Newton in detail.  However, if interested you can find these topics covered in GH 2.2.2.   We will instead cover more commonly used algorithms such as BFGS (which in general has better performance than the aforementioned methods), Nelder-Mead, gradient descent/ascent, and stochastic gradient descent/ascent.   
+We may choose to do this because either evaluating the Hessian is too computationally expensive, or the steps selected by NR **may not go uphill** (if maximizing), as it is not guaranteed that $f(\boldsymbol{\theta}^{(t+1)}) > f(\boldsymbol{\theta}^{(t)})$ when we are maximizing some function $f(\boldsymbol{\theta})$ (see NR divergence example from earlier).  We will talk about the the method of "steepest ascent/descent" later that tries to ensure improvements in the objective function with each update. 
+
+Alternatively, we can choose an $\M^{(t)}$ that can guarantee $f(\boldsymbol{\theta}^{(t+1)}) > f(\boldsymbol{\theta}^{(t)})$ (ascent).  Due to time purposes, we will not cover Discrete Newton, Fixed Point Methods or Gauss-Newton in detail.  However, if interested you can find these topics covered in GH 2.2.2.   We will instead cover more commonly used algorithms such as BFGS (which in general has better performance than the aforementioned methods), Nelder-Mead, gradient descent/ascent, and stochastic gradient descent/ascent.   
 
 In general, one may try to avoid calculation of the Hessian matrix by approximating it using an approach akin to the secant-based finite-difference approaches detailed in the univariate maximization portion of this lecture (discrete Newton or fixed point methods also do this).  However, this can become computationally burdensome especially if $M$ is of larger dimension and because of the fact that $M^{(t)}$ may have to be updated at each iteration to ensure faster convergence.  
 
 ### Quasi-Newton Methods:  BFGS
 
-Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\thetab^{(t)}$ while we are performing the update $\thetab^{(t+1)} = \thetab^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\thetab^{(t)}) = M^{(t+1)}(\thetab^{(t+1)} - \thetab^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\thetab$ between iterations is equal to the finite difference approximation, preserving the secant condition.   Essentially, we need an approach to generate $\M^{(t+1)}$ from $\M^{(t)}$ that minimizes the number of calculations needed and preserves the above condition.  
+Instead, we can use "Quasi-Newton" methods where $M^{(t)}$ is updated with knowledge of the curvature of $f$ in the direction of the proposed step $h^{(t)}$ near $\boldsymbol{\theta}^{(t)}$ while we are performing the update $\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} + h^{(t)}$.  We would like to to avoid computing the approximation of each element the Hessian matrix one-by-one to reduce computational burden.  At the same time, we would also like to retain a similar secant-type condition where $$f'(\theta^{(t+1)}) - f'(\boldsymbol{\theta}^{(t)}) = M^{(t+1)}(\boldsymbol{\theta}^{(t+1)} - \boldsymbol{\theta}^{(t)}),$$ essentially approximating the finite-difference approach using $M^{(t+1)}$.  This equation implies that the specification of some Matrix $\M^{(t+1)}$ times the difference in the estimate of $\boldsymbol{\theta}$ between iterations is equal to the finite difference approximation, preserving the secant condition.   Essentially, we need an approach to generate $\M^{(t+1)}$ from $\M^{(t)}$ that minimizes the number of calculations needed and preserves the above condition.  
 
 The question is how do we obtain an $\M^{(t+1)}$ that satisfies this condition and can be determined in a manner that is computationally efficient?  Quasi-Newton (or "variable step") methods are one such approach that can do this when approximating the Hessian at each iteration.  The update to the Hessian has the following form $$\M^{(t+1)} = \M^{(t)} - \frac{\M^{(t)}\z^{(t)}(\M^{(t)}\z^{(t)})^T}{(\z^{(t)})^T\M^{(t)}\z^{(t)}} + \frac{\y^{(t)}(\y^{(t)})^T}{(\z^{(t)})^T\y^{(t)}} + \delta^{(t)}(\z^{(t)})^T\M^{(t)}\z^{(t)})\d^{(t)}(\d^{(t)})^T,$$ where $$\d^{(t)} = \frac{\y^{(t)}}{(\z^{(t)})^T\y^{(t)}} - \frac{\M^{(t)}\z^{(t)}}{(\z^{(t)})^T\M^{(t)}\z^{(t)}},$$  
 
-where here $\z^{(t)} = \thetab^{(t+1)} - \thetab^{(t)}$ and $\y^{(t)} = f'(\thetab^{(t+1)}) - f'(\thetab^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  In general, through the use of backtracking (which we will discuss in more detail in the next section) during the calculation of $M^{(t)}$, we can ensure ascent.  
+where here $\z^{(t)} = \boldsymbol{\theta}^{(t+1)} - \boldsymbol{\theta}^{(t)}$ and $\y^{(t)} = f'(\boldsymbol{\theta}^{(t+1)}) - f'(\boldsymbol{\theta}^{(t)})$.  This class of algorithms is indexed by the value of $\delta^{(t)}$, where $\delta^{(t)} = 0$ represents the popular BFGS update.  BFGS is generally regarded as the best performing method in this class and is commonly used.  In general, through the use of backtracking (which we will discuss in more detail in the next section) during the calculation of $M^{(t)}$, we can ensure ascent.  
 
 Another nice property of BFGS is that the **positive definiteness** of the Hessian approximation is also ensured, meaning that we can take the inverse of this matrix, leading to increase robustness of the method.  If you recall, one of the downsides of NR in the multivariate setting is the lack this guarantee, leading to potential instability of the approach (especially as the dimension grows).  We will touch more on this later.   
 
@@ -954,9 +981,9 @@ Lastly, you may more commonly see "L-BFGS-B" in  applications instead of BFGS, w
 
 ### Tips for improving performance and stability
 
-Performance of BFGS is sensitive to the starting value of $\M^{(0)}$.  For maximum likelihood estimation, it is good to set $\M^{(0)} = -I(\thetab^{(0)})$ the negative expected Fisher Information Matrix.  For other problems, setting $\M^{(0)} = -I_{p\times p}$, the negative identity matrix, may work well if all the parameters are on similar scales.  
+Performance of BFGS is sensitive to the starting value of $\M^{(0)}$.  For maximum likelihood estimation, it is good to set $\M^{(0)} = -I(\boldsymbol{\theta}^{(0)})$ the negative expected Fisher Information Matrix.  For other problems, setting $\M^{(0)} = -I_{p\times p}$, the negative identity matrix, may work well if all the parameters are on similar scales.  
 
-Rescaling parameters is generally helpful if parameters are on very different scales, for example if you have a function $f(\theta_1, \theta_2) = exp(1+\theta_1) + \theta_2$.  Clearly, similar changes in $\theta_1$ and $\theta_2$ will have very different impacts on $f(\theta_1, \theta_2)$.  This may also prevent the stopping criterion from being influenced by those variables that have the largest units or most influence on the function to be maximized over.   We will go more in how to do this in the section on $\texttt{optimx}$ in R.
+Rescaling parameters is generally helpful if parameters are on very different scales, for example if you have a function $f(\theta_1, \theta_2) = exp(1+\theta_1) + \theta_2$.  Clearly, similar changes in $\theta_1$ and $\theta_2$ will have very different impacts on $f(\theta_1, \theta_2)$.  This may also prevent the stopping criterion from being influenced by those variables that have the largest units or most influence on the function to be maximized over.  In some cases it may be easier to work with the log or exp of a parameter rather than the original scale of the parameter itself (**reparameterization**). Some transformations also impose a natural lower bound on the parameter space, reducing the need for box constraints.  We will go more in how to do this in the section on $\texttt{optimx}$ in R.  More detail is given in Chapter 16 of the Nash book. 
 
 
 ### Pros and Cons for using BFGS:
@@ -1124,7 +1151,7 @@ Again, it takes longer to achieve sufficient accuracy, but in much higher dimens
 
 ## Nelder-Mead
 
-In certain situations we may find that neither the first nor the second derivative may be easily derived or easy to evaluate computationally.  Nelder-Mead , sometimes called the "Simplex Search Method" is one such algorithm that **only requires the specification and evaluation of the function in question*** $f(\thetab)$ in order to perform optimization. Hence this algorithm falls into the class of iterative "direct search" algorithms as it only evaluates the function at possible solutions to suggest a better place for the algorithm to move to in the parameter space. 
+In certain situations we may find that neither the first nor the second derivative may be easily derived or easy to evaluate computationally.  Nelder-Mead , sometimes called the "Simplex Search Method" is one such algorithm that **only requires the specification and evaluation of the function in question*** $f(\boldsymbol{\theta})$ in order to perform optimization. Hence this algorithm falls into the class of iterative "direct search" algorithms as it only evaluates the function at possible solutions to suggest a better place for the algorithm to move to in the parameter space. 
 
 In the maximum likelihood estimation context, this means that only the likelihood function is evaluated during optimization.  This method may also be applied in more general situations where only some objective function exists that you wish to maximize or minimize but not clear analytical derivatives exists. 
 
@@ -1133,7 +1160,7 @@ Prior descriptions of this algorithm describe it as "amoeba-like", where the alg
 The main ideas behind this approach is similar to the prior two classes of algorithms covered so far, where the algorithm starts from an initial set of guesses for the parameter estimates, and then iteratively updates until some convergence criteria is met.  
 
 ### Updating algorithm
-The basic idea behind this algorithm is based upon the definition of the "simplex", which is essentially a $p+1$ dimensional space based upon the $p$ parameters of a given model.  Each of the $p+1$ elements of the simplex contains a $p$ dimensional vector representing a particular combination of the $p$ parameter values.  Each one of these $p$ combinations represent a "vertex" in the simplex space.  The method begins from set of initial vertices in the simplex based upon $\thetab^{(0)}$ through a predefined algorithm.  These vertices are then ranked from best to worst in terms of their function value, updating the worst rank vertex each time.  In general, the worst vertex is updated towards the direction of the best vertices in the simplex.  
+The basic idea behind this algorithm is based upon the definition of the "simplex", which is essentially a $p+1$ dimensional space based upon the $p$ parameters of a given model.  Each of the $p+1$ elements of the simplex contains a $p$ dimensional vector representing a particular combination of the $p$ parameter values.  Each one of these $p$ combinations represent a "vertex" in the simplex space.  The method begins from set of initial vertices in the simplex based upon $\boldsymbol{\theta}^{(0)}$ through a predefined algorithm.  These vertices are then ranked from best to worst in terms of their function value, updating the worst rank vertex each time.  In general, the worst vertex is updated towards the direction of the best vertices in the simplex.  
 
 In this iterative fashion, the vertices in the simplex slowly start to move towards regions of higher value until no further updates to the parameters results in an appreciable increase in the objective function.  The simplex may also "shrink" in size to better encapsulate regions of higher values when proposed moves in the simplex do not result in significant improvements in the objective function.  In general, the algorithm in each iteration tries to improve the worst point in the simplex (corresponding to a single parameter in the original model). 
 
@@ -1187,6 +1214,7 @@ print(fit)
 # For more detail
 
 See Givens and Hoeting Chapters 1 and 2
+
 Nonlinear Parameter Optimization Using R Tools (John Nash)
 
 
