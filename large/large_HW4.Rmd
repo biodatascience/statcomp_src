@@ -7,26 +7,9 @@ output: html_document
 
 # Question 1 - benchmark data.table's grouping on real data
 
-Download the College Scorecard data from here:
+Download the merged College Scorecard data from (2009-2016) from here: <https://www.dropbox.com/s/ex0u45rlrjr6h7e/Scorecard_2009-2016.csv?dl=0>
 
-<https://collegescorecard.ed.gov/data/>
-
-The data dictionary is here:
-
-<https://collegescorecard.ed.gov/assets/CollegeScorecardDataDictionary.xlsx>
-
-We will work with the data since 2010. You will need to `cat` the
-files from 2009 to 2016 together on the command line. But first, we
-have to remove the headers from the files other than 2009. You can
-do this by opening up a shell and running:
-
-```
-for i in `ls MERGED201*`; do echo $i; tail -n +2 $i > ${i/.csv}_nohead.csv; done
-cp MERGED2009_10_PP.csv MERGED2009_head.csv
-cat MERGED*head.csv > Scorecard_2009-2016.csv
-```
-
-Read in the 2009-2016 dataset, which will give you 60,306 rows.
+This file is the final merged form of the original data that was discussed in class, using the shell operation. Please use this file for the subsequent questions. Excluding the header, there should be 67,418 rows in this file. 
 
 In class we performed some simple subsetting and grouping
 operations. The lecture notes use a previous version of the dataset,
