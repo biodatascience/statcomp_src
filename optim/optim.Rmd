@@ -574,9 +574,9 @@ while (eps > tol & iter < maxit) {
  
 
 ## Fisher Scoring
-Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $l''(\theta)$, also known as the **observed Fisher Information** is an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptotic properties for NR and FS are similar. 
+Fisher Scoring is an alternative to NR when performing maximum likelihood estimation, where we simply replace $l''(\theta^{(t)})$ with $I(\theta^{(t)})$, the expected Fisher Information matrix at iteration $t$.  We can show that $-l''(\theta)$, also known as the **observed Fisher Information** is an approximation for $I(\theta)$ (GH 1.4), so it is not surprising that the asymptotic properties for NR and FS are similar. 
 
-The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} - I(\theta^{(t)})^{-1}l'(\theta^{(t)}).$$ Given the particular problem at hand, NR or FS may be easier to derive analytically, where the latter only needs knowledge of the **1st derivatives** and avoids computation of the 2nd derivatives. According to GH, FS may be used in early iterations for rapid improvements, and NR can be used to make better refinements near the end.  
+The updating equation is given as $$\theta^{(t+1)}  = \theta^{(t)} + I(\theta^{(t)})^{-1}l'(\theta^{(t)}).$$ Given the particular problem at hand, NR or FS may be easier to derive analytically, where the latter only needs knowledge of the **1st derivatives** and avoids computation of the 2nd derivatives. According to GH, FS may be used in early iterations for rapid improvements, and NR can be used to make better refinements near the end.  
 
 * Pros
     + Avoids derivation and computation of the 2nd derivative
@@ -597,7 +597,7 @@ This approach is similar to NR, except that the second derivative in the updatin
 
 ## Examples
 
-Lets apply FS to our simple Poisson problem.  To do this, lets first calculate the expected information $I(\theta)$, which is $I(\theta) = -E[l'(\theta)^2]$ in the univariate setting.  This expression can be calculated by brute force using the following
+Lets apply FS to our simple Poisson problem.  To do this, lets first calculate the expected information $I(\theta)$, which is $I(\theta) = E[l'(\theta)^2] = E[-l''(\theta)]$ in the univariate setting.  This expression can be calculated by brute force using the following
 
 \begin{align}
 E[l'(\theta)^2] &=E\left[\left(-n + \left(\sum_{i = 1}^{n} y_i \right)/\lambda\right)^2\right]\\
@@ -623,8 +623,8 @@ while (eps > tol & iter < maxit) {
   # save the previous value
   lam0 = lam
   
-  # calculate h, the increment
-  h = -d1(lambda = lam, y = y) / (-n / lam)
+  # calculate h, the increment. 
+  h = d1(lambda = lam, y = y) / (n / lam)
   
   # update lambda
   lam = lam + h
@@ -670,7 +670,7 @@ Using the rationale described in the univariate setting, we can define the NR up
 
 As a side note, if you recall, in our derivation from the univariate setting we started with a linear Taylor Series expansion of $f'(\theta^*)$.  Doing the same here would allow us to arrive at the same expression given above (her we take the derivative of the expansion around $f(\theta^*)$).  So, our increment $\mathbf{h}^{(t)}$ is simply  $\mathbf{h}^{(t)} = -f''(\boldsymbol{\theta}^{(t)})^{-1}f'(\boldsymbol{\theta}^{(t)})$.  
 
-**Fisher scoring** in this case also has a similar updating function $$\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} - \I(\boldsymbol{\theta}^{(t)})^{-1}\l'(\boldsymbol{\theta}^{(t)}).$$  The properties of these algorithms will be similar to those described in the univariate section.  
+**Fisher scoring** in this case also has a similar updating function $$\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} + \I(\boldsymbol{\theta}^{(t)})^{-1}\l'(\boldsymbol{\theta}^{(t)}).$$  The properties of these algorithms will be similar to those described in the univariate section.  
 
 We will illustrate these multivariate results with an example in the next section. 
 
@@ -769,8 +769,8 @@ Lets generate some data from a Poisson regression model and fit it with NR
 n = 100
 
 # create X from two normally distributed predictors, assume intercept
-x1 = rnorm(100)
-x2 = rnorm(100)
+x1 = rnorm(n)
+x2 = rnorm(n)
 X = model.matrix( ~ 1 + x1 + x2)
 
 # pick beta
@@ -1034,26 +1034,33 @@ print(fit)
 
 ## Gradient Descent
 
-Before we discuss gradient descent, we can introduce a related method discussed in GH called "steepest descent" or "steepest ascent", depending on whether the objective function is being minimized or maximized.  
+Depending on who you talk to, gradient descent may also be referred to as "steepest descent" (as defined in GH). Likewise, it may also be referred to as gradient ascent or "steepest ascent", depending on whether the objective function is being maximized rather than minimized. In other circles, it may refer to a class of methods, which include the methods of "steepest descent" or "steepest ascent" as a special case.  
 
-Simply put, this method replaces $M$ in the previous section with the negative identity matrix $-I$, and  does away with using the hessian or any approximation of it completely. In this manner we completely avoid any computational expense computing/approximating/storing/inverting the hessian, which can get prohibitive in high dimension.  
+Simply put, steepest ascent replaces $M$ in the previous section with the identity matrix $I$, and  does away with using the hessian or any approximation of it completely. In this manner we completely avoid any computational expense computing/approximating/storing/inverting the hessian, which can get prohibitive in high dimension.  For steepest ascent, it is replaced with $-I$.
 
-That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)}f'(x^{(t)}),$$ where $f(x)$ is the function to be minimized.  In this manner, the update takes the direction of steepest descent at $x^{(t)}$.  The step size may be scaled by some value $\alpha{(t)} > 0$, where if the direction taken at $x^{(t)}$ is negative  $\alpha{(t)}$ may be halved repeatedly to decrease the step size until a sufficiently small step size finds an downhill route ($\alpha{(t)}=1$ initially), where "downhill" is determined by the change in the objective function from the original position. This approach is called "backtracking".   A more general version of this approach are "line search" methods, where such methods ensure the change in the objective function is greater than a certain amount and other helpful qualities (detailed in GH 2.2.2.1).  
+That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)}f'(x^{(t)}),$$ where $f(x)$ is the function to be minimized.  In this manner, the update takes the direction of steepest descent at $x^{(t)}$.  The step size may be scaled by some value $\alpha{(t)} > 0$, where if the direction taken at $x^{(t)}$ is negative  $\alpha{(t)}$ may be halved repeatedly to decrease the step size until a sufficiently small step size finds an downhill route ($\alpha{(t)}=1$ initially), where "downhill" is determined by the change in the objective function from the original position. This approach is called "backtracking".   A more general version of this approach are "line search" methods, where such methods ensure the change in the objective function is greater than a certain amount and other helpful qualities (detailed in GH 2.2.2.1).  For maximization, flip the sign to $+\alpha{(t)}f'(x^{(t)}$ in the above expression. 
 
 The intuition behind this approach may be described as to trying to find one's way down a hill when blindfolded.  The only information available to you is how steep the hill is at the point where you are standing, and moving in the direction where the slope appears the steepest. We do not have an idea of the curvature (change in the slope) around that point, so we just follow the slope instead. 
 
-Gradient Descent, depending on who you talk to, may be throught as a more general form of steepest descent that instead fixes $\alpha{(t)}$ (sometimes called the "learning rate") rather than letting it vary within each iteration.  Regardless, the idea is similar in that it avoids computing the hessian and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems (no need to store or approximate a $p \times p$ hessian). 
+Gradient Descent, depending on who you talk to, may be throught as a more general form of steepest descent that instead fixes $\alpha{(t)}$ (sometimes called the "learning rate") rather than letting it vary within each iteration.  In other cases, it is  referred to as a class of methods where both $\alpha{(t)}$  and the gradient may be scaled with each iteration. 
+
+Regardless, the idea is similar in that it avoids computing the hessian and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems (no need to store or approximate a $p \times p$ hessian). 
 
 However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\boldsymbol{\beta}^{(t)})$ where we wish to estimate $\boldsymbol{\beta}$ in the prior Poisson regression example: $$\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha{(t)}l'(\boldsymbol{\beta}^{(t)}).$$  One thing that is clear from here is that $$l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - \exp(X_i\boldsymbol{\beta}))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
 
 ## Stochastic Gradient Descent (SGD)
 
-Stochastic gradient descent instead randomly subsamples the data and performs an update for $\boldsymbol{\beta}$ with a random observation drawn from the data.  Rather than updating $\boldsymbol{\beta}$ with a full pass over the data, we instead update $\boldsymbol{\beta}$ with a single draw from the data, such that now $$\boldsymbol{\beta}^{s+1} = \boldsymbol{\beta}^{(s)} - \alpha l_{i(s)}'(\boldsymbol{\beta}^{(s)}),$$ where $s>0$ is the subsample index, $i(s)$ is the index of the sample that is randomly drawn in the $s$th subsample, and $l_{i(s)}'(\boldsymbol{\beta}^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\boldsymbol{\beta}^{s+1}$, which may take multiple loops over the entire data set.  
+Stochastic gradient descent instead randomly subsamples the data and performs an update for $\boldsymbol{\beta}$ with a random observation drawn from the data.  Rather than updating $\boldsymbol{\beta}$ with a full pass over the data, we instead update $\boldsymbol{\beta}$ with a single draw from the data, such that now $$\boldsymbol{\beta}^{s+1} = \boldsymbol{\beta}^{(s)} - \alpha l_{i(s)}'(\boldsymbol{\beta}^{(s)}),$$ where $s>0$ is the subsample index, $i(s)$ is the index of the sample that is randomly drawn in the $s$th subsample, and $l_{i(s)}'(\boldsymbol{\beta}^{(s)})$ is the value of the gradient computed off of the $i$th subject.  One continues to draw samples until convergence is observed in $\boldsymbol{\beta}^{s+1}$, which may take multiple loops over the entire data set. Other variants include in-order looping across observations rather than random sampling. 
 
-Given the variability from sample to sample, $\alpha{(t)}$ is typically held fixed at a small value rather than varied.  Other variants include in-order looping across observations rather than random sampling. Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. 
+Modifications of this approach include "mini-batching", where instead of a single sample drawn from the dataset a group of $m$ samples may be drawn.  This has the effect of reducing variability between iterations and assisting with convergence. While the theoretical convergence rate of SGD is lower than that of GD (SGD is said to be sub-linear), in practice for large $n$ problems it may be much faster, as the per-iteration cost for SGD is much lower than GD in this case. In any case, SGD is obviously helpful in those situations when one cannot read all of the data into memory. 
+
+This is also why sometimes GD (as defined in the previous section) is sometimes called **Batch Gradient Descent**, as it requires you to loop over the entire dataset for each update rather than a subsample (mini-batch).
+
+Given the variability from sample to sample, $\alpha{(t)}$ may held fixed rather than varied, however the convergence and speed is dependent on the optimal selection of this fixed value.  In deep learning and other methods, this value is  often determined through  hyperparameter tuning (tuning parameter selection).  Too large of a learning rate may lead to problems with convergence, and too small may lead to slow convergence. Other approaches  may automatically adjust $\alpha{(t)}$ as the algorithm is running, decreasing $\alpha{(t)}$ by some preset schedule (sometimes  called  a "learning rate schedule"). This approach may address some of the shortcomings of fixing $\alpha{(t)}$, but it is highly dependent on the parameters that determine the rate of decrease as  they are not data adaptive. To address these issues and others, more sophisticated methods for determining $\alpha{(t)}$ or scaling the gradient during GD/SGD have been proposed such as the ADAM and ADAGRAD optimizers.  You may find more detail on  these approaches [here](https://arxiv.org/abs/1609.04747)
+
 
 ### Application of GD and SGD to our Poisson Regression Example
-Lets try it out on our Poisson regression example.  Here is regular gradient ascent with just a fixed $\alpha^{(t)}$:
+Lets try it out on our Poisson regression example.  Here is regular gradient **ascent** (since we are maximizing here) with just a fixed $\alpha^{(t)}$:
 
 
 ```{r, echo=TRUE}
@@ -1094,7 +1101,7 @@ end = Sys.time()
 print(end - start)
 ```
 
-Takes more iterations and time than some of the prior methods in the low dimensional low sample size setting, but is not surprising since it does not utilize or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.
+Takes more iterations and time than some of the prior methods in the low dimensional low sample size setting, but is not surprising since it does not utilize or approximate the hessian.  We could drop this time further by increasing alpha or the convergence threshold, but at the expense of accuracy/convergence.  You can play around with the learning rate parameter to see its impact on convergence,
 
 Now here is a mini batched version of stochastic gradient descent, taking samples of 10
 
@@ -1106,7 +1113,7 @@ beta = c(log(mean(y)),0,0) # multivariate now
 maxit = 100000 # increased iteration limit
 iter = 0
 alpha = 0.00001
-subsample.size = 10
+subsample.size = 2
 eps = 100000
 epscount = 0
 logL = rep(NA, maxit)
@@ -1208,7 +1215,7 @@ print(end - start)
 print(fit)  
 ```
 
-
+Another popular gradient  free method is the **BOBYQA** optimizer, which is used by default in the lmer and glmer functions in R's lme4 package for random effects modeling. 
 
 
 # For more detail
