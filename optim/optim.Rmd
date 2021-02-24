@@ -1038,7 +1038,7 @@ Depending on who you talk to, gradient descent may also be referred to as "steep
 
 Simply put, steepest ascent replaces $M$ in the previous section with the identity matrix $I$, and  does away with using the hessian or any approximation of it completely. In this manner we completely avoid any computational expense computing/approximating/storing/inverting the hessian, which can get prohibitive in high dimension.  For steepest ascent, it is replaced with $-I$.
 
-That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)}f'(x^{(t)}),$$ where $f(x)$ is the function to be minimized.  In this manner, the update takes the direction of steepest descent at $x^{(t)}$.  The step size may be scaled by some value $\alpha{(t)} > 0$, where if the direction taken at $x^{(t)}$ is negative  $\alpha{(t)}$ may be halved repeatedly to decrease the step size until a sufficiently small step size finds an downhill route ($\alpha{(t)}=1$ initially), where "downhill" is determined by the change in the objective function from the original position. This approach is called "backtracking".   A more general version of this approach are "line search" methods, where such methods ensure the change in the objective function is greater than a certain amount and other helpful qualities (detailed in GH 2.2.2.1).  For maximization, flip the sign to $+\alpha{(t)}f'(x^{(t)}$ in the above expression. 
+That is, the update in this setting is simply $$x^{(t+1)} = x^{(t)} - \alpha{(t)}f'(x^{(t)}),$$ where $f(x)$ is the function to be minimized.  In this manner, the update takes the direction of steepest descent at $x^{(t)}$.  The step size may be scaled by some value $\alpha{(t)} > 0$, where if the direction taken at $x^{(t)}$ is negative  $\alpha{(t)}$ may be halved repeatedly to decrease the step size until a sufficiently small step size finds an downhill route ($\alpha{(t)}=1$ initially), where "downhill" is determined by the change in the objective function from the original position. This approach is called "backtracking".   A more general version of this approach are "line search" methods, where such methods ensure the change in the objective function is greater than a certain amount and other helpful qualities (detailed in GH 2.2.2.1).  For maximization, flip the sign to $+\alpha{(t)}f'(x^{(t)})$ in the above expression. 
 
 The intuition behind this approach may be described as to trying to find one's way down a hill when blindfolded.  The only information available to you is how steep the hill is at the point where you are standing, and moving in the direction where the slope appears the steepest. We do not have an idea of the curvature (change in the slope) around that point, so we just follow the slope instead. 
 
@@ -1046,7 +1046,7 @@ Gradient Descent, depending on who you talk to, may be throught as a more genera
 
 Regardless, the idea is similar in that it avoids computing the hessian and uses the gradient to choose the direction for the next update.  For the same qualities mentioned above, gradient descent is very popular for machine learning methods, particularly for high dimensional problems (no need to store or approximate a $p \times p$ hessian). 
 
-However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\boldsymbol{\beta}^{(t)})$ where we wish to estimate $\boldsymbol{\beta}$ in the prior Poisson regression example: $$\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha{(t)}l'(\boldsymbol{\beta}^{(t)}).$$  One thing that is clear from here is that $$l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - \exp(X_i\boldsymbol{\beta}))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
+However, for very large sample size problems the computation may become prohibitive.  Standard gradient descent described above can be called "batch" gradient descent, where all data points are utilized for computing the next search direction. Lets replace $f'(x^{(t)})$ with $l'(\boldsymbol{\beta}^{(t)})$ where we wish to estimate $\boldsymbol{\beta}$ in the prior Poisson regression example: $$\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} + \alpha{(t)}l'(\boldsymbol{\beta}^{(t)}).$$  One thing that is clear from here is that $$l'(\boldsymbol{\beta}) = \sum_{i=1}^n (y_i - \exp(X_i\boldsymbol{\beta}))X^T_i,$$ which is computed off of $n$ observations.  When $n$ is very large, these updates can become computationally prohibitive.  
 
 ## Stochastic Gradient Descent (SGD)
 
@@ -1108,12 +1108,12 @@ Now here is a mini batched version of stochastic gradient descent, taking sample
 
 ```{r, echo=TRUE}
 # the start
-tol = 10^-9 # lowered threshold to ensure convergence
+tol = 10^-8 # lowered threshold to ensure convergence
 beta = c(log(mean(y)),0,0) # multivariate now
 maxit = 100000 # increased iteration limit
 iter = 0
 alpha = 0.00001
-subsample.size = 2
+subsample.size = 10
 eps = 100000
 epscount = 0
 logL = rep(NA, maxit)

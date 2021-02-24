@@ -31,15 +31,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-The EM algorithm is a general-purpose optimization algorithm widely considered as a "workhorse" computing algorithm in statistics.   
+The EM algorithm is a general-purpose optimization algorithm widely considered as a "workhorse" computing tool in statistics.   
 
-While it was originally introduced for the purpose of optimization in the presence of missing data, we will see that it can also be adapted to broader problems in statistics by a reformulation of the original problem.  In such settings, the EM algorithm may offer a convenient alternative to the methods introduced in the previous lecture, where the analytical forms of the derivatives may be complex or difficult to evaluate.  
+While it was originally introduced for the purpose of optimization problems in the presence of missing data, we will see that it can also be adapted to broader problems in statistics by a reformulation of the original problem.  In such settings, the EM algorithm may offer a convenient alternative to the methods introduced in the previous lecture, where the analytical forms of the derivatives may be complex or difficult to evaluate.  
 
-Examples of these broader applications include random effect, finite mixture, hidden markov, and latent class models. The relative ease of its implementation in such complex models is also an attractive feature of the EM. 
+Examples of such broader applications include random effect, finite mixture, hidden markov, and latent class models. The relative ease of its implementation to perform maximum likelihood estimation in such complex models is also an attractive feature of EM. 
 
 ## Example:  Finite Mixture Models
 
-In the previous homework we looked at an example of a finite mixture model.  There we assumed that the number of fish caught $y_1\ldots y_{4075}$ by individuals in the park came from a mixture of two subpopulations, for example, the non-fishing population (with probability $\pi$ when $y_i=0$) and the fishing population (with probability $(1-\pi)$). The PMF was given by $$p(Y = y_i|\pi,\lambda) = (\pi + (1-\pi)e^{-\lambda})^{I[y_i=0]}\left((1-\pi)\frac{e^{-\lambda}\lambda^{y_i}}{y_i!}\right)^{I[y_i>0]}$$
+In HW5 we look at an example of a finite mixture model.  There, we assumed that the number of fish caught by 4075 individuals in a park, $y_1\ldots y_{4075}$, came from a mixture of two subpopulations, for example, the non-fishing population (with probability $\pi$ when $y_i=0$) and the fishing population (with probability $(1-\pi)$). The PMF was given by $$p(Y = y_i|\pi,\lambda) = (\pi + (1-\pi)e^{-\lambda})^{I[y_i=0]}\left((1-\pi)\frac{e^{-\lambda}\lambda^{y_i}}{y_i!}\right)^{I[y_i>0]}$$
 
 This model, called a zero-inflated Poisson model, accounts for the excess zeros that are due to the non-fishing population, and, assuming the model correctly represents the observed data, should provide a less biased estimate of $\lambda$ when fitted to the data relative to the regular Poisson model.  Here, the probability of observing a zero is simply the  probability that an individual came from the non-fishing population (with probability $\pi$) or came from the fishing population and caught zero fish (with probability $(1-\pi)e^{-\lambda}$).  
 
@@ -48,43 +48,46 @@ Let’s take this problem a step further.  Let us assume that at a bass fishing 
 For the purposes of illustration, we simulate this data.  We provide the simulation code in the RMD file for this lecture, which you can run if you want to follow along.  We will come back to this simulation setup later.
 
 ```{r, echo = F}
-## set the seed 
-set.seed(10)
+
+## set the seed
+set.seed(2)
 
 ## set sample size
 n = 500
 
 ## create design matrix consisting of variables cooler size, boat length, and age
-cooler = round(rt(n, 15, 35),2)
-boat_length =  round(rt(n,5, 30),2)
-age = round(rt(n,25, 50))
-X = model.matrix(~ 1 + age + boat_length + cooler)
+cooler = round(rt(n, 15, 35), 2)
+boat_length =  round(rt(n, 5, 30), 2)
+age = round(rt(n, 25, 50))
+X = model.matrix( ~ 1 + age + boat_length + cooler)
 
 ## set the model coefficients
-  # non-professional fisher proportion
-  pi1 = 0.5 
-  
-  # professional fisher proportion
-  pi2 = 1-pi1 
-  
-  # Non-Pro regression coefs
-  beta_1 = matrix(c(3, 0, 0, -.01),ncol = 1) 
-  
-  # Pro regression coefs
-  beta_2 = matrix(c(3, 0, 0, .01),ncol = 1) # Pro- coefs, larger boat cooler = more fish
+# non-professional fisher proportion
+pi1 = 0.5
+
+# professional fisher proportion
+pi2 = 1 - pi1
+
+# Non-Pro regression coefs
+beta_1 = matrix(c(3, 0, 0,-.01), ncol = 1)
+
+# Pro regression coefs
+beta_2 = matrix(c(3, 0, 0, .01), ncol = 1) # Pro- coefs, larger boat cooler = more fish
 
 ## simulate the data
-  # generate group membership vector
-    group_indicators = rbinom(n, 1, pi2) # 1 = Pro, 0 = Non Pro
+# generate group membership vector
+group_indicators = rbinom(n, 1, pi2) # 1 = Pro, 0 = Non Pro
 
-  # Simulate y given group membership  
-  y = rep(0, n)
-  
-  # non pro y
-  y[group_indicators == 0] = rpois(n = sum(group_indicators == 0),lambda = exp(X[group_indicators == 0,]%*%beta_1))
-  
-  # pro y 
-y[group_indicators == 1] = rpois(n = sum(group_indicators == 1),lambda = exp(X[group_indicators == 1,]%*%beta_2))
+# Simulate y given group membership
+y = rep(0, n)
+
+# non pro y
+y[group_indicators == 0] = rpois(n = sum(group_indicators == 0),
+                                 lambda = exp(X[group_indicators == 0, ] %*% beta_1))
+
+# pro y
+y[group_indicators == 1] = rpois(n = sum(group_indicators == 1),
+                                 lambda = exp(X[group_indicators == 1, ] %*% beta_2))
 
 ## write to file, commented out since only done once for HW
 # write.table(cbind(y, X[,-1]), file = './em/fish.txt', quote = F, col.names = T, row.names = F,  sep = "\t")
@@ -93,14 +96,14 @@ y[group_indicators == 1] = rpois(n = sum(group_indicators == 1),lambda = exp(X[g
 She ran a Poisson GLM on the data and found that none of the variables except for cooler seemed to  associate with outcome:
 
 ```{r}
-fit = glm(y ~ X-1, family = poisson())
+fit = glm(y ~ X - 1, family = poisson())
 summary(fit)
 ```
 
 When plotting the data, something seemed a little off with the distribution:
 
 ```{r}
-hist(y)
+hist(y, breaks =  100)
 ```
 
 Lets take a look at the pearson residuals to get a better look
@@ -113,13 +116,18 @@ Looks like the distribution may be bimodal even after accounting for the predict
 
 ```{r}
 # create combined matrix object
-mat = cbind(log(y+1), X[,-1])
+mat = cbind(log(y + 1), X[, -1])
 
 # name the first column y
 colnames(mat)[1] = "y"
 
 # plot each column against each other using pairs and smoothscatter
-pairs(mat, panel = function(...) smoothScatter(..., nrpoints = 0, add = TRUE), gap = 0.2)
+pairs(
+  mat,
+  panel = function(...)
+    smoothScatter(..., nrpoints = 0, add = TRUE),
+  gap = 0.2
+)
 ```
 
 In the first row we can see evidence that there may be different relationships between the cooler variable (x-axis) and the number of fish caught (y-axis) in two possible subgroups of participants.  Each group also seems to have a different baseline numbers of fish caught and different trend with cooler.  This could make sense, as both amateur and professional fisherman were allowed to register for the tournament, where we would assume the professional fisherman would catch more than the amateur ones.  
@@ -242,7 +250,7 @@ Given that the derivatives based on this log likelihood are complicated, the app
 Let us instead construct the CDLL in the following manner, assuming the original component membership of each observation was known: 
 
 \begin{align}
-L_c(\theta_b) &= \sum_{i=1}^n \log( \prod_{k =1}^2 \left[\pi_kf_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k)\right]^{I[z_i = k]}) \\
+L_c(\theta) &= \sum_{i=1}^n \log( \prod_{k =1}^2 \left[\pi_kf_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k)\right]^{I[z_i = k]}) \\
 &= \sum_{i=1}^n \sum_{k =1}^2 I[z_i = k]\left[\log(\pi_k)+\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))\right]\\
 \end{align}
 
@@ -277,7 +285,7 @@ Here we now maximize $Q(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) = \sum_{i
 
 For each $\boldsymbol{\beta}_k$, we can implement one of the techniques described in the previous lecture to maximize the portion of the Q-function above that pertains to $\boldsymbol{\beta}_k$. However, we can also simplify this step by recognizing that $\sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})\log(f_k(y_i|\boldsymbol{X}_i, \boldsymbol{\beta}_k))$ takes on a familiar form.  
 
-For example, if we consider $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework,  we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\boldsymbol{X}$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can defined new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. If $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) = 1$ for all $i = 1,\ldots,n$, then this problem just reduces to fitting a regular (unweighted) poisson regression model.  
+For example, if we consider $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ as "prior weights" in the GLM framework,  we can obtain $\boldsymbol{\beta}_k^{(t+1)}$ by maximizing a weighted Poisson GLM with prior weights $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ for each observation, responses $y_1\ldots y_n$, and predictor matrix $\boldsymbol{X}$.  From prior coursework, you may remember that these prior weights are incorporated into the IRLS algorithm by multiplying them with the IRLS weights.  For example, we can define new IRLS weights $w_i^{*(t)}  =p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})w_i^{(t)}$.  This can be easily done with off the shelf methods, or simply with the code given in the prior lecture. If $p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) = 1$ for all $i = 1,\ldots,n$, then this problem just reduces to fitting a regular (unweighted) poisson regression model.  
 
 For $\pi_k$, we can show that  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$, that is, the mean of the posterior probabilities of each individual belonging to component $k$.  How do we get this?  We have the constraint that $\sum_{i=1}^{K} \pi_k = 1$, therefore we can compute the Langrangian for this problem and set its partial derivative to zero (don't need to worry about this).  Another way to think about this is that if we actually did observe the states, we could simply calculate $\hat{\pi}_k = \sum_{i = 1}^nI[z_i = k]/n$.  Since they are not observed, we can take the conditional expectation of each $z_i$ to give  $\pi_k^{(t+1)} = \sum_{i=1}^n p(z_i = k | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})/n$.  
 
@@ -301,80 +309,84 @@ We wont wrap this in a function just yet so that its easier to explore and inspe
 ### Initialization and setup
 
 ## starting parameters
-  # convergence threshold
-  tol = 10^-5   
-  # max number of EM iterations
-  maxit = 50    
-  # iteration counter
-  iter = 0   
-  # arbitrary large to avoid triggering the while loop for delta
-  eps = Inf
-  # arbitrary large value to set the inital ll to
-  ll = -10000
-  # list object for M-step
-  fit = list()
-  # Number of mixture components, K
-  K = 2
-  
+# convergence threshold
+tol = 10 ^ -5
+# max number of EM iterations
+maxit = 50
+# iteration counter
+iter = 0
+# arbitrary large to avoid triggering the while loop for delta
+eps = Inf
+# arbitrary large value to set the inital ll to
+ll = -10000
+# list object for M-step
+fit = list()
+# Number of mixture components, K
+K = 2
+
 ## create posterior probability matrix
-  # First col is p(z_i = 1 | y_o, theta^{(t)}, amateur
-  # Second col is p(z_i = 2 | y_o, theta^{(t)}, professional
-  pp = matrix(0, n, K)
-  
-  # name the columns 
-  colnames(pp) = c("amateur","prof")
+# First col is p(z_i = 1 | y_o, theta^{(t)}, amateur
+# Second col is p(z_i = 2 | y_o, theta^{(t)}, professional
+pp = matrix(0, n, K)
+
+# name the columns
+colnames(pp) = c("amateur", "prof")
 
 ## use informative initialization,  assuming lower counts --> amateur
-  #  choose prop of samples that are amateur first
-  #  should vary this and re-run to evaluate multiple starting points/partitions
-  prop_ama = 0.6
+#  choose prop of samples that are amateur first
+#  should vary this and re-run to evaluate multiple starting points/partitions
+prop_ama = 0.6
 
-  # set everything greater than prop_ama'th percentile to be professional
-  pp[,2] = (y > quantile(y, prop_ama))^2
-  pp[,1] = 1 - pp[,2]
+# set everything greater than prop_ama'th percentile to be professional
+pp[, 2] = (y > quantile(y, prop_ama)) ^ 2
+pp[, 1] = 1 - pp[, 2]
 
 ### now start the EM algorithm
-  start = Sys.time()
-  while(eps > tol & iter < maxit){
-    
-    ## save old ll
-      ll0 = ll
-    
-      
-    ## start M-step (Sec. 2.2.4)
-      # pi, mean of each pp column 
-      pi = colMeans(pp)
-      
-      # beta_k, weighted glm's based on pp 
-      for(k in 1:K) fit[[k]] = glm(y ~ X -1, family = poisson(), weights = pp[,k])
-    
-      
-    ## start E-step (Sec. 2.2.3)
-      # calculate numerator, fitted values are exp(X %*% beta_hat)
-      for(k in 1:K) pp[,k] = pi[k]*dpois(y,lambda = fit[[k]]$fitted)
-    
-      # divide by denominator, the sum across components in each i
-      pp = pp/rowSums(pp)
-   
-      
-    ## calculate LL (Sec 2.2.1)
-      # Calculate sum across K inside the log for each subject
-      interior_sum = rep(0, length(y))
-      for(k in 1:K) interior_sum = interior_sum + pi[k]*dpois(y,lambda = fit[[k]]$fitted) 
-      # Take the log of each, then sum across the n subjects to get the ll
-      ll = sum(log(interior_sum))
-      
-    ## calculate relative change in log likelihood  
-      eps  = abs(ll-ll0)/abs(ll0)
-    
-    ## update iterator
-      iter = iter + 1
-      if(iter == maxit) warning("Iteration limit reached without convergence")
-    
-      
-    ## print out info to keep track
-      cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n",iter, ll,pi[1],eps))
-  }
+start = Sys.time()
+while (eps > tol & iter < maxit) {
+  ## save old ll
+  ll0 = ll
+  
+  
+  ## start M-step (Sec. 2.2.4)
+  # pi, mean of each pp column
+  pi = colMeans(pp)
+  
+  # beta_k, weighted glm's based on pp
+  for (k in 1:K)
+    fit[[k]] = glm(y ~ X - 1, family = poisson(), weights = pp[, k])
+  
+  
+  ## start E-step (Sec. 2.2.3)
+  # calculate numerator, fitted values are exp(X %*% beta_hat)
+  for (k in 1:K)
+    pp[, k] = pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+  
+  # divide by denominator, the sum across components in each i
+  pp = pp / rowSums(pp)
+  
+  
+  ## calculate LL (Sec 2.2.1)
+  # Calculate sum across K inside the log for each subject
+  interior_sum = rep(0, length(y))
+  for (k in 1:K)
+    interior_sum = interior_sum + pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+  
+  # Take the log of each, then sum across the n subjects to get the ll
+  ll = sum(log(interior_sum))
+  
+  ## calculate relative change in log likelihood
+  eps  = abs(ll - ll0) / abs(ll0)
+  
+  ## update iterator
+  iter = iter + 1
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
+  
+  
+  ## print out info to keep track
+  cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n", iter, ll, pi[1], eps))
+}
 
 end = Sys.time()
 print(end - start)
@@ -397,10 +409,15 @@ print(fit[[2]]$coef)
 Lets also plot the fitted values for each component on a plot looking at fish vs cooler:
 
 ```{r}
-plot(cooler, log(y+1), ylab = "Log Fish Caught", xlab = "Cooler Size (L)")
-points(cooler, log(fit[[1]]$fitted+1), col = "blue")
-points(cooler, log(fit[[2]]$fitted+1), col = "red")
-legend(c("Amateur Fisher","Professional Fisher"),col = c("blue","red"),x = "bottomright", lty = c(1, 1)) 
+plot(cooler, log(y + 1), ylab = "Log Fish Caught", xlab = "Cooler Size (L)")
+points(cooler, log(fit[[1]]$fitted + 1), col = "blue")
+points(cooler, log(fit[[2]]$fitted + 1), col = "red")
+legend(
+  c("Amateur Fisher", "Professional Fisher"),
+  col = c("blue", "red"),
+  x = "bottomright",
+  lty = c(1, 1)
+) 
 ```
 
 Looks like the relationship of cooler size is inversely related with number of fish caught in the amateur fisherman, but positively related with the number from professional fisherman.  Hmm...
@@ -408,14 +425,25 @@ Looks like the relationship of cooler size is inversely related with number of f
 We can also use the final set of posterior probabilities to classify subjects:
 
 ```{r}
-par(mfrow = c(1,2))
-boxplot(pp[,2] ~ factor(group_indicators,labels =  c("Amateur","Professional")), ylab= "Post. Prob of Professional", xlab = "True Membership")
+# boxplot
+par(mfrow = c(1, 2))
+boxplot(pp[, 2] ~ factor(group_indicators, labels =  c("Amateur", "Professional")),
+        ylab = "Post. Prob of Professional",
+        xlab = "True Membership")
 abline(h = 0.5)
+
+# scatterplot
 colvec = rep("lightblue", length(y))
-colvec[pp[,2] > .5] = "lightcoral"
-plot(cooler, log(y+1), ylab = "Log Fish Caught", xlab = "Cooler Size (L)", col = colvec)
-points(cooler, log(fit[[1]]$fitted+1), col = "blue")
-points(cooler, log(fit[[2]]$fitted+1), col = "red")
+colvec[pp[, 2] > .5] = "lightcoral"
+plot(cooler,
+     log(y + 1),
+     ylab = "Log Fish Caught",
+     xlab = "Cooler Size (L)",
+     col = colvec)
+
+# add fitted values by subpopulation
+points(cooler, log(fit[[1]]$fitted + 1), col = "blue")
+points(cooler, log(fit[[2]]$fitted + 1), col = "red")
 ```
 
 In addition, given a new sample's vector of covariates, say $\boldsymbol{X}_{i,new}$, we can also compute their posterior probability of component membership as well, given the fitted model estimates.  
@@ -426,7 +454,7 @@ In this section we will not focus on the proofs behind the results shown but ins
 
 ## Monotone Increase of the Likelihood
 
-[The seminal 1977 paper on the EM algorithm by Dempster, Laird, and Rubin](http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.133.4884) demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guaranteed not to decrease with each EM iteration such that $L(\boldsymbol{\theta}^{(k+1)}) \geq L(\boldsymbol{\theta}^{(t)})$ for each iteration $t \geq 0$.   Therefore, for some bounded sequence of likelihood values ${L(\boldsymbol{\theta}^{(t+1)})}$, we know that the likelihood at each iteration converges to some likelihood value $L^*$, which may or may be either a local or global maximum.
+[The seminal 1977 paper on the EM algorithm by Dempster, Laird, and Rubin](http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.133.4884) demonstrated that the observed or incomplete data likelihood function (referred to as the likelihood function in other contexts) is guaranteed not to decrease with each EM iteration such that $L(\boldsymbol{\theta}^{(t+1)}) \geq L(\boldsymbol{\theta}^{(t)})$ for each iteration $t \geq 0$.   Therefore, for some bounded sequence of likelihood values ${L(\boldsymbol{\theta}^{(t+1)})}$, we know that the likelihood at each iteration converges to some likelihood value $L^*$, which may or may be either a local or global maximum.
 
 The "self-consistency" property of the EM comes from this result, where we can show that if the MLE $\hat{\boldsymbol{\theta}}$ is the global maximizer for the likelihood, this implies that it is also the global maximizer for the Q-function (the surrogate for the likelihood).  In other words, if $\hat{\boldsymbol{\theta}}$ is the global maximizer for $L(\boldsymbol{\theta})$, then this implies that $$Q(\hat{\boldsymbol{\theta}}|\hat{\boldsymbol{\theta}}) \geq Q(\boldsymbol{\theta}|\hat{\boldsymbol{\theta}})$$ and that $\hat{\boldsymbol{\theta}}$ is the solution to the equation $$\frac{d}{d\boldsymbol{\theta}} Q(\boldsymbol{\theta}|\hat{\boldsymbol{\theta}})\|_{\boldsymbol{\theta} = \hat{\boldsymbol{\theta}}} = 0.$$  The latter statement basically says that the optimal $\boldsymbol{\theta}$ with respect to the likelihood function is also the optimal value with respect to the Q-function (hence showing why we can work with the easier Q-function for maximizing the likelihood).
 
@@ -526,6 +554,7 @@ pois.two.mix.reg.em = function(y, X, tol, maxit, prop1, trace = 0) {
     interior_sum = rep(0, length(y))
     for (i in 1:K)
       interior_sum = interior_sum + pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+    
     # Take the log of each, then sum across the n subjects to get the ll
     ll = sum(log(interior_sum))
     
@@ -571,6 +600,7 @@ print(em_fit)
 Everything looks correct, so lets move on to implementing the nonparametric bootstrap
 
 ```{r}
+
 ## set number of bootstrap samples of size n to draw
 B = 100
 
@@ -585,7 +615,7 @@ for (i in 1:B) {
   # fit EM to resampled data
   res = pois.two.mix.reg.em(
     y = y[index],
-    X = X[index, ],
+    X = X[index,],
     tol = tol,
     maxit = maxit,
     prop1 = prop_ama,
@@ -593,11 +623,11 @@ for (i in 1:B) {
   )
   
   # save values
-  est[i, ] = res
+  est[i,] = res
   
   # print first 5 parameter estimates every 200 iterations for illustration
   if (floor(i / 20) == ceiling(i / 20))
-    print(est[i, 1:5])
+    print(round(est[i, 1:5], 4))
 }
 ```
 
