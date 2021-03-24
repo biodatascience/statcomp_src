@@ -13,7 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Lets now maximize the poisson GLMM model given in lecture, now using an MCEM approach.  In a previous HW, you used numerical integration tools to approximate the likelihood for this model, then applied numerical optimization to obtain the estimates of the model parameters.  
 
-Here we wish to use MCEM, where in lecture we have already gone over a similar implementation using a rejection sampler in the E-step.  For this HW, please use a Metropolis Hastings Random Walk proposal distribution to appoximate the Q-function in the E-step.   Specify your proposal distribution.  Write functions implementing the E-step, the M-step, and then write the main code for the MCEM algorithm.  Free to reuse/modify the lecture code to do this, however you can implement the M-step and other parts of the EM algorithm however you please.
+Here we wish to use MCEM, where in lecture we have already gone over a similar implementation using a rejection sampler in the E-step.  
+
+For this HW, please use a Metropolis Hastings Random Walk proposal distribution to approximate the Q-function in the E-step.   Specify your proposal distribution.  Write functions implementing the E-step, the M-step, and then write the main code for the MCEM algorithm.  
+
+Feel free to reuse/modify the lecture code to do this.   However, you can implement the M-step and other parts of the EM algorithm however is most convenient to you.  Not required by any means, but it may be helpful from a speed perspective to recode the sampler into Rcpp. 
 
 ```{r}
 ## Solution: place relevant helper functions pertaining to the E step here 
