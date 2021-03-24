@@ -138,7 +138,7 @@ $$
 f(y_i|\boldsymbol{\theta}) = \sum_{k =1}^K \pi_kf_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)
 $$
 
-where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)^T$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1^T,\ldots,\boldsymbol{\beta}_K^T)^T$, and $\boldsymbol{\beta}_k = (\beta_{1k},\ldots,\beta_{pk})^T$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\boldsymbol{\beta}_k = \beta_{0k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \lambda_{k} = \exp(\beta_{0k})$. 
+where $\boldsymbol{\theta} = (\boldsymbol{\pi}^T, \boldsymbol{\beta}^T)^T$, $\boldsymbol{\pi}  = (\pi_1,\ldots,\pi_K)^T$, $\sum_{k=1}^K \pi_k = 1$, $\boldsymbol{\beta}  = (\boldsymbol{\beta}_1^T,\ldots,\boldsymbol{\beta}_K^T)^T$, and $\boldsymbol{\beta}_k = (\beta_{1k},\ldots,\beta_{pk})^T$.  Here, $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k) = \frac{e^{-\lambda_{ik}}\lambda_{ik}^{y_i}}{y_i!}$ and $\lambda_{ik} = \exp(\boldsymbol{X}_{ik}\boldsymbol{\beta}_k)$.  That is, we assume that the data has been generated from a mixture of poisson regression models each with $p_k$ dimensional predictor vector $\boldsymbol{X}_{ik}$ and regression coefficients $\boldsymbol{\beta}_k$.  When $\boldsymbol{\beta}_k = \beta_{1k}$ and $\boldsymbol{X}_{ik} = 1$, then this problem reduces to a simple Poisson finite mixture model, where the mean of each mixture component $\lambda_{ik} = \lambda_{k} = \exp(\beta_{1k})$. 
 
 One way to interpret this model is that we assume that the prior probability that an individual comes from component (subpopulation) $k$ is $\pi_k$, and, given that the individual is from subpopulation $k$, the density of $y_i$ conditional on membership to component $k$ is $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$.  Since we do not know exactly which component an observation  actually came from, we take the product of $\pi_k$ and $f_k(y_i|\boldsymbol{X}_{ik}, \boldsymbol{\beta}_k)$ across all $k$ to get the overall density.  In a sense, this can be thought of as taking a weighted average of all $K$ component densities, as we do not know the component membership in advance, where the weights are the $\pi_k$'s. 
 
@@ -420,7 +420,7 @@ legend(
 ) 
 ```
 
-Looks like the relationship of cooler size is inversely related with number of fish caught in the amateur fisherman, but positively related with the number from professional fisherman.  Hmm...
+Looks like the relationship of cooler size is inversely related with number of fish caught among the amateur fishermen, but positively related with the number from professional fishermen.  Hmm...
 
 We can also use the final set of posterior probabilities to classify subjects:
 
@@ -528,45 +528,45 @@ pois.two.mix.reg.em = function(y, X, tol, maxit, prop1, trace = 0) {
   ### now start the EM algorithm
   start = Sys.time()
   while (eps > tol & iter < maxit) {
-    ## save old ll
-    ll0 = ll
-    
-    ## start M-step (Sec. 2.2.4)
-    # pi, mean of each pp column
-    pi = colMeans(pp)
-    
-    # beta_k, weighted glm's based on pp
-    for (k in 1:K)
-      fit[[k]] = glm(y ~ X - 1, family = poisson(), weights = pp[, k])
-    
-    
-    ## start E-step (Sec. 2.2.3)
-    # calculate numerator, fitted values are exp(X %*% beta_hat)
-    for (k in 1:K)
-      pp[, k] = pi[k] * dpois(y, lambda = fit[[k]]$fitted)
-    
-    # divide by denominator, the sum across components in each i
-    pp = pp / rowSums(pp)
-    
-    
-    ## calculate LL (Sec 2.2.1)
-    # Calculate sum across K inside the log for each subject
-    interior_sum = rep(0, length(y))
-    for (i in 1:K)
-      interior_sum = interior_sum + pi[k] * dpois(y, lambda = fit[[k]]$fitted)
-    
-    # Take the log of each, then sum across the n subjects to get the ll
-    ll = sum(log(interior_sum))
-    
-    
-    ## calculate relative change in log likelihood
-    eps  = abs(ll - ll0) / abs(ll0)
-    
-    ## update iterator
-    iter = iter + 1
-    if (iter == maxit)
-      warning("Iteration limit reached without convergence")
-    
+  ## save old ll
+  ll0 = ll
+  
+  
+  ## start M-step (Sec. 2.2.4)
+  # pi, mean of each pp column
+  pi = colMeans(pp)
+  
+  # beta_k, weighted glm's based on pp
+  for (k in 1:K)
+    fit[[k]] = glm(y ~ X - 1, family = poisson(), weights = pp[, k])
+  
+  
+  ## start E-step (Sec. 2.2.3)
+  # calculate numerator, fitted values are exp(X %*% beta_hat)
+  for (k in 1:K)
+    pp[, k] = pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+  
+  # divide by denominator, the sum across components in each i
+  pp = pp / rowSums(pp)
+  
+  
+  ## calculate LL (Sec 2.2.1)
+  # Calculate sum across K inside the log for each subject
+  interior_sum = rep(0, length(y))
+  for (k in 1:K)
+    interior_sum = interior_sum + pi[k] * dpois(y, lambda = fit[[k]]$fitted)
+  
+  # Take the log of each, then sum across the n subjects to get the ll
+  ll = sum(log(interior_sum))
+  
+  ## calculate relative change in log likelihood
+  eps  = abs(ll - ll0) / abs(ll0)
+  
+  ## update iterator
+  iter = iter + 1
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
+ 
     ## print out info to keep track
     if (trace > 0)
       cat(sprintf("Iter: %d logL: %.2f pi1: %.3f  eps:%f\n", iter, ll, pi[1], eps))

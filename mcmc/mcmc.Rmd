@@ -46,8 +46,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Introduction
 In the previous lecture we discussed Monte Carlo Integration (MCI), where we drew samples from some target distribution $f$ in order to approximate the integral $\int h(\x)f(\x)d\x$.  We also discussed ways to sample from an alternative density $g$ to reduce the variance of the standard MC estimator via importance sampling.  This could be applied even when the target density $f$ cannot be sampled from and is only known up to a multiplicative proportionality constant. 
 
-Importance sampling can bring enormous gains with a good choice of $g$ by oversampling the "important" regions of the integrand, making an otherwise infeasible problem amenable to MCI. It can also backfire with a bad choice of $g$ , yielding an estimate
-with infinite variance when simple Monte Carlo would have had a finite variance.
+Importance sampling can bring enormous gains with a good choice of $g$ by oversampling the "important" regions of the integrand, making an otherwise unfeasible problem amenable to MCI. It can also backfire with a bad choice of $g$ , yielding an estimate with infinite variance when simple Monte Carlo would have had a finite variance.
 
 In our discussion of importance sampling, we were focused on integration.  But what if need to directly obtain samples from a target distribution $f$ when no software/method is available to do so?  This is common in Bayesian applications where sampling from some posterior distribution is required but is not easy to do (the exception is when conjugate priors are used).  The ability to sample exactly (or approximately) from $f$ can also be helpful for applying MCI. 
 
@@ -97,7 +96,7 @@ This "normalizing constant" is exactly the (marginal) likelihood function given 
 
 ## Importance Sampling Implementation
 
-For these reasons we can utilize importance sampling with standardized weights to approximate this integral, as discussed in the last lecture. This takes care of the normalizing constant during integration, avoiding having to evaluate it separately to compute the expectation. We also can sample from some other distribution $g$, which we should choose to be easy to sample from.  For low-dimensional integrals, we could use the Laplace approximation of AGQ to approximate this integral, but would not be scalable to higher dimensions. 
+For these reasons we can utilize importance sampling with standardized weights to approximate this integral, as discussed in the last lecture. This takes care of the normalizing constant during integration, avoiding having to evaluate it separately to compute the expectation. We should choose $g$ such that it is also easy to sample from.  For low-dimensional integrals, we could use the Laplace approximation of AGQ to approximate this integral, but would not be scalable to higher dimensions. 
 
 That is, we can approximate the Q-function with respect to subject $i$ such that
 
@@ -108,27 +107,25 @@ Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log f(\boldsym
 &\approx \sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log f(y_{ij} | \lambda_{ijk}) + \log \phi(X_k| 0, \sigma^2_{\gamma})\right]w(\boldsymbol{X}_k)
 \end{align}
 
-where $w(\boldsymbol{X}_k) = \frac{ w^*(\boldsymbol{X}_k)}{\sum_{k =  1}^M w^*(\boldsymbol{X}_k)}$, $w^*(\boldsymbol{X}_k) = \frac{\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ijk}^{(t)})\phi(X_k| 0, (\sigma^2_{\gamma})^{(t)})}{g(\boldsymbol{X}_k)}$, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from some importance sampling distribution $g$. It should be noted that in the normalizing constant depends $\boldsymbol{\theta}^{(t)}$ and not $\boldsymbol{\theta}$, and therefore is irrelevant in the M-step.  It should also be noted that since we are using the standardized weights, we no longer divide the approximation by $M$.
+where $w(\boldsymbol{X}_k) = \frac{ w^*(\boldsymbol{X}_k)}{\sum_{k =  1}^M w^*(\boldsymbol{X}_k)}$, $w^*(\boldsymbol{X}_k) = \frac{\prod_{j = 1}^{5}f(y_{ij} | \lambda_{ijk}^{(t)})\phi(X_k| 0, (\sigma^2_{\gamma})^{(t)})}{g(\boldsymbol{X}_k)}$, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from some importance sampling distribution $g$. It should be noted that in the normalizing constant depends on $\boldsymbol{\theta}^{(t)}$ and not $\boldsymbol{\theta}$, and therefore is irrelevant in the M-step.  It should also be noted that since we are using the standardized weights, we no longer divide the approximation by $M$.
 
 For the M-step, we can use again off-the shelf maximization routines for the above approximation for the Q-function.  
 
 ## Choice of Importance Function
 
-The question now is what is a suitable choice for $g$?  Similar to AGQ and the Laplace Approximation, we may choose to sample from a Student t importance density whose mean and variance match the mode and curvature of $f(\gamma_i \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)})$. [Additional detail can be found here](https://www.jstor.org/stable/2680750?seq=1#metadata_info_tab_contents).  In general, however, the best choice may not be clear. 
+The question now is what is a suitable choice for $g$?  Similar to AGQ and the Laplace Approximation, we may choose to sample from a Student t importance density whose mean and variance match the mode and curvature of $f(\gamma_i \boldsymbol{y}_o| \boldsymbol{\theta}^{(t)})$. [Additional detail can be found here](https://www.jstor.org/stable/2680750?seq=1#metadata_info_tab_contents).  In general, there may not always be a clear choice of $g$, which is critical to the success of importance sampling. 
 
-As the dimension increases, MCI and importance sampling retains its advantage over the quadrature-based approaches, as mentioned in the prior lecture.  However, alternative sampling approaches, such as some of the MCMC methods discussed in this lecture, may be more appropriate as we will see later. 
-
-For importance sampling in particular, there may not always be a clear choice of $g$, which is critical to its success.  The choice between importance sampling and alternative approaches for evaluating the conditional expectation above may vary depending on the problem.  We will discuss these alternatives and how to choose between them in this lecture.  More generally, these alternative approaches provide a means to sample exactly or approximately from distributions where it is difficult to do so, such as from $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$.  
+As the dimension increases, MCI and importance sampling retains its advantage over the quadrature-based approaches.  However, the choice between importance sampling and alternative approaches for evaluating the conditional expectation above may vary depending on the problem.  We will discuss these alternatives and how to choose between them in this lecture.  More generally, these alternative approaches provide a means to sample exactly or approximately from distributions where it is difficult to do so, such as from $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$.  
 
 # Exact/Direct sampling
 
-In the above example we find that we do not have a clear means to generate samples from the conditional density of $\gamma_i$.  We know that  $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is known up to a proportionality constant, but we do not have a clear means to sample from this distribution to allow for MCI to be applied given these samples.  One way to do this is to use a category of methods called "direct" or "exact" sampling, where one can directly sample from the target distribution $f$ rather than avoiding it completely (importance sampling) or approximately sampling from it (MCMC).  
+In the above example we find that we do not have a clear means to generate samples from the conditional density of $\gamma_i$.  We know that  $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$ is known up to a proportionality constant, but we do not have a clear means to sample from this distribution to allow for MCI to be applied given these samples.  
 
-We will show for the two classes of methods in this section, Rejection Sampling and Adaptive Rejection Sampling, that the samples drawn here are **independent** and originally drawn from an alternative distribution that is easier to sample from.  The latter sounds similar to importance sampling, with an important distinction: we are actually drawing samples from $f$, rather than drawing samples from $g$ and reweighting them in the integration process. These methods are applicable when $f$ is only known up to a proportionality constant.  Using Rejection Sampling, we can generate samples from any density $f$ as long as we have a closed and evaluable form of $f$.
+One way to do this is to use a category of methods called "direct" or "exact" sampling, where one can directly sample from the target distribution $f$ rather than avoid sampling from it completely (importance sampling), or approximately sampling from it (MCMC).  We will show for the two classes of methods in this section, Rejection Sampling and Adaptive Rejection Sampling, that the samples drawn here are **independent**.  Using Rejection Sampling, we can generate samples from any density $f$ as long as we have a closed and evaluable form of $f$.
 
 ## Rejection Sampling
 
-If the target distribution $f(x)$ can be calculated, at least up to a proportionality constant, then we can use Rejection Sampling to directly obtain a random draw from the target distribution. The general idea behind Rejection Sampling is that we first sample from an alternative distribution $g$ to generate **candidate samples**.  We then correct for the fact that these samples came from another distribution through the random rejection of some of the samples, effectively correcting the original sampling probabilities.  Importance sampling in contrast directly weights samples from $g$ during the computation of the integral, rather than attempting to directly simulate samples from $f$ itself.  
+If the target distribution $f(x)$ can be calculated, at least up to a proportionality constant, then we can use Rejection Sampling to directly obtain a random draw from the target distribution. The general idea behind Rejection Sampling is that we first sample from an alternative distribution $g$ to generate **candidate samples**.  We then correct for the fact that these samples came from another distribution through the random rejection of some of the samples, effectively correcting the original sampling probabilities.  Importance sampling in contrast directly weights samples from $g$ during the computation of the integral, rather than attempting to directly simulate samples from $f$ itself.  Rejection sampling therefore selects a subsample of those samples originally drawn from $g$, whereas importance sampling uses every draw from $g$ and weights their contribution.  
 
 Let us assume that we can calculate $g(x)$ easily and denote $e(\cdot)$ as the "envelope" function such that $$e(x) = \frac{g(x)}{\alpha} > f(x)$$ for all $x$ where $f(x) > 0$.  Here $\alpha \leq 1$ and is a constant.  That is, for all regions where $f(x)$ is nonzero, $g(x)$ is greater than or equal to $f(x)$ (hence the term "envelope").
 
@@ -138,8 +135,7 @@ Then, we implement Rejection Sampling using the following procedure:
 2.  Sample $U ∼ U(0, 1)$
 3.  Reject the candidate sample $Y$ if $U > f(Y)/e(Y)$. Return to step 1.
 4.  If $U < f(Y)/e(Y)$, keep Y. Set X = Y, and consider X to be an element
-of the random sample from the target distribution . Return to step 1 until you have accumulated a
-sample of the desired size.
+of the random sample from the target distribution . Return to step 1 until you have accumulated a sample of the desired size.
 
 The retained draws then represent an **i.i.d. sample** from the target distribution $f$.  Here, $\alpha$ can be interpreted as the expected proportion of candidates that are accepted.  We often repeat the steps above until we obtain the desired number of samples.  The total number of candidate draws needed to obtain that number of samples depends on how efficient the algorithm is in accepting samples (mediated by $\alpha$).  Clearly, this is highly dependent on the choice of $e$.  We will address how best to select $e$ later on in this section. 
 
@@ -149,16 +145,12 @@ A formal proof is given in GH 6.2.3, but we illustrate this graphically below.  
 
 ![Illustration of Rejection Sampling.](envelope.png){width=65%}
 
-Let’s suppose that our particular draw $y$ is at the vertical bar along the support of the target density (x-axis of fig). Then imagine sampling $U|Y = y$ uniformly along the vertical bar. In step 3, we reject this draw
-with probability proportional to the bar length above $f(y)$ relative to the overall
-length of the bar ($e(y)$). Therefore, one can view Rejection Sampling as sampling uniformly from the
-two-dimensional region under the curve $e$ and then throwing away any draws falling
-above $f$ and below $e$. Since sampling from $f$ is equivalent to sampling uniformly from the two-dimensional region under the curve labeled $f(x)$ and then ignoring the vertical coordinate, Rejection Sampling provides draws exactly from $f$.
+Let’s suppose that our particular draw $y$ is at the vertical bar along the support of the target density (x-axis of fig). Then imagine sampling $U|Y = y$ uniformly along the vertical bar. In step 3, we reject this draw with probability proportional to the bar length above $f(y)$ relative to the overall length of the bar ($e(y)$). Therefore, one can view Rejection Sampling as sampling uniformly from the two-dimensional region under the curve $e$ and then throwing away any draws falling above $f$ and below $e$. Since sampling from $f$ is equivalent to sampling uniformly from the two-dimensional region under the curve labeled $f(x)$ and then ignoring the vertical coordinate, Rejection Sampling provides draws exactly from $f$.
 
 In other words, this procedure is equivalent to first randomly selecting a point from the x-axis above by sampling from $g$, then drawing a sample $U$ from $U(0, e(y))$ along the y-axis.  If $f(y)<U<e(y)$ then we reject, otherwise we keep the sample.  In this manner, we are able to obtain an iid sample that is exactly from the target distribution $f$.
 
 The shaded region in the figure above $f$ and below $e$ indicates the waste. Intuitively, 
-a candidate draw is  likely to be rejected when $e(y) >> f (y)$, whereas envelopes
+a candidate draw is likely to be rejected when $e(y) >> f (y)$, whereas envelopes
 is only slightly bigger than $f$ everywhere produce fewer rejected draws, corresponding to $\alpha$ values near 1.
 
 What if $f$ is only known up to a proportionality constant $c$ such as in our MCEM example above? For example, if we define $q(x) = f (x)/c$, where c is unknown, we can find an envelope $e$ such that $e(x) \geq q(x)$ for all $x$ for which $q(x) > 0$. A draw $Y = y$ is then rejected when $U > q(y)/e(y)$. This approach is similar to what we have described before, and we can show that that $c$ cancels out in the original proof in GH equation 6.2.3 when $f$ is replaced by $q$. That is, we can similarly apply Rejection Sampling to this case.  The proportion of kept draws is $\alpha/c$.
@@ -178,9 +170,7 @@ that the envelope $e$ can be chosen so that it exceeds $f$ everywhere. In genera
 Clearly this is not an exact science, and how best to do this will vary by problem.  This is one of the downsides of Rejection Sampling, where sometimes determining the best envelope function can be difficult or time consuming.  In some examples this step is simple, but that will not case in all situations. 
 
 ## Adaptive Rejection Sampling 
-Adaptive Rejection Sampling is an automatic procedure to determine envelopes for the specific case where one has a 
-a continuous, differentiable, log-concave target density that one would like to sample from.  Here, the envelope and
-another function called the "squeezing function" are iteratively updated with the generation of samples. In this approach the amount of waste and the frequency with which $f$ must be evaluated both shrink as iterations increase. The implementation is more complicated than that of regular Rejection Sampling.  A tangent-based and a derivative-free based implementation of adaptive Rejection Sampling are available, the latter of which has been incorporated into the popular WinBUGS often used in Bayesian analyses.  We do not go into further detail here and direct students to GH 6.2.3.2 for more detail.  
+Adaptive Rejection Sampling is an automatic procedure to determine envelopes for the specific case where one has a continuous, differentiable, log-concave target density that one would like to sample from.  Here, the envelope and another function called the "squeezing function" are iteratively updated with the generation of samples. In this approach the amount of waste and the frequency with which $f$ must be evaluated both shrink as iterations increase. The implementation is more complicated than that of regular Rejection Sampling.  A tangent-based and  derivative-free implementation of adaptive Rejection Sampling are available, the latter of which has been incorporated into the popular WinBUGS often used in Bayesian analyses.  We do not go into further detail here and direct students to GH 6.2.3.2 for more detail.  
 
 ## Example:  Sampling from a posterior distribution
 
@@ -236,7 +226,9 @@ legend(
 )
 ```
 
-One nice thing to note about the chosen envelope is that the prior is proportional to $e$ (likelihood fixed at the mean is now a constant). Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ from the setup for Rejection Sampling).  So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
+One nice thing to note about the chosen envelope is that the prior is proportional to $e$ (likelihood fixed at the mean is now a constant). Therefore, $g$ is clearly is the lognormal prior (refer to definition of $g$ and $e$ from the setup for Rejection Sampling).  
+
+So, we can start the Rejection Sampling algorithm by first sampling $\lambda_i$ from the lognormal prior and $U_i$ from a standard uniform distribution. Then, following the steps for the Rejection Sampling algorithm laid out earlier, we have that $\lambda_i$ is kept if $U_i < \frac{q(\lambda_i|\boldsymbol{x})}{e(\lambda_i)} = \frac{L(\lambda_i|\boldsymbol{x})}{L(4.3|\boldsymbol{x})}$:
 
 ```{r}
 set.seed(100)
@@ -246,7 +238,7 @@ M = 100
 # specify max number of iterations in case alpha is low (can increase later if needed)
 maxit = M * 10 ^ 4
 
-# specify vector to hold samples
+# specify vector to hold accepted samples
 posterior_lambda = rep(0, M)
 
 # start rejection algorithm
@@ -291,21 +283,23 @@ hist(posterior_lambda )
 So, to summarize we have the following advantages and disadvantages of Rejection Sampling 
 
 *  Pros
-    *  Sample is truly iid from target density $f$, no approximation and samples are indendent
+    *  Sample is truly iid from target density $f$, no approximation and samples are independent
 *  Cons
     *  Designing a good envelope function $e$ may not be straightforward or easy to do
     *  Many candidates draws may be needed to obtain a sample of size $M$, depends on choice of $e$ 
     *  As the dimension of the integral groups, the above problem gets worse (acceptance rate is lower)
     
-Regarding the last point above, it becomes harder in general to accept multivariate candidate draws in higher dimensions.  One way to think about this is to envision a multivariate version of the prior example.  The envelope function would be defined similarly, except that it would be multivariate, and that we would maximize over a multivariate space in the new likelihood function rather than a univariate one.  We would then fix the mean of the likelihood to this MLE.  Ideally, each candidate draw, say $\boldsymbol{X}_i$ from the multivariate prior $g$ in this case would be close to the MLE, implying that $f(\boldsymbol{X}_i)$ is close to $e(\boldsymbol{X}_i)$, leading to likely acceptance of this sample.  As we increase the dimension to say $d = 10$, the probability that a drawn vector will be close to the MLE in every dimension becomes harder and harder. 
+Regarding the last point above, it becomes harder in general to accept multivariate candidate draws in higher dimensions.  One way to think about this is to envision a multivariate version of the prior example.  The envelope function would be defined similarly, except that it would be multivariate, and that we would maximize over a multivariate space in the new likelihood function rather than a univariate one.  We would then fix the mean of the likelihood to this MLE.  
+
+Ideally, each candidate draw, say $\boldsymbol{X}_i$ from the multivariate prior $g$ in this case would be close to the MLE, implying that $f(\boldsymbol{X}_i)$ is close to $e(\boldsymbol{X}_i)$, leading to likely acceptance of this sample.  As we increase the dimension to say $d = 10$, the probability that a drawn vector will be close to the MLE in every dimension becomes harder and harder. 
 
 In higher dimensional settings we will see that the MCMC approaches discussed in the second half of this lecture are more efficient relative to Rejection Sampling.  
 
 ##  Application to the MCEM Example
 
-We can similarly apply Rejection Sampling to draw iid samples from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})  = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$.  The question here is what is the best envelope function to use.
+We can similarly apply Rejection Sampling to draw iid samples from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})  = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)}),\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$.  The question here is what is the best envelope function to use.
 
-Similar to the previous example, one obvious option is simply $e(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{*(t)})\phi(\gamma_i| 0, \sigma^2_{\gamma})$, where $\boldsymbol{\lambda}_i^{*(t)} = (\lambda_{i1}^{*(t)},\ldots, \lambda_{i5}^{*(t)})$, $\log(\lambda_{ij}^{*(t)}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta}^{(t)} + \hat{\gamma}_i$ and $\hat{\gamma}_i$ is maximizer of $f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})$ with respect to $\gamma_i$. This can be done quite easily within the glm framework, as we will show below.  
+Similar to the previous example, one obvious option is simply $e(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)}) = f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{*(t)})\phi(\gamma_i| 0, \sigma^2_{\gamma})$, where $\boldsymbol{\lambda}_i^{*(t)} = (\lambda_{i1}^{*(t)},\ldots, \lambda_{i5}^{*(t)})$, $\log(\lambda_{ij}^{*(t)}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta}^{(t)} + \hat{\gamma}_i$ and $\hat{\gamma}_i$ is maximizer of $f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})$ with respect to $\gamma_i$. This can be done quite easily within the GLM framework, as we will show below.  
 
 Then similar to before, our proposal density $g$ can be $\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$.  We also draw $U$ separately from a standard uniform distribution.  Then, candidate $X$ drawn from $g$ is kept if $U < \frac{q(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})}{e(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})} = \frac{f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{(t)})}{f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}^{*(t)})}$, where $\phi(\gamma_i| 0, (\sigma^2_{\gamma})^{(t)})$ cancels out in the numerator and denominator.  
 
@@ -314,101 +308,112 @@ We will use this sampling step to perform MCI in the E-step.   In contrast to th
 \begin{align}
 Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log (f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log\left(\phi(\gamma_i| 0, \sigma^2_{\gamma})\right)\right]f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\gamma_i\\
 &= \int \left[\sum_{j = 1}^{5}\log(f(y_{ij} | \lambda_{ij}) + \log\left(\phi(\gamma_i| 0, \sigma^2_{\gamma})\right)\right]f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\gamma_i\\
-&=\frac{1}{M}\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log\left(f(y_{ij} | \lambda_{ijk})\right) + \log\left(\phi(X_k| 0, \sigma^2_{\gamma})\right)\right]
+&\approx \frac{1}{M}\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log\left(f(y_{ij} | \lambda_{ijk})\right) + \log\left(\phi(X_k| 0, \sigma^2_{\gamma})\right)\right]
 \end{align}
 
-since we are now able to draw iid samples from the posterior using Rejection Sampling.  Here, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,\X_M$ are iid draws from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$. Then, we can carry out the M step using standard optimization routines, for example, using NR or BFGS from our optimization lecture.  
+since we are now able to draw iid samples from the posterior using Rejection Sampling.  Here, $\log(\lambda_{ijk}) = \boldsymbol{x}_{ij}^T\boldsymbol{\beta} + X_k$, and $X_1,\ldots,X_M$ are iid draws from the target density $f(\gamma_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})$. Then, we can carry out the M step using standard optimization routines, for example, using NR or BFGS from our optimization lecture.  In the following section, we detail this approach.  
 
-However, for $\boldsymbol{\beta}$, an easier approach is simply using Poisson regression to maximize the Q-function in the M-step, and therefore avoiding the need to derive any analytical derivatives of the Q-function  To do this, we repeat each observation $\boldsymbol{y_{i}}$ and corresponding predictor in the design matrix $M$ times, filling in $\boldsymbol{X}_k$ for each repeated row for $\gamma_i$ in the linear predictor above.  Each repeated row is weighted with $1/M$.  We can also show that the solution for $\sigma^2_{\gamma}$ is simply the sum of the squared $X_k$'s divided by $nM$.  
+Alternatively, for $\boldsymbol{\beta}$, an easier approach is simply using Poisson regression to maximize the Q-function in the M-step, and therefore avoiding the need to derive any analytical derivatives of the Q-function.  To do this, we repeat each observation $\boldsymbol{y_{i}}$ and corresponding predictor in the design matrix $M$ times, filling in $\boldsymbol{X}_k$ for each repeated row for $\gamma_i$ in the linear predictor above.  Each repeated row is weighted with $1/M$.  We can also show that the solution for $\sigma^2_{\gamma}$ is simply the sum of the squared $X_k$'s divided by $nM$.  We detail this alternative approach [here](mcmc_rejection_sampler_glm_alternative.html)
+
+
 
 ### Implementing the E-step Rejection sampler
 
-First, let’s set up the rejection sampler:
-
+First, let’s set up the rejection sampler.  We do this first for the $i$the subject, then write a second function that loops over all subjects that calls this function. Can you think of a way to vectorize this function?  For more applications, best to rewrite in Rcpp for best performance.
+  
 ```{r}
 ## function for Rejection Sampling in the MCEM E-step for subject i
-  # yi is a 5 x 1 vector containing the monthly observations for sample i
-  # M is the total number of iid samples desired from the posterior
-  # maxit is the max number of iterations (to prevent runaway looping)
-  # betat is  the estimate for beta at EM iteration t
-  # s2gammat is the estimate for s2gamma at EM iteration t
+# yi:       a 5 x 1 vector containing the monthly observations for sample i
+# xi:       a 5 x 2 matrix pertaining to the intercept and longitudinal month value for each subject (it is the same for each subject, 1:5)
+# M:        the total number of iid samples desired from the posterior
+# maxit:    the max number of iterations (to prevent runaway looping)
+# betat:    the estimate for beta at EM iteration t
+# s2gammat: the estimate for s2gamma at EM iteration t
 ## Returns a list object with accepted samples and the acceptance rate
 
-rejection.sample.gamma.posterior.i = function(yi, M, maxit, betat, s2gammat, trace = 0) {
+rejection.sample.gamma.posterior.i = function(yi, xi = cbind(rep(1,5), 1:5), M, maxit, betat, s2gammat, trace = 0) {
   
   ## envelope function setup, done once
-    # obtain gamma_hat to create the envelope function, optimizing Likel. wrt gammai
-    # can use any optimization routine, here using IRLS holding XB fixed as an offset
-    # log(lambda_i) = X%*%beta_t + gamma_i --> fix X and beta_t, treat gamma_i as coefficient
-    gamma_hat = glm(yi ~ 1, family = poisson(),
-                    offset = betat[1] + betat[2] * 1:5)$coef
-    
-    # calculate lambda values for rejection ratio denominator
-    lambda_star = exp(betat[1] + betat[2] * 1:5 + gamma_hat)
-    
-    # calculate rejection ratio denominator
-    Le = prod(dpois(yi, lambda = lambda_star))
-    
+  # obtain gamma_hat to create the envelope function, optimizing Likelihood wrt gammai
+  # can use any optimization routine, here using IRLS holding XB fixed as an offset
+  # log(lambda_i) = X%*%beta_t + gamma_i --> fix X and beta_t, treat gamma_i as coefficient
+  gamma_hat = glm(yi ~ 1, family = poisson(),
+                  offset = xi %*% beta)$coef
+  
+  # calculate lambda values for rejection ratio denominator
+  lambda_star = exp(xi %*% beta + gamma_hat)
+  
+  # calculate rejection ratio denominator
+  Le = prod(dpois(yi, lambda = lambda_star))
+  
   ## specify vector to hold samples
-    posterior_gammai = rep(0, M)
+  posterior_gammai = rep(0, M)
   
   ## start rejection sampler
-    m = index = 1
-    while (m <= M & index < maxit) {
+  m = index = 1
+  while (m <= M & index < maxit) {
+    
+    # sample from normal prior (proposal density here)
+    gammai = rnorm(1, 0, sqrt(s2gammat))
+    
+    # calculate lambda values for rejection ratio numerator
+    lambdai = exp(xi %*% beta + gammai)
+    
+    # calculate ratio numerator
+    Lq = prod(dpois(yi, lambda = lambdai))
+    
+    # calculate ratio
+    r = Lq / Le
+    
+    # sample Ui from standard uniform
+    U = runif(1)
+    
+    # if step 3 met, save sample
+    if (U < r) {
+      posterior_gammai[m] = gammai
       
-      # sample from normal prior (proposal density here)
-      gammai = rnorm(1, 0, sqrt(s2gammat))
-      
-      # calculate lambda values for rejection ratio numerator
-      lambdai = exp(betat[1] + betat[2] * 1:5 + gammai)
-      
-      # calculate ratio numerator
-      Lq = prod(dpois(yi, lambda = lambdai))
-      
-      # calculate ratio
-      r = Lq / Le
-      
-      # sample Ui from standard uniform
-      U = runif(1)
-      
-      # if step 3 met, save sample
-      if (U < r) {
-        posterior_gammai[m] = gammai
-        
-        # update num current acceptances
-        m = m + 1
-      }
-      
-      # keep track of total number of samples drawn
-      index = index + 1
+      # update num current acceptances
+      m = m + 1
     }
     
+    # keep track of total number of samples drawn
+    index = index + 1
+  }
+  
   ## acceptance rate
-    if (trace > 0)
-      print(M / index)
+  if (trace > 0)
+    print(M / index)
   
   ## return accepted samples and accepted rate in a list
-    return(list(gammai = posterior_gammai, ar = M / index))
+  return(list(gammai = posterior_gammai, ar = M / index))
 }
 
 
-## wrapper function for Rejection Sampling over all observations
-  # data is the main data.table object
-  # data_aug is the augmented data.table object
-  # other arguments same as above
-## Returns data_aug with updated rejection samples column
+```
+
+As you can imagine, this can be quite slow, especially for large M.  Since the rejection sampler is not a recursive method, we could also vectorize the above (can you guess how?).
+
+Below is the wrapper function that loops over all subjects.
+
+```{r}
+# data: is the main data.table object
+# other arguments same as above
+
+## Returns rejection samples matrix (n x M)
 
 rejection.sample.gamma.posterior.all = function(data,
-                                                data_aug,
                                                 M,
                                                 maxit,
                                                 betat,
                                                 s2gammat,
                                                 trace = 0) {
-  ## set n
+  ## get n, total number of subjects
   n = length(unique(data[,subject]))
- 
-  ## looping over subjects
+  
+  # create n x M matrix to hold rejection samples for each subject
+  rejection.samples = matrix(NA,nrow = n, ncol = M)
+  
+  ## looping over n subjects
   for (i in 1:n) {
     
     if(trace > 0) print(i) 
@@ -424,57 +429,117 @@ rejection.sample.gamma.posterior.all = function(data,
         trace = trace
       )$gammai
     
-    # since months in each subject share same gamma_i, we repeat
-    # the draw for each month in a subject
-    rejection.samples.i = rejection.samples.i[rep(1:M, each = 5)]
-    
-    # fill in last col of augmented matrix with drawn samples for subj i
-    data_aug[subject == i, rejection.samples := rejection.samples.i]
-    
-        if(trace > 0) print("saved data") 
-    
+    # save to matrix
+    rejection.samples[i,] = rejection.samples.i
+
   }
   
-  ## return data_aug
-  return(data_aug)
+  if(trace > 0) print("completed sampling") 
+  
+  ## return matrix
+  return(rejection.samples)
+  
 }
 ```
 
 ### Other Helper Functions
 
- To simplify the implementation of the EM algorithm using only off the shelf methods for maximization in the M-step, we augment the data matrices used in this example by repeating the data pertaining to each subject $M$ times in the original data matrix.  This will also facilitate vectorized evaluations of the Q-function in the E-step.  We introduce a function below to help with this (we will circle back to how this works in a bit)
+We implement a function that calculated the Q-function for the $i$th subject, then make a second one that loops over all subjects.  This is used to return the value of the Q-function in the E-step, given the estimates from the M-step and the observed data.  We also use this function in the M-step as input to the Nelder-Mead algorithm as the objective function to be maximized.
+
+I've left my first implementation using a for loop in the function below to better illustrate the method.  Below that I've written a vectorized version that scales better with $M$ and is much faster.
 
 ```{r}
-augment = function(data, M){
+
+# datai:  observed data (alz) pertaining to the i'th subject
+# gammai: M draws pertaining to gamma i
+Qi = function(datai,
+              xi = cbind(rep(1, 5), 1:5),
+              betat,
+              s2gammat,
+              gammai) {
+  # 5 x 1 vector
+  yi = datai$words
   
-  # convert data to data.table
-  if(!is.data.table(data)) data = data.table(data)
+  # get M
+  M = length(gammai)
   
-  # repeat each row M times
-  data_aug = data[rep(1:nrow(data),  M),]
+  # For each of the M draws, evaluate the integrand
+  # using a for loop here (slower!)
+  ##qi = 0
+  ##for (m in 1:M) {
+  ##  lambdai = exp(xi %*% betat + gammai[m])
+  ##  qi = qi + sum(dpois(yi, lambda = lambdai, log = T)) +
+  ##    dnorm(gammai[m],
+  ##          mean = 0,
+  ##          sd = sqrt(s2gammat),
+  ##          log = T)
+  ##}
   
-  # append a column indicating the index of M for each draw in each obs
-  data_aug$M = rep(1:M, each = nrow(data))
+  # now divide by M
+  ##qi  = qi / M
   
-  # resort by subject, M, then month. This repeats the 5 row
-  #  block of data for each subject M times
-  data_aug = data_aug[order(subject, M, month),]
+  # Let use a vectorized version instead. 
+    # create 5 x M matrix, x_beta_mat
+    # each column is xi %*% betat, just repeated
+    x_beta_mat = xi %*% matrix(betat, nrow = length(betat), ncol = M)
+    
+    # create 5 x M matrix, x_beta_plus_gamma_mat
+    # m'th column is xi %*% betat + gammai[m]
+    x_beta_plus_gamma_mat = sweep(x_beta_mat, 2 , gammai, "+")
   
-  # add another column to hold the M poterior draws per i later
-  # initialize column to 0, will update later with actual draws
-  data_aug$rejection.samples = rep(0, nrow(data_aug))
+    # calculate lambda (5 x M matrix)
+    lambdai = exp(x_beta_plus_gamma_mat)  
   
-  # create repeated design matrix corresponding to data_aug
-  X_aug = model.matrix(~ 1 + month, data = data_aug)
+    # calculate Q
+    ymat = matrix(yi, nrow = length(yi), ncol = M)
+    qi = sum(dpois(ymat, lambda = lambdai, log = T)) + 
+         sum(dnorm(gammai, mean = 0,sd = sqrt(s2gammat),log = T))
+    
+    # divide sum by M
+    qi = qi / M
   
-## return values
-  return(list(data_aug, X_aug))
+  ## return values
+  return(qi)
+}
+
+```
+
+
+Now here is the higher level function that sums over each subject. 
+
+```{r}
+# Same parameters above except for the following one
+# logs2gammat:  Indicates whether s2gammat is initially passed on the log scale.  If true, then indicates that s2gammat has to be back transformed to original scale in function.  This helps to avoid boundary issues during maximization when s2gamma estimates are close to zero and this transformation also maps to the real number line.
+
+Q = function(data,
+             betat,
+             s2gammat,
+             rejection.samples,
+             logs2gammat = F) {
+  # backtranform if maximizing s2gammat on log scale
+  if (logs2gammat == T) {
+    s2gammat = exp(s2gammat)
+  }
+  
+  # initialize sum
+  Q = 0
+  
+  # loop over subjects
+  for (i in 1:22) {
+    Q = Q + Qi(data[data$subject == i, ],
+               betat = betat,
+               s2gammat = s2gammat,
+               gammai = rejection.samples[i, ])
+  }
+  
+  # return
+  return(Q)
 }
 ```
 
 ### Setup for the MCEM algorithm
 
-Now that we have this helper function, lets read in the data and set up everything for the EM algorithm
+Now that we have these helper functions, lets read in the data and set up everything for the EM algorithm
 
 ```{r}
 ## read in the data, convert to data.table
@@ -482,9 +547,7 @@ Now that we have this helper function, lets read in the data and set up everythi
   alz = read.table("alzheimers.dat", header = T)
   alz = data.table(alz)
 
-    
 ## set initial parameters
-  
   # number of subjects
   n = length(unique(alz$subject))
   
@@ -499,55 +562,34 @@ Now that we have this helper function, lets read in the data and set up everythi
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
 
-    
+
 ## starting values for beta/s2gamma
-  
+
   # fixed effects, same as before
   beta = c(1.804, 0.165)
   
   # random intercept variance, same as before
   s2gamma =  0.000225 + .01 
 
-  
+
 ## set M = 10000 draws from posterior per observation in E-step
   M = 10000
-
-  
-## Repeat the data pertaining to y_i, X_i M times 
-  # This allows for easy vectorization of the sum shown in the Q-function approximation over n and M
-  
-  # run the function to do the repeating from above
-  aug = augment(data = alz, M = M)
-  
-  # extract alz matrix with data pertaining to i'th obs repeated M times 
-  alz_M_aug = aug[[1]]
-  
-  # extract predictor matrix with rows repeated in same manner as alz_M_aug
-  X_m_aug = aug[[2]]
-
-  # Check Dimensions of original vs augmented matrix for M step
-  dim(alz)     # originally (22*5) rows
-  dim(alz_M_aug) # now (22*5*M) rows
-  
-  # peak at each to see the difference
-  head(alz, 10)
-  head(alz_M_aug, 10)
 
 ```
 
 ### Testing the Rejection Sampler
 
 Let’s test out the Rejection Sampler on just the first sample, given the starting values:
-
+  
 ```{r}
 # run RS
 test_sample = rejection.sample.gamma.posterior.i(
-                yi = alz[subject == 1, words], 
-                M = M, 
-                maxit = maxit*M, 
-                betat = beta, 
-                s2gammat = s2gamma 
-        )
+  yi = alz[subject == 1, words], 
+  M = M, 
+  maxit = maxit*M, 
+  betat = beta, 
+  s2gammat = s2gamma 
+)
 
 # acceptance rate
 print(test_sample$ar)
@@ -567,70 +609,76 @@ hist(test_sample$gammai)
 Now that thats out of the way, lets apply the MCEM algorithm.
 
 ```{r}
-  
-  start = Sys.time()
-  while(eps > tol & iter < maxit){
+library(optimx)
+
+start = Sys.time()
+while(eps > tol & iter < maxit){
   
   ## save old qfunction
     qfunction0 = qfunction
   
   ## Begin E-step
-
+  
     # update rejection.samples column with the new draws
-    alz_M_aug = rejection.sample.gamma.posterior.all(
+    rejection.samples = rejection.sample.gamma.posterior.all(
       data = alz,
-      data_aug = alz_M_aug,
       M = M,
-      maxit = maxit * M,
+      maxit = 100 * M,
       betat = beta,
       s2gammat = s2gamma
     )
     
-  ## evaluate  qfunction given drawn samples, current param estimates
-    #lambda
-      lambda_M_aug = exp(X_m_aug %*% beta + alz_M_aug[, rejection.samples])
+    ## evaluate  qfunction given drawn samples, current param estimates
+    qfunction = Q(data = alz, 
+                  betat = beta, 
+                  s2gammat = s2gamma, 
+                  rejection.samples = rejection.samples
+                )
       
-    # qfunction calculation (vectorized)
-      qfunction = 
-        # sum over first part of Q
-        sum(dpois(alz_M_aug[, words], lambda = lambda_M_aug, log = T)) + 
-        # sum over second part of Q, no need to use repeated gamma over months here
-        sum(dnorm(alz_M_aug[month == 1, rejection.samples], 
-              mean = 0,
-              sd = sqrt(s2gamma),
-              log = T))
-      
-    # take average over M
-      qfunction = (qfunction) / M 
-    
   ## End E-step
+  
     
   ## Calculate relative change in qfunction from prior iteration
     eps  = abs(qfunction - qfunction0) / abs(qfunction0)
-    
-  ## Start M-step
-    
-    # s2gamma, derived similar as the MLE for sigma^2 from normal with mean 0, averaged over M
-    # closed form derived from Q function approximation given earlier
-    s2gamma = sum(alz_M_aug[month == 1, rejection.samples] ^ 2) / n
-    s2gamma = s2gamma / M
-    
-    # beta, poisson glm with gammai's filled in with M posterior draws/subject
-    # averaging over M draws, so weight = 1/M for each repeated row with draw filled in
-    # posterior draws for gamma_i area are filled in as offsets in the glm
-    fit = glm(
-      alz_M_aug$words ~ X_m_aug - 1,
-      family = poisson(),
-      weights = rep(1 / M, nrow(X_m_aug)),
-      offset = alz_M_aug$rejection.samples,
-      # use starting value from previous step
-      start = beta
-    )
-    beta = as.vector(fit$coefficients)
   
+    
+  ## Start M-step : nelder mead
+    fit = optimx(
+      # initial values for the parameters
+      par = c(beta, log(s2gamma)), # maximizing s2gamma on log scale! 
+      # Q function wrapper
+      fn = function(x, data, rejection.samples){
+            Q(data = alz, 
+              betat = x[1:length(beta)], 
+              s2gammat = x[length(beta)+1], 
+              rejection.samples = rejection.samples,
+              logs2gammat = T # indicating s2gamma on log scale! 
+            )   
+        }, 
+      method = "Nelder-Mead",
+      data = data,
+      rejection.samples = rejection.samples,
+      control = list(
+        trace = 0, 
+        maximize = T, 
+        abstol= tol
+      )
+    )
+    
+    # extract parameters
+    beta = as.numeric(fit[1:length(beta)])
+    s2gamma = as.numeric(fit[length(beta)+1])
+    
+    # remember to back transform s2gamma
+    s2gamma = exp(s2gamma)
+    
+  ## End M-step
+  
+    
   ## update iterator
     iter = iter + 1
     if(iter == maxit) warning("Iteration limit reached without convergence")
+  
     
   ## print out info to keep track
     cat(sprintf("Iter: %d Qf: %.3f s2gamma: %f beta0: %.3f beta0:%.3f eps:%f\n",iter, qfunction,s2gamma, beta[1],beta[2], eps))
@@ -641,32 +689,33 @@ print(end - start)
 ```
 
 This is pretty close to what we get from glmer:
-
+  
 ```{r}
 library(lme4)
 fit = glmer(words ~ month + (1|subject), family = poisson(), data = alz)
 print(summary(fit))
 ```
 
-In addition, the posterior modes of the random effects are also similar:
-
+In addition, the modes of the random effects are also similar:
+  
 ```{r}
-# glmer 
-print(ranef(fit)$subject)
+# glmer conditional modes:  
+print(head(ranef(fit)$subject))
 
-# RS
-print(alz_M_aug[,mean(rejection.samples), by = subject])
-```
+# RS  posterior means:
+print(head(rowMeans(rejection.samples)))
 
-We can also take a look at the final augmented matrix to see what it looks like 
+# plot
+plot(unlist(ranef(fit)$subject), rowMeans(rejection.samples), xlab = "glmer", ylab = "MCEM", main = "")
+abline(0,1)
 
-```{r}
-print(head(alz_M_aug, 10))
 ```
 
 # Markov Chain Monte Carlo
 
-In the last section we discussed Rejection Sampling as a method to directly sample from a target density $f$ when $f$ could be evaluated but not easily sampled from.  An alternative way to perform this task are using Markov Chain Monte Carlo (MCMC) methods.  One distinction between Rejection Sampling and MCMC is the latter draws samples from a distribution that only **approximates** $f$, rather than drawing an exact sample from $f$ itself.  MCMC methods can be more generally viewed as methods for generating samples from which expectations of functions of $\boldsymbol{X}$ can be reliably estimated, where $\boldsymbol{X} \sim f(\boldsymbol{X})$. 
+In the last section we discussed Rejection Sampling as a method to directly sample from a target density $f$ when $f$ could be evaluated but not easily sampled from.  An alternative way to perform this task are using Markov Chain Monte Carlo (MCMC) methods.  
+
+One distinction between Rejection Sampling and MCMC is the latter draws samples only **approximately** from $f$, rather than drawing an exact sample from $f$ itself.  MCMC methods can be more generally viewed as methods for generating samples from which expectations of functions of $\boldsymbol{X}$ can be reliably estimated, where $\boldsymbol{X} \sim f(\boldsymbol{X})$. 
 
 Another distinction between Rejection Sampling and MCMC is that the latter is  **iterative** and can be **flexibly** applied to many different types of problems and situations.   If you recall, Rejection Sampling depended on the specification of a proper envelope function, which may or may not be straightforward to do (as could be seen from the homework).  Similar concerns could be had about importance sampling regarding the optimal choice of the importance sampling density $g$.  
 
@@ -675,20 +724,23 @@ For the purposes of numerical integration, MCMC has several advantages over the 
 ## Introduction to MCMC methods
 
 Let us define the sequence $\lbrace \boldsymbol{X}^{(t)}\rbrace$ as a Markov chain where
-$\boldsymbol{X}^{(t)} = \left(X_1^{(t)} ,\ldots ,X_p^{(t)}\right )$, $t = 0, 1, 2,\ldots$,  where the state space can be assumed to beeither continuous or discrete. We assume that the distribution of $X^{(t)}$ converges to the limiting stationary distribution of the chain when the chain is irreducible and aperiodic. A review of Markov Chain theory is given in GH 1.7.  
+$\boldsymbol{X}^{(t)} = \left(X_1^{(t)} ,\ldots ,X_p^{(t)}\right )$, $t = 0, 1, 2,\ldots$,  where the state space can be assumed to be either continuous or discrete. We assume that the distribution of $X^{(t)}$ converges to the limiting stationary distribution of the chain when the chain is irreducible and aperiodic. A review of Markov Chain theory is given in GH 1.7.  
 
-Briefly, a Markov chain can be defined as a sequence of random variables $\lbrace \boldsymbol{X}^{(t)}\rbrace$ above, where each ${X}^{(t)}$ can take on a finite or countably infinite number of values called states, where ${X}^{(t)} = j$ indicates that the chain is in state $j$ at step $t$. One hallmark feature of Markov Chains is that the next state in the chain is dependent on only the prior one (the *Markov Property*), such that $$P[{X}^{(0)},{X}^{(1)},\ldots,{X}^{(M)}] = P[{X}^{(0)}]P[{X}^{(1)}|{X}^{(0)}],\ldots,P[\boldsymbol{X}^{(M)}|\boldsymbol{X}^{(M-1)}].$$ Then,  $\lbrace {X}^{(t)}\rbrace$ is a Markov Chain if $$ p_{ij} = P[{X}^{(t+1)} = j | {X}^{(0)} = {x}^{(0)},{X}^{(1)} = {x}^{(1)},\ldots,{X}^{(t)} = i] =  P[{X}^{(t+1)} = j | {X}^{(t)} = i]$$ for all $t=0,1,2\ldots$ and states in the state space, where $p_{ij}^{(t)}$ is the one step transition probability (time-homogeneous).   
+Briefly, a discrete-state-space Markov chain can be defined as a sequence of random variables $\lbrace \boldsymbol{X}^{(t)}\rbrace$ above, where each ${X}^{(t)}$ can take on a finite or countably infinite number of values called states, where ${X}^{(t)} = j$ indicates that the chain is in state $j$ at step $t$. One hallmark feature of Markov Chains is that the next state in the chain is dependent on only the prior one (the *Markov Property*), such that $$P[{X}^{(0)},{X}^{(1)},\ldots,{X}^{(M)}] = P[{X}^{(0)}]P[{X}^{(1)}|{X}^{(0)}],\ldots,P[\boldsymbol{X}^{(M)}|\boldsymbol{X}^{(M-1)}].$$ Then,  $\lbrace {X}^{(t)}\rbrace$ is a Markov Chain if $$ p_{ij} = P[{X}^{(t+1)} = j | {X}^{(0)} = {x}^{(0)},{X}^{(1)} = {x}^{(1)},\ldots,{X}^{(t)} = i] =  P[{X}^{(t+1)} = j | {X}^{(t)} = i]$$ for all $t=0,1,2\ldots$ and states in the state space, where $p_{ij}$ is the one step transition probability (time-homogeneous).   
 
-This is chain *irreducible* if the probability that the chain will revisit a previous state in the chain in a finite number of steps with non-zero probability for all possible states in the chain.  That is, regardless of what the current state is in the change, we can revisit any other state in a finite number of steps as the chain runs.  
+This chain is *irreducible* if the probability that the chain will revisit a previous state in the chain with non-zero probability in a finite number of steps, for all possible states in the chain.  That is, regardless of what the current state is in the change, we can revisit any other state in a finite number of steps as the chain runs.  
 
 It is *aperiodic* if there is no limitation in terms of the number of steps it takes to revisit a particular state along the chain.  
 
-If these two conditions are met, then this chain will converge to some stationary distribution $f$, and the realizations from this chain will be approximately from this distribution for sufficiently large $t$.  Then, for any function $h$, $$\frac{1}{M} \sum_{t = 1}^M h(X^{(t)}) \rightarrow E_f[h(X)]$$ almost surely as $M \rightarrow \infty$.  We will see how this will be helpful in MCMC later.  We can similarly extend these ideas to when the state space is continuous (which is typically the case in MCMC).
+If these two conditions are met, then this chain will converge to some stationary distribution $f$, and the realizations from this chain will be approximately from this distribution for sufficiently large $t$.  Then, for any function $h$, $$\frac{1}{M} \sum_{t = 1}^M h(X^{(t)}) \rightarrow E_f[h(X)]$$ almost surely as $M \rightarrow \infty$.  We will see how this will be helpful in MCMC later.  **We can similarly extend these ideas to when the state space is continuous (which is typically the case in MCMC).**
 
-The general idea behind  MCMC sampling is the construction of an irreducible, aperiodic Markov chain for which the stationary distribution equals the target distribution $f$.  Then, a realization $\boldsymbol{X}^{(t)}$ from this chain for large values of $t$ will then have an **approximate** marginal distribution of $f$. Again, this implies that the samples will be only approximately distributed $f$, and also that subsequent realizations from this chain will clearly be correlated and not independent. We will discuss examples and the implications of this fact later in this lecture. 
+The general idea behind  MCMC sampling is the construction of an irreducible, aperiodic Markov chain for which the stationary distribution equals the target distribution $f$.  Then, a realization $\boldsymbol{X}^{(t)}$ from this chain for large values of $t$ will then have an **approximate** marginal distribution of $f$. 
 
-Therefore, the crux of MCMC lies in the construction of a suitable chain.  One natural question when utilizing realizations from the chain  is how good the approximation is at a particular $t$.  The accuracy of the estimators built off of these realizations will also be impacted by the quality of this approximation.   For example, the distribution of $\boldsymbol{X}^{(t)}$ may differ greatly from $f$ for small $t$, and the chain may not converge to its stationary distribution until $t$ is sufficiently large.  In addition, we know that the $\boldsymbol{X}^{(t)}$ are serially correlated, which may reduce the effective sample size of the realizations being drawn iteratively from the chain.  
+Again, this implies that the samples will be only approximately distributed $f$, and also that subsequent realizations from this chain will clearly be correlated and not independent. We will discuss examples and the implications of this fact later in this lecture. 
 
+Therefore, the crux of MCMC lies in the construction of a suitable chain.  One natural question when utilizing realizations from the chain  is how good the approximation is at a particular $t$.  The accuracy of the estimators built off of these realizations will also be impacted by the quality of this approximation.   
+
+For example, the distribution of $\boldsymbol{X}^{(t)}$ at small $t$ may differ greatly from $f$, and the chain may not converge to its stationary distribution until $t$ is sufficiently large.  In addition, we know that the $\boldsymbol{X}^{(t)}$'s are serially correlated, which may reduce the effective sample size of the realizations being drawn iteratively from the chain.  
 In this lecture we will cover some very common and broadly applicable MCMC algorithms, such as Metropolis-Hastings and Gibbs Sampling. In the next lecture, we will cover some specific and more sophisticated MCMC approaches that may be helpful in specific situations.
 
 ## The Metropolis-Hastings Algorithm
@@ -730,15 +782,16 @@ For example, you can imagine that if you start a chain at a "bad" point, it may 
 Just like with the optimization methods discussed earlier in this module, it is often good to run any MCMC procedure (such as MH) from multiple starting points to check for consistent results. We will discuss some practical aspects regarding burn-in, number of chains, starting values, and other aspects of MCMC implementation later on in this lecture. 
 
 ### Features of a "Good" Proposal Distribution
-Specific features of a good proposal distribution $g$  such as the following can greatly enhance the performance
-of the Metropolis–Hastings algorithm:
+Specific features of a good proposal distribution $g$  such as the following can greatly enhance the performance of the Metropolis–Hastings algorithm:
 
-1.  $g$ covers the support of the stationary distribution in a
-reasonable number of iterations, and
-2.  produces candidate values that are not
-accepted or rejected too frequently 
+1.  $g$ covers the support of the stationary distribution in a reasonable number of iterations, and
+2.  produces candidate values that are not accepted or rejected too frequently 
 
-A proposal distribution whose spread is either too small/large can produce a chain that requires many iterations to adequately sample the regions supported by the target distribution. That is, if the proposal distribution has too narrow of a spread, it will stay localized in a specific region of the support and will take a long time to explore other regions.  If its spread it too broad, candidate values will be rejected frequently and will also take longer to adequately explore the space of the target distribution.  We will discuss how to practically choose a good proposal distribution in a later section.  
+A proposal distribution whose spread is either too small/large can produce a chain that requires many iterations to adequately sample the regions supported by the target distribution. 
+
+That is, if the proposal distribution has too narrow of a spread, it will stay localized in a specific region of the support and will take a long time to explore other regions.  
+
+If its spread it too broad, candidate values will be rejected frequently and will also take longer to adequately explore the space of the target distribution.  We will discuss how to practically choose a good proposal distribution in a later section.  
 
 So how exactly do we create such chain with MH?  We discuss two variants of MH below, each characterized by the class of proposal distributions that they utilize.
 
@@ -746,18 +799,34 @@ So how exactly do we create such chain with MH?  We discuss two variants of MH b
 Suppose that the proposal distribution for MH is chosen such that $g(\boldsymbol{x}^{*} | \boldsymbol{x}^{(t)})= g(\boldsymbol{x}^{*})$. Then this gives what is called an  **independence chain**, where each candidate value is drawn independently of the prior realizations of the chain.   As a result, the MH ratio simplifies to $$R(\boldsymbol{x}^{(t)}, \boldsymbol{X}^{*}) = \frac{f(\boldsymbol{X}^{*})g(\boldsymbol{x}^{(t)})}{f(\boldsymbol{x}^{(t)})g(\boldsymbol{X}^{*})}.$$  which produces an irreducible and aperiodic chain if  $g( \boldsymbol{x}) > 0$ whenever
 $f( \boldsymbol{x}) > 0$.
 
-Again, the idea here is that we generate a chain long enough such that the realizations from this chain, at sufficiently large $t$, are approximately distributed $f$.  This is in contrast to Rejection Sampling where we are directly sampling from $f$ using the described procedure.  However, the downside is that we have to construct a proper envelope function.  Here the approach is more general, where we specify the proposal distribution and afterwards check diagnostics regarding the chain.  
+Again, the idea here is that we generate a chain long enough such that the realizations from this chain, at sufficiently large $t$, are approximately distributed $f$.  
+
+This is in contrast to Rejection Sampling where we are directly sampling from $f$ using the described procedure.  However, the downside is that we have to construct a proper envelope function.  
+
+With MCMC the approach is more general, where we specify the proposal distribution and afterwards check diagnostics regarding the chain.  
+
+One interesting thing to note is that the MH ratio can be interpreted as a ratio of importance weights, where if $w^∗ = f(X^∗)/g(X^∗)$ and $w^{(t)} = f(x^{(t)})/g(x^{(t)}), then R(x^{(t)},X^∗)= w^∗/w^{(t)}$.  This suggests that if the prior draw results in a larger than usual $w^{(t)}$ than typical $w^∗$ values, the chain may get stuck for a while at $x^{(t)}$ (large denominatior --> small ratio --> low acceptance probability of new proposals). 
+
+As a result, the criteria for choosing importance sampling distributiona are also relevant to choosing proposal distributions.  We will talk more about this after some of the following code examples. 
 
 ### Example:  Bayesian Inference in mixture models
 
-MCMC methods are popular tools for Bayesian inference, where some data $\boldsymbol{y}$ are observed with likelihood  $L(\boldsymbol{\theta}|\boldsymbol{y})$ for parameters $\boldsymbol{\theta}$ which have prior distribution $p(\boldsymbol{\theta})$. Bayesian inference is often based off of the posterior distribution $p(\boldsymbol{\theta}|\boldsymbol{y}) \propto cp(\boldsymbol{\theta})L(\boldsymbol{\theta}|\boldsymbol{\y})$, where $c$ is an unknown constant. The difficulty of computing $c$ and other features of the posterior prevents most direct inferential strategies. However, if we can obtain a sample from a Markov chain whose stationary distribution is the target posterior, which can be used to estimate many quantities such as posterior means and variances, tail probabilities and even the posterior density itself.
+MCMC methods are popular tools for Bayesian inference, where some data $\boldsymbol{y}$ are observed with likelihood  $L(\boldsymbol{\theta}|\boldsymbol{y})$ for parameters $\boldsymbol{\theta}$ which have prior distribution $p(\boldsymbol{\theta})$. Bayesian inference is often based off of the posterior distribution $p(\boldsymbol{\theta}|\boldsymbol{y}) \propto cp(\boldsymbol{\theta})L(\boldsymbol{\theta}|\boldsymbol{\y})$, where $c$ is an unknown constant. 
+
+The difficulty of computing $c$ and other features of the posterior prevents most direct inferential strategies. However, if we can obtain a sample from a Markov chain whose stationary distribution is the target posterior, these samples can be used to estimate many quantities such as posterior means and variances, tail probabilities and even the posterior density itself.
 
 A very simple strategy is to use the prior as a proposal distribution in an independence
-chain, as this prior should cover the support of the support of the posterior. In our Metropolis–Hastings notation, $f(\boldsymbol{\theta}) = p(\boldsymbol{\theta}|\boldsymbol{y})$ and $g(\boldsymbol{\theta}^∗) = p(\boldsymbol{\theta}^∗)$. Conveniently, this means that $R(\boldsymbol{\theta}^{(t)}, \boldsymbol{\theta}^∗) = \frac{L(\boldsymbol{\theta}^*, \boldsymbol{y})}{L(\boldsymbol{\theta}^{(t)}, \boldsymbol{y})}$, where the priors $p$ cancel out with the proposal distributions $g$ in the numerator and denominator.  
+chain, as this prior should cover the support of the support of the posterior. In our Metropolis–Hastings notation, $f(\boldsymbol{\theta}) = p(\boldsymbol{\theta}|\boldsymbol{y})$ and $g(\boldsymbol{\theta}^∗) = p(\boldsymbol{\theta}^∗)$. 
 
-In other words, we propose from the prior, and the Metropolis–Hastings ratio equals the likelihood ratio. Therefore, we accept a proposal with probability 1 if the proposal improves the likelihood relative to the previous realization.  Otherwise, we accept the proposal with probability equal to the ratio if it is less than 1.  By repeating this process a large number of times, we will reach the target distribution $f$.  By definition, the support of the prior covers the support of the target posterior, so the stationary distribution of this chain is the desired posterior.
+Conveniently, this means that $R(\boldsymbol{\theta}^{(t)}, \boldsymbol{\theta}^∗) = \frac{L(\boldsymbol{\theta}^*, \boldsymbol{y})}{L(\boldsymbol{\theta}^{(t)}, \boldsymbol{y})}$, where the priors $p$ cancel out with the proposal distributions $g$ in the numerator and denominator.  
 
-Suppose we have observed data from GH Example 7.2, where observations $y_1, y_2,\ldots,y_{100}$ are sampled iid from the mixture distribution $$f(y | \boldsymbol{\mu}, \sigma^2) = \pi f(y| \mu_1, \sigma^2) + (1-\pi)f(y| \mu_2, \sigma^2).$$ Here $\boldsymbol{\mu} = (\mu_1, \mu_2) = (7, 10)$,  $\sigma^2 = 0.5^2$, and $\pi = 0.7$.  We will use a MH independence sampler to construct a chain whose stationary distribution equals the posterior density of $\pi$, assuming  $\pi \sim U(0,1)$ as a non-informative prior distribution.  Therefore, we would expect the posterior mean for $\pi$ to be concentrated in the area around 0.7. 
+In other words, we propose from the prior, and the Metropolis–Hastings ratio equals the likelihood ratio. Therefore, we accept a proposal with probability 1 if the proposal improves the likelihood relative to the previous realization.  Otherwise, we accept the proposal with probability equal to the ratio if it is less than 1.  
+
+By repeating this process a large number of times, the chain will hopefully converge to the target distribution $f$.  By definition, the support of the prior covers the support of the target posterior, so the stationary distribution of this chain is the desired posterior.
+
+Suppose we have observed data from GH Example 7.2, where observations $y_1, y_2,\ldots,y_{100}$ are sampled iid from the mixture distribution $$f(y | \boldsymbol{\mu}, \sigma^2) = \pi f(y| \mu_1, \sigma^2) + (1-\pi)f(y| \mu_2, \sigma^2).$$ Here $\boldsymbol{\mu} = (\mu_1, \mu_2) = (7, 10)$,  $\sigma^2 = 0.5^2$, and $\pi = 0.7$.  
+
+We will use a MH independence sampler to construct a chain whose stationary distribution equals the posterior density of $\pi$, assuming  $\pi \sim U(0,1)$ as a non-informative prior distribution.  Therefore, we would expect the posterior mean for $\pi$ to be concentrated in the area around 0.7. 
 
 Let’s read in and visualize the data from GH Example 7.2 below:
 
@@ -787,7 +856,9 @@ points(x,d,type="l")
 ```
 
 
-We can see that there are two modes in this distribution, one at 7 and one at 10, as expected.  In this example, we will evaluate two different independence chains in applying MH to find the posterior of $\lambda$. In the first case we use a Beta(1,1) density as the proposal density. This is equivalent to the U(0,1) density, which is the assumed prior on $\pi$.  Let’s start by setting up some helper functions:
+We can see that there are two modes in this distribution, one at 7 and one at 10, as expected.  In this example, we will evaluate two different independence chains in applying MH to find the posterior of $\lambda$. 
+
+In the first case we use a Beta(1,1) density as the proposal density. This is equivalent to the U(0,1) density, which is the assumed prior on $\pi$.  Let’s start by setting up some helper functions:
 
 ```{r}
 # function for the mixture likelihood
@@ -871,9 +942,9 @@ hist(x.indep.chain[201:(M+1)],breaks=20,xlab="delta",
      main="Hist. for Beta(1,1) Prop. Dist.")
 ```
 
-The sample path plot shows each of the chain realizations $\pi^{(t)}$ with respect to the iteration number $t$.  We see that the markov chain quickly moves away from its starting point and seems easily able to sample values from
-all portions of the parameter space supported by the posterior for $\pi$. Such behavior
-is called **good mixing**. We can easily see that the chain has converged to its stationary distribution (no trends observed, random variability).  In the histogram we drop the first 200 iterations of the chain to reduce the effect of the starting value.   We can see right away that the chain produced a sample for $\pi$ whose mean well approximates the true posterior mean of $\pi = 0.7$ (since the prior is non-informative being equivalent to U(0,1)).
+The sample path plot shows each of the chain realizations $\pi^{(t)}$ with respect to the iteration number $t$.  We see that the markov chain quickly moves away from its starting point and seems easily able to sample values from all portions of the parameter space supported by the posterior for $\pi$. Such behavior is called **good mixing**. 
+
+We can easily see that the chain has converged to its stationary distribution (no trends observed, random variability).  In the histogram we drop the first 200 iterations of the chain to reduce the effect of the starting value.   We can see right away that the chain produced a sample for $\pi$ whose mean well-approximates the true posterior mean of $\pi = 0.7$ (since the prior is non-informative being equivalent to U(0,1)).
 
 Let’s now explore the impact of using an alternative proposal distribution, a Beta(2,10) density. The first proposal distribution is equivalent to a U(0,1) distribution, while this one is skewed rightwards with mean approximately equal to 0.167. In this case, values of $\pi$ near 0.7 are unlikely to be generated from the proposal distribution.  Therefore, we do not expect the proposal distribution to cover well the entire support of the posterior.  Let’s go ahead and run the MH algorithm using this proposal density: 
 
@@ -935,16 +1006,20 @@ hist(x.indep.chain[201:(M+1)],breaks=20,xlab="delta",
      main="Hist. for Beta(2,10) Proposal Dist.")
 ```
 
-We can see that the resulting chain moves slowly from its starting value and does a poor job of exploring the region of posterior support (**poor mixing**) in the first 10,000 iterations. This chain has clearly not converged to its stationary distribution since drift is still apparent. The flat areas in the sample path plots are those where the proposals were not accepted for many iterations in a row, a result of the poor proposal distribution. This also increases the autocorrelation among subsequent realizations of the chain. Later we will talk in more detail regarding chain diagnostics.
+We can see that the resulting chain moves slowly from its starting value and does a poor job of exploring the region of posterior support (**poor mixing**) in the first 10,000 iterations. This chain has clearly not converged to its stationary distribution since drift is still apparent.
 
-In principle, for very large $t$ we will still be able to estimate aspects of the posterior for $\pi$ since the posterior is still the limiting distribution of
-the chain. Yet, chain behavior like that shown here does not inspire confidence for finite $t$: The chain seems nonstationary, only a few unique values of $\pi^{(t)}$ were accepted, and the starting value does not appear to have washed out. A plot like this should make the user reconsider the proposal density and other aspects of the MCMC implementation.  Based on the first 10,000 iteration, this chain would not yield reliable estimates for the posterior.  
+The flat areas in the sample path plots are those where the proposals were not accepted for many iterations in a row, a result of the poor proposal distribution. This also increases the autocorrelation among subsequent realizations of the chain. Later we will talk in more detail regarding chain diagnostics.
+
+In principle, for very large $t$ we will still be able to estimate aspects of the posterior for $\pi$ since the posterior is still the limiting distribution of the chain. Yet, chain behavior like that shown here does not inspire confidence for finite $t$: The chain seems nonstationary, only a few unique values of $\pi^{(t)}$ were accepted, and the starting value does not appear to have washed out. 
+
+A plot like this should make the user reconsider the proposal density and other aspects of the MCMC implementation.  Based on the first 10,000 iteration, this chain would not yield reliable estimates for the posterior.  
 
 ### Random Walk Chains  
-A random walk chain is another type of Markov chain produced by the Metropolis–Hastings algorithm but with a slight difference. Let $\boldsymbol{X}^{*}$ be generated by drawing $\boldsymbol{\epsilon} ∼ h(\boldsymbol{\epsilon})$ for
-some density $h$ and then setting $\boldsymbol{X}^{*}= \boldsymbol{x}^{(t)}+ \boldsymbol{\epsilon}$. This yields a random walk chain where the proposal is simply the prior realization of the chain plus a random value.  This random value is what is sampled from the density $h$.
+A random walk chain is another type of Markov chain produced by the Metropolis–Hastings algorithm but with a slight difference. Let $\boldsymbol{X}^{*}$ be generated by drawing $\boldsymbol{\epsilon} ∼ h(\boldsymbol{\epsilon})$ for some density $h$ and then setting $\boldsymbol{X}^{*}= \boldsymbol{x}^{(t)}+ \boldsymbol{\epsilon}$. This yields a random walk chain where the proposal is simply the prior realization of the chain plus a random value.  This random value is what is sampled from the density $h$.
 
-In this case, $g(\boldsymbol{x}^{*} | \boldsymbol{x}^{(t)})=h(\boldsymbol{x}^{*} - \boldsymbol{x}^{(t)})$. Common choices for $h$ include a uniform distribution over a ball centered at the origin, a scaled standard normal distribution, and a scaled Student’s $t$ distribution. If the support region of $f$ is connected and $h$ is positive in a neighborhood of 0, the resulting chain is irreducible and aperiodic.  It may be helpful to scale $h$ such that the acceptance rate of the algorithm is between 20 and 35$\%$, which is exactly what some adaptive MCMC methods person (discussed in the next lecture).
+In this case, $g(\boldsymbol{x}^{*} | \boldsymbol{x}^{(t)})=h(\boldsymbol{x}^{*} - \boldsymbol{x}^{(t)})$. Common choices for $h$ include a uniform distribution over a ball centered at the origin, a scaled standard normal distribution, and a scaled Student’s $t$ distribution. If the support region of $f$ is connected and $h$ is positive in a neighborhood of 0, the resulting chain is irreducible and aperiodic.  
+
+It may be helpful to scale $h$ such that the acceptance rate of the algorithm is between 20 and 35$\%$, which is exactly what some adaptive MCMC methods suggest (discussed in the next lecture).
 
 Let’s try to apply a random walk MH sampler to the prior problem.  Given that the parameter space for $\pi$ is bounded between 0 and 1, utilizing a reparameterization of the parameters in the model would be beneficial.  For example, if we let $U = \log(\pi/(1-\pi))$, then we can run our random walk MH in terms of $U$, not having to worry about hitting the boundary of the parameter space for $\pi$ for certain proposals.  We can perform a formal change of variable to implement the new approach and MH ratio.  
 
@@ -1000,12 +1075,11 @@ for (i in 1:(M-1)) {
 	# now transform to get proposal in terms of pi
 	pi[i+1] = inv.logit(u[i+1])
 	
-	# calculate MH ratio on the log scale
+	# calculate MH ratio on the **log scale**
 	# logR = (log.lik(pi*)  + g(logit(pi*) | logit(pi^{(t)})) + log(|J|))
 	#          - (log.lik(pi^{(t)})  + g(logit(pi^{(t)}) | logit(pi*)) + log(|J|))
-	# where |J| = exp(u).  Since pi = exp(u)/(1+exp(u)), dpi/du = exp(u).
+	# where |J| = exp(u), so log(|J|) = u.  Since pi = exp(u)/(1+exp(u)), dpi/du = exp(u).
 	# This follows eq 7.7 in the book (p. 208).  Alternatively, can use approach of eq 7.8
-	
   logR = (log.like(pi[i+1], y) + u[i]) - (log.like(pi[i], y) + u[i+1])
   
   # transform back from log scale
@@ -1095,9 +1169,15 @@ hist(pi[-c(1:200)],breaks=20,xlab="delta",
 
 ### Some general pros and cons
 
-We can see that for the MH algorithm the generation of each sample is relatively simple, we either accept a new proposal or carry over the prior one.  In Rejection Sampling, it may take many tries to generate one independent sample, depending on how good the selected envelope function is.  However, as one can imagine, one drawback of MH relative to Rejection Sampling is that "stickyness" of the subsequent realizations from the chain, reflecting the autocorrelation in the values.  In some cases this may make it harder for the MH algorithm to get out of local modes.  This may be worsened by the choice of proposal distribution.  We will discuss later how to quantify this "stickyness" when we discuss diagnostics.  We are also less burdened by dimension in MH.  
+We can see that for the MH algorithm the generation of each sample is relatively simple, we either accept a new proposal or carry over the prior one.  
 
-For MH independence samplers, the same criteria that we discussed for choosing an importance sampling distribution $g$ are also relevant for choosing proposal distributions in this context. In particular, $g$ should resemble the target distribution $f$ and cover $f$ in the tails.  In general, the efficiency of $g$ will depend on how close $g$ is to the target density $f$. $g$ must be similar to $f$ (particularly in high dimensions).  For Random walk samplers in MH, the choice of $h$ is more “black box”, and just needs to ensure that the support of the target distribution $f$ is well covered.  As a downside they will never be quite as efficient as a well-chosen independence proposal.
+In Rejection Sampling, it may take many tries to generate one independent sample, depending on how good the selected envelope function is.  However, as one can imagine, one drawback of MH relative to Rejection Sampling is that "stickyness" of the subsequent realizations from the chain, reflecting the autocorrelation in the values.  
+
+In some cases this may make it harder for the MH algorithm to get out of local modes.  This may be worsened by the choice of proposal distribution.  We will discuss later how to quantify this "stickyness" when we discuss diagnostics.  We are also less burdened by dimension in MH.  
+
+For MH independence samplers, the same criteria that we discussed for choosing an importance sampling distribution $g$ are also relevant for choosing proposal distributions in this context. In particular, $g$ should resemble the target distribution $f$ and cover $f$ in the tails.  In general, the efficiency of $g$ will depend on how close $g$ is to the target density $f$. $g$ must be similar to $f$ (particularly in high dimensions).  
+
+For Random walk samplers in MH, the choice of $h$ is more “black box”, and just needs to ensure that the support of the target distribution $f$ is well covered.  As a downside they will never be quite as efficient as a well-chosen independence proposal.
 
 ## Gibbs Sampling
 The Gibbs sampler was specifically developed for higher dimensional problems, where again the goal is to construct a Markov chain whose stationary distribution is the target distribution $f$ . Rather than sampling from a multivariate proposal distribution, the Gibbs sampler does this by sequentially sampling from univariate conditional distributions, which are often available in closed form. We will talk later about how to handle those situations where such conditional distributions are not available in closed form (Metropolis-within-Gibbs).

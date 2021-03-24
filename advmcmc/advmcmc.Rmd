@@ -55,7 +55,7 @@ In the previous lecture we discussed examples of MH and Gibbs Sampling where the
 
 As one can imagine, in certain situations the rejection rate in such samplers may be much higher or much lower than the recommended range, leading to decreased performance.  We discussed manual tuning methods in the last lecture to update the proposal distributions after several runs of MCMC and checking the output.  
 
-An alternative, and perhaps more convenient, approach is to tune the proposal distributions while the chain is running, given the observed rejection rate.  For example, widening the proposal distributions if the rejection rate is too low, or narrowing it if the rejection rate is too high.  Such approaches are called Adaptive MCMC (AMCMC) methods.   
+An alternative, and perhaps more convenient, approach is to tune the proposal distributions while the chain is running, given the observed rejection rate.  For example, narrowing the proposal distributions if the rejection rate is too low, or widening it if the rejection rate is too high.  Such approaches are called Adaptive MCMC (AMCMC) methods.   
 
 Implementations of AMCMC methods have been around for some time, however, as one can imagine, proving that the stationarity of such chains result from adaptive methods was difficult.  More recently we have seen some theoretical work that discusses this point, and also the conditions under which they we can expect stationary behavior of such chains.  We will see how we must craft AMCMC algorithms to satisfy such conditions.  
 
@@ -63,14 +63,14 @@ In general, we must take care in terms of setting up such chains, as we do not w
 
 ## Conditions for AMCMC algorithms to ensure stationarity
 
-We can assume that and AMCMC algorithm is ergodic with respect to its target distribution $f$ if the the algorithm satisfies two conditions. 
+We can assume that an AMCMC algorithm is ergodic with respect to its target distribution $f$ if the the algorithm satisfies two conditions. 
 
 Ths first is that of **diminishing adaptations**, that is, as $t\rightarrow \infty$, the parameters in the chain will depend less and less on the earlier states of the chain. Practically speaking, this is met by ensuring that as the chain progresses, the modifications to the proposal distribution parameters occurs less and less frequently, or occurs in smaller and smaller amounts. This is an example of easing off of the tuning as the chain progresses. One can imagine that frequent tuning updates as $t \rightarrow \infty$ would heavily influence in the chain and interfere with the reaching of its stationary distribution.  
 
 The second condition is that of **bounded convergence**, or containment.  Let $D^{(t)}$ represent the largest posssible distance between the target stationary distribution and the stationary distribution of the transition kernel of the MCMC algorithm at time $t$.  Let $M^{(t)}(\epsilon)$ be the smallest $t$ such that $D^{(t)} < \epsilon$. The bounded convergence condition states that the stochastic process $M^{(t)}(\epsilon)$ is bounded in probability for any $\epsilon > 0$.  In other words, the time it takes for the two distibutions to get sufficiently close is bounded in probability.  In practice these conditions
 lead to simpler, verifiable conditions that are relatively easy to check (we will talk more about this later).
 
-## Adaptive Random Walk Metropolis-within-Gibbs
+##  Metropolis-within-Gibbs
 
 In the last lecture we alluded to the scenario when one may not have the necessary conditional distributions in closed form to implement the Gibbs sampler, or that it may not be easy to sample from such conditional distributions.  In such cases, we can apply the Metropolis-within-Gibbs (MwG) algorithm, where we replace each Gibbs step with a Metropolis step.  
 
@@ -91,7 +91,7 @@ For MwG, we replace one or more steps in the gibbs cycle in (2) above with a Met
 
 1.  Select starting values $\boldsymbol{x}^{(0)}$, and set $t = 0$.
 2.  MwG update: Obtain $X_1^{(t+1)}$ via MH random walk update
-    a.  Generate proposal  $X_1^{*} =  x_1^{(t)} + \epsilon$, where $\epsilon \sim N(0\sigma^2)$
+    a.  Generate proposal  $X_1^{*} =  x_1^{(t)} + \epsilon$, where $\epsilon \sim N(0, \sigma^2)$
     b.  Compute the MH ratio $$R({x}^{(t)},{X}^{*}) = \frac{f(X_1^{*})}{f(x_1^{(t)})}$$
     c.  Then we sample a value for $X_1^{(t+1)}$ by choosing 
     
@@ -117,7 +117,7 @@ Lets illustrate this with an example, where we extend the fitting of the poisson
 
 ### Example:  Fitting a higher dimensionsional poisson GLMM via MCEM
 
-For this example, let us assume a similar setup as the motivating problem in the last lecture, except now we assume that $\log(\lambda_{ij}) = \boldsymbol{x}_{ij}\boldsymbol{\beta} + \boldsymbol{z}_{ij}\boldsymbol{\gamma}_i$, where  $\boldsymbol{x}_{ij} = (1, x_{ij1}, x_{ij2}, x_{ij3}, x_{ij4})$ with corresponding $\boldsymbol{\beta} = (\beta_0,\beta_1,\beta_2\beta_3,\beta_4)^T$, and  $\boldsymbol{\gamma}_i = (\gamma_{i0},\gamma_{i1},\gamma_{i2},\gamma_{i3},\gamma_{i4})$.   Given that the random effects are now multivariate,we replace $\phi(\boldsymbol{\gamma}_i| 0, \sigma^2_{\gamma})$ with $\phi(\boldsymbol{\gamma}_i| 0, \Sigma_{\gamma})  \sim MVN(0,\Sigma_{\gamma})$, where $\Sigma_{\gamma})$ is a $q \times q$ covariance matrix pertaining to the random effects vector $\boldsymbol{\gamma}_i$ to be estimated. Since we are assuming that each predictor has their own random slope, and also assume a random intercept, here $\boldsymbol{z}_{ij} = \boldsymbol{x}_{ij}$.  
+For this example, let us assume a similar setup as the motivating problem in the last lecture, except now we assume that $\log(\lambda_{ij}) = \boldsymbol{x}_{ij}\boldsymbol{\beta} + \boldsymbol{z}_{ij}\boldsymbol{\gamma}_i$, where  $\boldsymbol{x}_{ij} = (1, x_{ij1}, x_{ij2}, x_{ij3}, x_{ij4})$ with corresponding $\boldsymbol{\beta} = (\beta_0,\beta_1,\beta_2, \beta_3,\beta_4)^T$, and  $\boldsymbol{\gamma}_i = (\gamma_{i0},\gamma_{i1},\gamma_{i2},\gamma_{i3},\gamma_{i4})$.   Given that the random effects are now multivariate,we replace $\phi(\boldsymbol{\gamma}_i| 0, \sigma^2_{\gamma})$ with $\phi(\boldsymbol{\gamma}_i| 0, \Sigma_{\gamma})  \sim MVN(0,\Sigma_{\gamma})$, where $\Sigma_{\gamma}$ is a $q \times q$ covariance matrix pertaining to the random effects vector $\boldsymbol{\gamma}_i$ to be estimated. Since we are assuming that each predictor has their own random slope, and also assume a random intercept, here $\boldsymbol{z}_{ij} = \boldsymbol{x}_{ij}$.  
 
 That is, relative to the previous problem, we are increasing the dimension of both the fixed and random effects. The new likelihood takes a similar form
 
@@ -125,17 +125,18 @@ $$L(\boldsymbol{\beta}, \sigma^2_{\gamma} | \boldsymbol{y}) = \prod_{i = 1}^{22}
 
 Clearly the integral here is multidimensional with respect to the random effect vector $\boldsymbol{\gamma}_i$, which has in this setting dimension $q = 5$.  In contrast, in the previous problem $q = 1$.  The Q-function pertaining to the $i$th subject will then take the following form and approximation:
 
-\begin{aligned}
+\begin{align}
 Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log (f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log\left(\phi(\boldsymbol{\gamma}_i| 0, \Sigma_{\gamma})\right)\right]f(\boldsymbol{\gamma}_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\boldsymbol{\gamma}_i\\
 &= \int \left[\sum_{j = 1}^{5}\log(f(y_{ij} | \lambda_{ij}) + \log\left(\phi(\boldsymbol{\gamma}_i| 0, \Sigma_{\gamma})\right)\right]f(\boldsymbol{\gamma}_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\boldsymbol{\gamma}_i\\
 &=\frac{1}{M}\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log\left(f(y_{ij} | \lambda_{ijk})\right) + \log\left(\phi(X_k| 0, \Sigma_{\gamma})\right)\right]
-\end{aligned}
+\end{align}
 
-Lets simulate some data from such a model below.  We we will a similar structure as the previous Poisson GLMM example, assuming $n = 22$ subjects, $n_i = 5$ measurements per subjects, and a random intercept.  We will also add on 4 fixed effects predictors, each with their own random slope as well.  Giving the increase dimenson however we will bump $n$ to 50.
+Lets simulate some data from such a model below.  We we will a similar structure as the previous Poisson GLMM example, assuming $n = 22$ subjects, $n_i = 5$ measurements per subjects, and a random intercept.  We will also add on 4 fixed effects predictors, each with their own random slope as well.  Giving the increase dimenson however we will bump $n$ to 100.
 
 ```{r}
 library(mvtnorm)
 library(lme4)
+
 
 ## set seed
 set.seed(1)
@@ -144,60 +145,71 @@ set.seed(1)
 # number of samples
 n = 100
 
-# number of timepoints measured per sample 
+# number of timepoints measured per sample
 ni = 5
 
 # total number of measurements
-N = n*ni
+N = n * ni
 
 # pick fixed effects coefficient vector
 beta = matrix(c(0.5, .25, .25, .25, .25), ncol = 1)
 
 # pick random effect variances (assuming 0 covariance)
-Sigma_gamma = diag(c(0.25, 1, 2, 3, 1))
+Sigma_gamma = diag(c(0.5, 0.5, 0.5, 0.5, 0.5))
 
 # set dimensions of fixed effects and random effects
 p = length(beta)
-q = ncol(Sigma_gamma) 
+q = ncol(Sigma_gamma)
 
-# simulate data for p time varying covariates, measured per time point
-mat = matrix(rnorm(N*(p-1), mean = 0, sd = 0.5), nrow = N, ncol = p-1) 
 
-# Specify subject ID for each row in mat
+## simulate data for p time varying covariates, measured per time point
+mat = matrix(rnorm(N * (p - 1), mean = 0, sd = 0.5), nrow = N, ncol = p -
+               1)
+
+# specify subject ID for each row in mat
 ID = rep(1:n, each = ni)
-  
+
 # add intercept
 X = cbind(rep(1, n), mat)
-colnames(X) = c("int", "x1","x2","x3","x4")
-  
-# create y vector to hold observation
+colnames(X) = c("int", "x1", "x2", "x3", "x4")
+
+
+## create y vector to hold observation
 y = rep(0, N)
 
-# now simulate yi, i = 1,..,22
-
-for(i in 1:n){
-  
+# now simulate yi, i = 1,..,100
+for (i in 1:n) {
   # get subject  i indices
   subjecti = which(ID == i)
   
-  # get time-varying covariates for subject i, dropping ID colum 
-  Xi = X[subjecti,]
+  # get time-varying covariates for subject i, dropping ID colum
+  Xi = X[subjecti, ]
   
   # here we assume random effect matrix Zi for subject i same as Xi
   Zi = Xi
   
   # draw single q dimensional random effect vector for subject i, gammai
-  gammai = rmvnorm(n = 1, 
+  gammai = rmvnorm(n = 1,
                    mean = rep(0, ncol(Sigma_gamma)),
-                   sigma = Sigma_gamma
-            )
-  gammai = matrix(gammai, ncol =1)
+                   sigma = Sigma_gamma)
+  gammai = matrix(gammai, ncol = 1)
   
   # generate vector of ni observations for subject i
-  lambdai = exp(Xi%*%beta + Zi%*%gammai)
+  lambdai = exp(Xi %*% beta + Zi %*% gammai)
   y[subjecti] = rpois(ni, lambdai)
-  
 }
+
+## create simulated alzheimers data.table, month only used to index rep measurements here
+library(data.table)
+alz = data.table(
+  y = y,
+  x1 = X[, 2],
+  x2 = X[, 3],
+  x3 = X[, 4],
+  x4 = X[, 5],
+  subject = ID,
+  month = rep(1:5, n)
+)
 
 ```
 
@@ -205,7 +217,9 @@ Now that we have simulated the data, lets check to see if we did this properly b
 
 ```{r}
 start =  Sys.time()
-fit.glmer = glmer(y ~ X - 1 + (X - 1 | ID) ,family = poisson())
+fit.glmer = glmer(y ~ x1 + x2 + x3 + x4 + (x1 + x2 + x3 + x4 |subject) ,
+                  family = poisson(),
+                  data = alz)
 end =  Sys.time()
 
 summary(fit.glmer)
@@ -218,41 +232,41 @@ Looks good, and run time took relatively longer than our previous example!  This
 Now, lets try to fit the model via MCEM using an independence sampler. Here, using the MH independence sampler implies drawing from a multivariate proposal distribution.  Lets keep track of the acceptace rate while it runs.  We will set up the function for the independence sampler with a proposal density $g \sim MVN(\boldsymbol{0}, \Sigma_\gamma^{(t)})$, where $\Sigma_\gamma^{(t)})$ is the estimate of the $q \times q$ random effects covariance matrix at step $t$ of the MCEM algorithm.  Some helper functions are below
 
 ```{r}
-### function for the log likelihood for ith subject 
-f = function(x,yi, Xi, betat, Sigma_gammat){
-
+## function for the log likelihood for ith subject, x is the proposal or current value for gammai
+f = function(x, yi, Xi, betat, Sigma_gammat) {
   # here we assume random effect matrix Zi for subject i same as Xi
   Zi = Xi
   
   # calculate lambdai
-  lambdai = exp(Xi%*%betat + Zi%*%matrix(x, ncol = 1))
+  lambdai = exp(Xi %*% betat + Zi %*% matrix(x, ncol = 1))
   
   # sum across repeated observations for poisson portion
-  lli = sum(dpois(yi, lambdai, log = T)) 
+  lli = sum(dpois(yi, lambdai, log = T))
   
   # dont forget to include the MVN log likelihood
-  lli = lli  + dmvnorm(x,sigma = Sigma_gammat, log = T)
+  lli = lli  + dmvnorm(x, sigma = Sigma_gammat, log = T)
   
   return(lli)
 }
 
-### log proposal density function
-g = function(x, Sigma_gammat){
+## log proposal density function
+g = function(x, Sigma_gammat) {
   dmvnorm(x, sigma = Sigma_gammat, log = T)
 }
 
-### proposal function, MVN(0, Sigma)
-g.sim = function(Sigma_gammat){
+## proposal function, MVN(0, Sigma)
+g.sim = function(Sigma_gammat) {
   rmvnorm(1, sigma = Sigma_gammat)
 }
 
-### calculate MH ratio given f and g, x is the proposal, xt is the current value from the chain
-R = function(xt,x, f, g, yi, Xi, betat, Sigma_gammat){
+## calculate MH ratio given f and g, x is the proposal, xt is the current value from the chain
+R = function(xt, x, f, g, yi, Xi, betat, Sigma_gammat) {
   # log numerator - log denominator
-  logR = ( f(x, yi, Xi, betat, Sigma_gammat) + g(xt, Sigma_gammat) ) - ( f(xt,yi, Xi, betat, Sigma_gammat) + g(x , Sigma_gammat) )
+  logR = (f(x, yi, Xi, betat, Sigma_gammat) + g(xt, Sigma_gammat)) - (f(xt, yi, Xi, betat, Sigma_gammat) + g(x , Sigma_gammat))
   R = exp(logR)
   return(R)
 }
+
 ```
 
 Now that thats done, let’s write the function for the MH algorithm here 
@@ -420,7 +434,7 @@ Now lets start the EM algorithm
 ```{r}
 ## set initial parameters
   tol = 10^-5
-  maxit = 2
+  maxit = 25
   iter = 0
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
@@ -431,7 +445,7 @@ Now lets start the EM algorithm
   Sigma_gamma =  diag(rep(1, 5))
 
 ## fix chain length at 1000 in E-step
-M = 10
+M = 1000
 
 start = Sys.time()
 while(eps > tol & iter < maxit){
@@ -483,7 +497,7 @@ while(eps > tol & iter < maxit){
   
 ```
 
-For the sake of illustration/speed we fixed $M$ to be relatively small and terminated the algorithm after 50 iterations.  In reality we may need a much larger M and more EM iterations to reach convergence. 
+For the sake of illustration/speed we fixed $M$ to be relatively small and terminated the algorithm after 25 iterations.  In reality we may need a much larger M and more EM iterations to reach convergence. 
 
 Lets take a look at the final acceptance rates for each subject's chains
 
@@ -496,7 +510,7 @@ acf(gamma[1:M,1])
 
 This does not look that great, many of the acceptance rates pertaining to each observation's chain are below 0.1.  Ideally, this could be closer to 0.23 in the multivariate setting.  
 
-Lets try rerunning this with MwG and compare the performance.  All we will be doing here is here swapping out the sample and leaving everything else the same.  The code for the MwG sampler is below.  We update $g$ to reflect the random walk sampler, and recall that $g(\boldsymbol{x}^*|\boldsymbol{x}^{(t)}) = h(\boldsymbol{x}^*-\boldsymbol{x}^{(t)})$.  If $h$ is symmetric, which is clearly is for say a N(0,1) density, then terms related to $g$ will cancel out in the MH ratio due to symmetry of the proposal distribution, as $h(\boldsymbol{x}^*-\boldsymbol{x}^{(t)}) = h(\boldsymbol{x}^{(t)}-\boldsymbol{x}^*)$. 
+Lets try rerunning this with MwG and compare the performance.  All we will be doing here is here swapping out the sampler and leaving everything else the same.  The code for the MwG sampler is below.  We update $g$ to reflect the random walk sampler, and recall that $g(\boldsymbol{x}^*|\boldsymbol{x}^{(t)}) = h(\boldsymbol{x}^*-\boldsymbol{x}^{(t)})$.  If $h$ is symmetric, which is clearly the case for a N(0,1) density, then terms related to $g$ will cancel out in the MH ratio due to symmetry of the proposal distribution, as $h(\boldsymbol{x}^*-\boldsymbol{x}^{(t)}) = h(\boldsymbol{x}^{(t)}-\boldsymbol{x}^*)$. 
 
 ```{r}
 # rw density
@@ -643,7 +657,7 @@ while(eps > tol & iter < maxit){
   
 ```
 
-Again for the sake of illustration/speed, we did not increase M to facilitation convergence, a much larger value is needed to do so.  Now lets compare these results with glmer
+Again for the sake of illustration/speed, we did not increase M to facilitate convergence, a much larger value is needed to do so.  Now lets compare these results with glmer
 
 ```{r}
 # glmer
@@ -711,11 +725,11 @@ X_3^{(t+1)} &| \cdot  ∼ f(x_3 | x_1^{(t+1)},x_2^{(t+1)},x_4^{(t)},\ldots,x_p^{
 X_p^{(t+1)} &| \cdot  ∼ f(x_p | x_1^{(t+1)},\ldots,x_{p-1}^{(t+1)}),
 \end{align}
 4.  Adaptation Step: when $t = T_{b+1}$,
-    a.  Update the variance of the proposal distribution $$\log(\sigma_{b+1}) = \log(\sigma_{b}) \pm \delta_{(b+1)},$$ where $\delta_{(b+1)}$ is called the adaptation factor.  We **add** $\delta_{(b+1)}$  when the acceptance rate in step 2(c) above is smaller than say 0.44 (ideal rate for univariate normally distributed target and proposal distributions) and **subtract** when the rate is larger than 0.44. In this manner we are able to automatically tune the variance of the proposal to keep the acceptance rate in the range that we woud like it.  A common choice is $\delta_{(b+1)} = \min(0.01, 1/\sqrt{T_b})$, where 0.01 is an arbitrary choice that limits the amount of adaptation for smaller values of $T_b$.
+    a.  Update the variance of the proposal distribution $$\log(\sigma_{b+1}) = \log(\sigma_{b}) \pm \delta_{(b+1)},$$ where $\delta_{(b+1)}$ is called the adaptation factor.  We **subtract** $\delta_{(b+1)}$  when the acceptance rate in step 2(c) above is smaller than say 0.44 (ideal rate for univariate normally distributed target and proposal distributions) and **add** when the rate is larger than 0.44. In this manner we are able to automatically tune the variance of the proposal to keep the acceptance rate in the range that we woud like it.  A common choice is $\delta_{(b+1)} = \min(0.01, 1/\sqrt{T_b})$, where 0.01 is an arbitrary choice that limits the amount of adaptation for smaller values of $T_b$.
     b.  Set $b  = b +1$
 5.  Increment $t$ and return to step 2.
   
-As discussed in the last lecture, we still need to check convergence criteria pertaining to the two conditions we laid out earlier.  For MwG, this simplies to checking whether $\delta_{(b+1) \rightarrow 0$ as $b \rightarrow \infty$ to satisfy the  diminishing adaptation condition.  The bounded convergence condition is met if $\log(\sigma_b) \in [−Q,Q]$ where $Q<\infty$.  As we can see, these conditions are relatively easy to check.  The approach discussed above can extend to almost any random walk distribution $h$, with the caveat that the MH ratio would have to be updated to include the proposal distributions if $h$ is not symmetric. 
+As discussed in the last lecture, we still need to check convergence criteria pertaining to the two conditions we laid out earlier.  For MwG, this simplies to checking whether $\delta_{(b+1)} \rightarrow 0$ as $b \rightarrow \infty$ to satisfy the  diminishing adaptation condition.  The bounded convergence condition is met if $\log(\sigma_b) \in [−Q,Q]$ where $Q<\infty$.  As we can see, these conditions are relatively easy to check.  The approach discussed above can extend to almost any random walk distribution $h$, with the caveat that the MH ratio would have to be updated to include the proposal distributions if $h$ is not symmetric. 
 
 In the example we gave above, we had only one parameter where the conditional was not known in closed form.  As one can imagine, the AMwG algorithm will be particular useful in cases where the dimension of the parameters is large.  In such cases where multiple parmeters are have unknown conditions, it may be helpful to have separate adaptation steps for each parameter, each with their own adaptive proposal distribution variances.  In this manner, we can tune the propsal in each MwG step separately from the others.  As one can imagine, some parameters may have very different acceptance rates as others. 
 
@@ -723,8 +737,8 @@ Let us now apply this to the problem at hand
 
 ```{r}
 # rw density
-h.sim = function(var = 1){
-  rnorm(1, mean = 0, sd = sqrt(var))
+h.sim = function(sd = 1){
+  rnorm(1, mean = 0, sd = sd)
 }
 
 adaptive.mwg.rw.sampler = function(yi, Xi, betat, Sigma_gammat, M, prev.gamma.i = NULL, b = 50){
@@ -732,44 +746,46 @@ adaptive.mwg.rw.sampler = function(yi, Xi, betat, Sigma_gammat, M, prev.gamma.i 
   # get dimension of gammai
   q = ncol(Sigma_gammat)
   
-  # initialize the chain vector
+  # create the chain vector
   x.indep.chain = matrix(0, M, q)
-  
       
   # initialize proposal variance
-  prop.var = rep(1, q)
+  prop.sd = rep(1, q)
   
-  if(is.null(prev.gamma.i)){
+  # initialize chain
+  if (is.null(prev.gamma.i)) {
     # Simulate initial draw from original proposal density g
-    x.indep.chain[1,] = g.sim(Sigma_gammat)
-  }else{
+    x.indep.chain[1, ] = g.sim(Sigma_gammat)
+  } else{
     # if last value from previous chain avail, start there
-    x.indep.chain[1,] = prev.gamma.i  
-    
+    x.indep.chain[1, ] = prev.gamma.i
   }
   
-  #intialize batch index
+  #initialize batch index
   batch = 0
   
+  # vector to keep track of random effect-specific overall acceptances
+  accept = rep(0,q)
+  
+  # vector to  keep track of random effect-specific acceptances in a given batch
+  b.accept = rep(0,q)
+  
   # now start chain
-  accept = b.accept = rep(0,q)
-  
-  
   for(i in 1:(M-1)){
     
     # set the value at current iteration of the chain to variable xt
     xt = x.indep.chain[i,]
       
-    #looping over chains drawing univariate proposal
-    # conditions unknown here so performing MH at each gibbs step
+    # looping over each element of gammai, drawing univariate proposal for each
+    # conditional dist unknown here so performing MH at each gibbs step
     for(j in 1:q){  
       
-      # set propsal equal to previous
+      # set proposal equal to previous first
       x = xt 
       
-      # only update the jth component
-      # proposal variance is based on vector
-      x[j] = x[j] + h.sim(var = prop.var[j])
+      # then only update the jth component by adding epsilon
+      # variance of h distribution varies wrt to j
+      x[j] = x[j] + h.sim(sd = prop.sd[j])
       
       # calculate MH ratio
       r = min(
@@ -783,6 +799,7 @@ adaptive.mwg.rw.sampler = function(yi, Xi, betat, Sigma_gammat, M, prev.gamma.i 
       keep = rbinom(1, 1, r)
       
       if(keep == 1){
+        
         # if keep = 1, then set next iteration equal to then proposal
         x.indep.chain[i+1,] = x
         
@@ -792,43 +809,50 @@ adaptive.mwg.rw.sampler = function(yi, Xi, betat, Sigma_gammat, M, prev.gamma.i 
         #  update number of acceptances
         accept[j] = accept[j] + 1
         b.accept[j] = b.accept[j] + 1 
+        
       }else{
+        
         # otherwise, carry over value from the current iteration
         x.indep.chain[i+1,] = xt
+        
       }
     }
     # end of a single gibbs cycle
     
-    # if at end of batch
+    # if at end of batch...
     if(floor(i/b) == ceiling(i/b)){
       
-      # increment for proposal variance
-      delta.b = min(0.01, 1/sqrt(i))
+      # calculate increment for proposal variance
+      delta.b = min(0.1, 1/sqrt(i))
       
       # loop over proposal density variance vector
       for(j in 1:q){
-        if(b.accept[j]/b < 0.44){
-          # if less, add to variance
-          prop.var[j] = log(sqrt(prop.var[j])) + delta.b        
-        }else{
+        
+        if(b.accept[j]/b > 0.44){
+          
+          # if greater, add to sd
+          prop.sd[j] = exp( log(prop.sd[j]) + delta.b )     
+          
+        }else if(b.accept[j]/b < 0.44){
+          
           # otherwise, subtract
-          prop.var[j] = log(sqrt(prop.var[j])) - delta.b
+          prop.sd[j] = exp( log(prop.sd[j]) - delta.b )   
+          
         }
       }
       
-      # tranform back from log sqrt scale
-      prop.var = exp(prop.var)^2
       # reset batch counter
       b.accept = rep(0, q)
       
       # increment batch index
       batch = batch + 1
+      
     } 
     
   }
   # end chain 
   
-  return(list(gammai = x.indep.chain, ar = accept/M, prop.var = prop.var))
+  return(list(gammai = x.indep.chain, ar = accept/M, prop.sd = prop.sd))
 }
 ```
 
@@ -837,30 +861,41 @@ Now, lets swap out the sampler and rerun
 
 ```{r}
 ## set initial parameters
-  tol = 10^-5
+  tol = 10 ^ -5
   iter = 0
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
   prev.gamma = NULL
-  
+
 ## starting values
-  beta = as.vector(glm(y ~ X-1, family = poisson())$coef)
+  beta = as.vector(glm(y ~ X - 1, family = poisson())$coef)
   Sigma_gamma =  diag(rep(1, 5))
 
 
 start = Sys.time()
-while(eps > tol & iter < maxit){
-  
+while (eps > tol & iter < maxit) {
   ## save old qfunction
   qfunction0 = qfunction
   
   ## obtain last chain value for each obs if iter > 0
-  if(iter > 0){
-    prev.gamma = gamma[seq(M,nrow(gamma), by = M),]
+  if (iter > 0) {
+    prev.gamma = gamma[seq(M, nrow(gamma), by = M), ]
   }
   
   ## E-step
-  estep = e.step(y = y, X = X, ID = ID, betat = beta, Sigma_gammat = Sigma_gamma, M = M, n = n, ni = ni, sampler = adaptive.mwg.rw.sampler, prev.gamma = prev.gamma)
+  estep = e.step(
+    y = y,
+    X = X,
+    ID = ID,
+    betat = beta,
+    Sigma_gammat = Sigma_gamma,
+    M = M,
+    n = n,
+    ni = ni,
+    sampler = adaptive.mwg.rw.sampler, ###
+    prev.gamma = prev.gamma
+  )
+  
   gamma = estep$gamma
   qfunction = estep$Qfunction
   offset = estep$offset
@@ -868,34 +903,48 @@ while(eps > tol & iter < maxit){
   Xaug = estep$Xaug
   
   ## Calculate relative change in qfunction from prior iteration
-  eps  = abs(qfunction-qfunction0)/abs(qfunction0)
-    
+  eps  = abs(qfunction - qfunction0) / abs(qfunction0)
+  
   ## Start M-step
-    
+  
   # s2gamma, MLE for sigma^2 from normal with mean 0, averaged over M
   # closed form derived from Q function approximation
-  Sigma_gamma = t(gamma) %*% gamma/(n*M)
-
-  aug = rep(1:n,each = M)
-  fit = glm(yaug ~ Xaug -1, 
-              family = poisson(), 
-              weights = rep(1/M, nrow(Xaug)), 
-              offset = offset,
-              # use starting value from previous step
-              start = beta
+  
+  Sigma_gamma = t(gamma) %*% gamma / (n * M)
+  
+  # update beta with glm
+  aug = rep(1:n, each = M)
+  fit = glm(
+    yaug ~ Xaug - 1,
+    family = poisson(),
+    weights = rep(1 / M, nrow(Xaug)),
+    offset = offset,
+    # use starting value from previous step
+    start = beta
   )
   beta = as.vector(fit$coefficients)
-    
-    ## update iterator
-    iter = iter + 1
-    if(iter == maxit) warning("Iteration limit reached without convergence")
-    
-    ## print out info to keep track
-    cat(sprintf("Iter: %d Qf: %.3f sigma_gamma1: %f beta0: %.3f beta1:%.3f eps:%f\n",iter, qfunction,diag(Sigma_gamma)[1], beta[1],beta[2], eps))
-  }
-  end = Sys.time()
-  print(end - start)
   
+  ## update iterator
+  iter = iter + 1
+  if (iter == maxit)
+    warning("Iteration limit reached without convergence")
+  
+  ## print out info to keep track
+  cat(
+    sprintf(
+      "Iter: %d Qf: %.3f sigma_gamma1: %f beta0: %.3f beta1:%.3f eps:%f\n",
+      iter,
+      qfunction,
+      diag(Sigma_gamma)[1],
+      beta[1],
+      beta[2],
+      eps
+    )
+  )
+}
+end = Sys.time()
+print(end - start)
+
 ```
 
 Now lets take a look at the acceptance rates
@@ -911,8 +960,7 @@ hist(estep$ar[,4], xlim = c(0,1));abline(v = 0.44);
 
 ```
 
-The acceptance rates are better than the first time around, and we see that they are in some cases close to the optimal value of 0.44 for univariate proposals.  However, this is not the case across all samples, and across various components of $\boldsymbol{\gamma}$.  We can however improve on this using adaptive methods, discussed in the next section. 
-
+The acceptance rates are better than the first time around, and we see that they are in some mostly close to the optimal value of 0.44 for univariate proposals.  
 Before doing so lets look at some traceplots
 
 ```{r}
@@ -927,7 +975,7 @@ In our previous discussion of the Metropolis algorithm, we mentioned that a good
 
 The Adaptive Metropolis (AM) algorithm is a variant of the Metropolis algorithm where one instead updates the variance of the proposal distribution as the algorithm runs.  Similar to the previous section, the goal of this update is to ensure that the acceptance rate of the sample is in a suitable range. We can think of AM as a one-step RW Metropolis algorithm with a normal proposal distribution, where the variance of tihs proposal distribution is updated using the previous iterations of the chain.
 
-Lets consider a RW MH sampler where the proposal density is $N(\boldsymbol{X}^{(t)}, \Sigma$. Clearly we assume here that $\boldsymbol{X}^{(t)}$ is multivariate, and therefore we have a multivariate proposal distribution.  For the AM sampler, at each iteration of the chain, a candidate value $\boldsymbol{X}^∗$ is sampled from a proposal distribution $N(\boldsymbol{X}^{(t)}, \lambda\Sigma^{(t)})$, where the goal is to tune the covariance matrix $\Sigma^{(t)}$ to improve the acceptance rate. 
+Lets consider a RW MH sampler where the proposal density is $N(\boldsymbol{X}^{(t)}, \Sigma)$. Clearly we assume here that $\boldsymbol{X}^{(t)}$ is multivariate, and therefore we have a multivariate proposal distribution.  For the AM sampler, at each iteration of the chain, a candidate value $\boldsymbol{X}^∗$ is sampled from a proposal distribution $N(\boldsymbol{X}^{(t)}, \lambda\Sigma^{(t)})$, where the goal is to tune the covariance matrix $\Sigma^{(t)}$ to improve the acceptance rate. 
 
 For a $d$-dimensional spherical multivariate normal target distribution where $\Sigma_\pi$ is the true covariance matrix of the target distribution, the proposal distribution $(2.382/p)\Sigma_\pi$ has been shown to be optimal with a and optiomal acceptance rate of 44% when $p = 1$.  This optimal acceptance rate decreases to 23% as $p$ increases. 
 
@@ -1086,19 +1134,3 @@ lines(x+.5, dnbinom(x,mu = 2.552, size = 1/0.02), col = "blue")
 
 The NB fit is very similar to the poisson fit. 
 
-# Project instruction/notes
-
-Sources for data:
-
-https://archive.ics.uci.edu/ml/index.php
-https://ai.google/tools/datasets/ 
-https://www.kaggle.com/datasets
-
-Each group of 4 should 
-
-1.  Identifying a question in their selected dataset
-2.  Identify a model to evaluate the question 
-3.  Code up the model from scratch 
-4.  Implement the model in an R package that uses knowledge from Module 1 
-5.  Summarize results in R markdown document 
-6.  Present the results in the last week of class 
