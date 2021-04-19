@@ -128,7 +128,7 @@ Clearly the integral here is multidimensional with respect to the random effect 
 \begin{align}
 Q_i(\boldsymbol{\theta}|\boldsymbol{\theta}^{(t)}) &= \int \left[\log (f(\boldsymbol{y}_{i} | \boldsymbol{\lambda}_{i}) + \log\left(\phi(\boldsymbol{\gamma}_i| 0, \Sigma_{\gamma})\right)\right]f(\boldsymbol{\gamma}_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\boldsymbol{\gamma}_i\\
 &= \int \left[\sum_{j = 1}^{5}\log(f(y_{ij} | \lambda_{ij}) + \log\left(\phi(\boldsymbol{\gamma}_i| 0, \Sigma_{\gamma})\right)\right]f(\boldsymbol{\gamma}_i | \boldsymbol{y}_o, \boldsymbol{\theta}^{(t)})d\boldsymbol{\gamma}_i\\
-&=\frac{1}{M}\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log\left(f(y_{ij} | \lambda_{ijk})\right) + \log\left(\phi(X_k| 0, \Sigma_{\gamma})\right)\right]
+&\approx \frac{1}{M}\sum_{k = 1}^M\left[\sum_{j = 1}^{5}\log\left(f(y_{ij} | \lambda_{ijk})\right) + \log\left(\phi(X_k| 0, \Sigma_{\gamma})\right)\right]
 \end{align}
 
 Lets simulate some data from such a model below.  We we will a similar structure as the previous Poisson GLMM example, assuming $n = 22$ subjects, $n_i = 5$ measurements per subjects, and a random intercept.  We will also add on 4 fixed effects predictors, each with their own random slope as well.  Giving the increase dimenson however we will bump $n$ to 100.
@@ -434,7 +434,7 @@ Now lets start the EM algorithm
 ```{r}
 ## set initial parameters
   tol = 10^-5
-  maxit = 25
+  maxit = 35
   iter = 0
   eps = Inf
   qfunction = -10000 # using Qfunction for convergence
@@ -497,7 +497,7 @@ while(eps > tol & iter < maxit){
   
 ```
 
-For the sake of illustration/speed we fixed $M$ to be relatively small and terminated the algorithm after 25 iterations.  In reality we may need a much larger M and more EM iterations to reach convergence. 
+For the sake of illustration/speed we fixed $M$ to be relatively small and terminated the algorithm after 35 iterations.  In reality we may need a much larger M and more EM iterations to reach convergence. 
 
 Lets take a look at the final acceptance rates for each subject's chains
 

@@ -20,9 +20,9 @@ searching for current methods implementing deep learning for a
 specific problem of interest.
 
 This lecture note borrows from Andrew Ng's course notes for
-[supervised learning](http://cs229.stanford.edu/notes/cs229-notes1.pdf), 
+[supervised learning](http://cs229.stanford.edu/summer2020/cs229-notes1.pdf), 
 Ng and Katanforoosh's notes on 
-[deep learning](http://cs229.stanford.edu/notes/cs229-notes-deep_learning.pdf),
+[deep learning](http://cs229.stanford.edu/summer2020/cs229-notes-deep_learning.pdf),
 and the (offline) machine learning course notes
 of [Guenther Walther](http://statweb.stanford.edu/~gwalther/).
 
@@ -132,22 +132,40 @@ dat <- data.frame(y=factor(y),x1,x2)
 Here we encode the update rule, and run five iterations:
 
 ```{r}
+# pick initial values for w and b
 w <- c(-4,1)
 b <- 3
+
+# create matrices to track w and b for 6 iterations/updates
 w.mat <- matrix(nrow=6,ncol=2)
 b.vec <- numeric(6)
+
+# choose learning rate
 lambda <- 0.01
+
+# run the for loop
 for (i in 1:6) {
+  # save current w and b
   w.mat[i,] <- w
   b.vec[i] <- b
+  
+  # get yhat given current w and b via perceptron
   y.hat <- ifelse(cbind(x1,x2) %*% w + b >= 0, 1, 0)
+  
+  # update each w (two)
   for (j in 1:2) {
     w[j] <- w[j] + lambda * sum((y.hat - y) * x1)
   }
+  
+  # update b
   b <- b + lambda * sum(y.hat - y)
 }
+
+# save final w and b
 w.mat[i,] <- w
 b.vec[i] <- b
+
+# create data frame for plotting
 dat2 <- data.frame(b=b.vec, w1=w.mat[,1], w2=w.mat[,2], iter=1:6)
 ```
 
@@ -163,13 +181,16 @@ ggplot(dat, aes(x1,x2,shape=y)) + geom_point() +
 
 It is clear that a classifier of the form of the perceptron will only 
 generate linear decision boundaries. However, we can add multiple
-layers of perceptrons to form a more complex classifier. First, let's
-visualize the kind of contours we obtain when we go straight from
-inputs to the target with a single perceptron:
+layers of perceptrons to form a more complex classifier. 
+
+First, let's visualize the kind of contours we obtain when we go straight from
+inputs to the target with a single perceptron, assuming $w = (2, -1)$ and $b = 1$:
 
 ```{r fig.width=5.5}
 s <- seq(from=-2,to=2,length=400)
+# grid spanning  cominbations of x1 and x2 given s
 grid <- expand.grid(x1=s,x2=s)
+# predict y's across  grid region
 grid$y <- with(grid, x1 * 2 + x2 * -1 + 1)
 ggplot(grid, aes(x1,x2,z=y,fill=y)) +
   geom_raster(alpha=.5) +
@@ -187,17 +208,31 @@ with such a network?
 
 ```{r fig.width=5.5}
 s <- seq(from=-2,to=2,length=400)
+# creating grid again
 grid <- expand.grid(x1=s,x2=s)
+# this is same as the previous example, except now we use the perceptron
+# there are 4 nodes in the hidden layer, each with separate w's, between x  and the predicted y
+# node 1, w = (1,  1), b = 1
 grid$h1 <- with(grid, ifelse(1*x1 + 1*x2 + 1 >= 0, 1, 0))
+# node 2, w = (1,  -1), b = 1
 grid$h2 <- with(grid, ifelse(1*x1 - 1*x2 + 1 >= 0, 1, 0))
+# node 3, w = (-1,  1), b = 1
 grid$h3 <- with(grid, ifelse(-1*x1 + 1*x2 + 1 >= 0, 1, 0))
+# node 4, w = (-1,  -1), b = 1
 grid$h4 <- with(grid, ifelse(-1*x1 - 1*x2 + 1 >= 0, 1, 0))
+# final linear output node, taking input the 4 nodes from the hidden layer to predict y
+# w = (1, 1, 1, 1) here, taking the output from each hidden layer node and b = -3.5
 grid$y <- with(grid, 1*h1 + 1*h2 + 1*h3 + 1*h4 - 3.5)
+# plot
 ggplot(grid, aes(x1,x2,z=y,fill=y)) +
   geom_raster(alpha=.5) +
   scale_fill_continuous(low="blue",high="green") +
   geom_contour()
 ```
+
+The hidden layer adds a round of intermediate transformations of the input variables.  The outputs from these nodes are then passed on to a final output layer for a final round of transformation.  By applying a series of simple linear transformations, one can achieve very complex decision boundaries.  
+
+In practice, the values for the weights and biases in each node are unknown, and are therefore learned with gradient descent.  More complex decision boundaries can be learned with adding additional nodes and hidden layers (the latter is where the "deep" in deep learning)
 
 There is a much more elegant visualization from *Tensorflow* of how
 multiple layers of nodes/neurons can be used to learn complex
@@ -208,16 +243,12 @@ of visualization):
 
 Having gotten a sense for how multiple layers of nodes can be used to
 learn complex patterns, a natural question is how we will be able to
-fit the weights for these multi-layer perceptrons (MLP). What if we
-attempt our approach from earlier: define a loss function such as the sum
-of squared error, and then take the partial derivative of this with
-respect to each weight, and move some direction down the gradient at
-each iteration. There are numerous problems with the gradient descent
-approach: (1) certain *activation functions* such as the step function
-we had above and the Rectified linear unit (ReLU) function, as well as
-the addition of hidden layers, make taking the derivative difficult,
-and (2) there will be many local minima where the descent method gets
-stuck.
+fit the weights for these multi-layer perceptrons (MLP). 
+
+What if we attempt our approach from earlier: define a loss function, and then take the partial derivative of this with respect to each weight, and move some direction down the gradient at
+each iteration. There are numerous problems with the gradient descent approach here: 
+1. Certain *activation functions* such as the step function we had above and the Rectified linear unit (ReLU) function, as well as the addition of hidden layers, make taking the derivative difficult, and 
+2. Here will be many local minima where the descent method gets stuck.
 
 Instead, a method called *backpropagation* can be used. This method
 starts with the layer closest to the target *y* and, one weight at a
@@ -232,10 +263,9 @@ from the layers closer to the target are propagated backward through
 the network recursively. We do not derive or demonstrate
 backpropagation in this note (it is derived in the notes from Ng and
 Katanforoosh on
-[deep learning](http://cs229.stanford.edu/notes/cs229-notes-deep_learning.pdf) and
-[backpropagation](http://cs229.stanford.edu/notes/cs229-notes-backprop.pdf)),
-but instead will describe a number of options when building neural
-networks, before demonstrating the use of one in classifying
+[deep learning](http://cs229.stanford.edu/summer2020/cs229-notes-deep_learning.pdf) and
+[backpropagation](http://cs229.stanford.edu/notes-spring2019/backprop.pdf),
+but instead will describe a number of options when building neural networks, before demonstrating the use of one in classifying
 handwritten digits:
 
 # Activation functions
@@ -302,7 +332,8 @@ some meaningful spatial relationship that can be captured by features
 learned in the hidden layers. A good extended reference for
 convolutional neural networks is the
 [CNN lecture note by Andrej Karpathy](http://cs231n.github.io/convolutional-networks/).
-One motivation of convolutional layers is that, we may want hidden
+
+One motivation of convolutional layers is that we may want hidden
 layers of the network to be able to detect common patterns across the
 image, regardless of where they occur positionally in the image. We
 can convolve a *filter* across the pixels of the image (or voxels of a
@@ -368,11 +399,24 @@ pixels.
 library(readr)
 library(tidyr)
 library(dplyr)
+
+# read in data
 mnist_raw <- read_csv("mnist_train.csv", col_names=FALSE)
+
+# check dimensions and a few observations
 dim(mnist_raw)
 mnist_raw[1:5,1:5]
+
+# reshape into table with columns as the following
+  # label
+  # obs ID (instance)
+  # pixel number
+  # value of pixel
+  # x coordinate of pixel in image
+  # y coordinate of pixel in image
+
 pixels_gathered <- mnist_raw %>%
-  head(10000) %>%
+  head(10000) %>% # take 1st 10000 obs
   rename(label = X1) %>%
   mutate(instance = row_number()) %>%
   gather(pixel, value, -label, -instance) %>%
@@ -400,11 +444,18 @@ predict the digits 3, 5 and 8. We will see that even these three
 digits are not trivial to classify: 
 
 ```{r}
+# drop label and normalize values to between 0 and 1
 dat <- as.data.frame(mnist_raw[1:10000,-1])/255
+
+# convert label to factor 
 y <- factor(mnist_raw$X1[1:10000])
+
+# subset only to images with labels 3, 5, or 8
 idx <- y %in% c("3","5","8")
 dat <- dat[idx,]
 y <- droplevels(y[idx])
+
+# pca
 pc <- prcomp(dat)
 ```
 
@@ -427,11 +478,12 @@ table(y)
 
 A very simple method for classification is *k-nearest neighbors*,
 where we calculate the Euclidean distance of each sample in the test
-or out-of-bag set to those samples in the training set. A majority
+or out-of-bag set to those samples in the training set. For classification problems, a majority
 vote of the closest *k* training samples becomes the prediction.
 The difficulties for *kNN* are that distances in high-dimensional space
 become problematic, due to what is called the 
 [curse of dimensionality](https://en.wikipedia.org/wiki/Curse_of_dimensionality#Distance_functions).
+
 Briefly, it becomes difficult to get a good sense of neighbors in high
 dimensional space. Another problem is that the algorithm is not
 sparse: we have to save the entire training dataset in order to

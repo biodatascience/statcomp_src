@@ -42,9 +42,10 @@ library(ggplot2)
 ggplot(dat, aes(x1,x2,col=y)) + geom_point()
 ```
 
-Using LDA gives us the following classification boundary. In this
-case, the boundary line is given by `-coefs[1]/coefs[2]`, but instead
-we use code which generalizes for other cases (including multiple
+Using LDA gives us the following classification boundary. 
+<!-- In this -->
+<!-- case, the boundary line is given by `-coefs[1]/coefs[2]`, but instead -->
+We use code below which generalizes for other cases (including multiple
 classes, or non-linear boundaries as we will explore below). As you
 can recall, the boundary line for the LDA is determined by the
 likelihood ratio where two Gaussian distributions are fit to the data
@@ -138,7 +139,7 @@ ggplot(dat, aes(x1,x2,col=y)) + geom_point() +
 
 First we will give some motivation to how we solve for *w* and *b*
 above. The notes below follow closely 
-[Andrew Ng's notes on SVM](http://cs229.stanford.edu/notes/cs229-notes3.pdf),
+[Andrew Ng's notes on SVM](http://cs229.stanford.edu/summer2020/cs229-notes3.pdf),
 which I recommend for more in depth derivation and details on the
 algorithms which solve the SVM.
 
@@ -226,7 +227,7 @@ n <- length(y)
 p <- ncol(x)
 D <- matrix(0, nrow=p+1, ncol=p+1)
 diag(D) <- 1
-D[p+1,p+1] <- 1e-6
+D[p+1,p+1] <- 1e-6 # ensure D is positive def
 d <- numeric(p+1)
 AT <- cbind(as.matrix(x), rep(-1, n))
 A <- t(AT * yy)
@@ -415,10 +416,11 @@ to enumerate the $x_i$ themselves.
 
 The radial basis function kernel we used above gives a high value for
 $K(x_i, x_j)$ if the points are close together, and a value that
-quickly drops off to zero if the points are not close. It is easy to
-compute the value of the kernel function for two points, however the
-feature space is represented by an 
-[infinite sum](https://en.wikipedia.org/wiki/Radial_basis_function_kernel).
+quickly drops off to zero if the points are not close. 
+<!-- It is easy to -->
+<!-- compute the value of the kernel function for two points, however the -->
+<!-- feature space is represented by an  -->
+<!-- [infinite sum](https://en.wikipedia.org/wiki/Radial_basis_function_kernel). -->
 
 # Extensions to regression
 
@@ -427,7 +429,7 @@ which extends the SVM model to predict continuous covariates. Two such
 references are:
 
 * Drucker et al. [Support Vector Regression Machines](https://papers.nips.cc/paper/1238-support-vector-regression-machines) (1996)
-* Suykens and Vandewalle [Least Squares Support Vector Machine Classifiers](https://doi.org/10.1023/A:101862860) (1999)
+* Suykens and Vandewalle [Least Squares Support Vector Machine Classifiers](https://link.springer.com/content/pdf/10.1023/A:1018628609742.pdf) (1999)
 
 These can be accessed within *caret* by selecting one of the 
 [SVM models](https://topepo.github.io/caret/train-models-by-tag.html#support-vector-machines)
@@ -435,5 +437,5 @@ with a *regression* tag.
 
 # Additional reference for these notes
 
-* [Andrew Ng's notes on SVM](http://cs229.stanford.edu/notes/cs229-notes3.pdf)
+* [Andrew Ng's notes on SVM](http://cs229.stanford.edu/summer2020/cs229-notes3.pdf)
   

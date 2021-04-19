@@ -505,7 +505,7 @@ Qi = function(datai,
 ```
 
 
-Now here is the higher level function that sums over each subject. 
+Now here is the higher level function that loops over each subject. 
 
 ```{r}
 # Same parameters above except for the following one
@@ -805,9 +805,9 @@ This is in contrast to Rejection Sampling where we are directly sampling from $f
 
 With MCMC the approach is more general, where we specify the proposal distribution and afterwards check diagnostics regarding the chain.  
 
-One interesting thing to note is that the MH ratio can be interpreted as a ratio of importance weights, where if $w^∗ = f(X^∗)/g(X^∗)$ and $w^{(t)} = f(x^{(t)})/g(x^{(t)}), then R(x^{(t)},X^∗)= w^∗/w^{(t)}$.  This suggests that if the prior draw results in a larger than usual $w^{(t)}$ than typical $w^∗$ values, the chain may get stuck for a while at $x^{(t)}$ (large denominatior --> small ratio --> low acceptance probability of new proposals). 
+One interesting thing to note is that the MH ratio can be interpreted as a ratio of importance weights, where if $w^∗ = f(X^∗)/g(X^∗)$ and $w^{(t)} = f(x^{(t)})/g(x^{(t)})$, then $R(x^{(t)},X^∗)= w^∗/w^{(t)}$.  This suggests that if the prior draw results in a larger than usual $w^{(t)}$ than typical $w^∗$ values, the chain may get stuck for a while at $x^{(t)}$ (large denominator --> small ratio --> low acceptance probability of new proposals). 
 
-As a result, the criteria for choosing importance sampling distributiona are also relevant to choosing proposal distributions.  We will talk more about this after some of the following code examples. 
+As a result, the criteria for choosing importance sampling distributions are also relevant to choosing good proposal distributions.  We will talk more about this after some of the following code examples. 
 
 ### Example:  Bayesian Inference in mixture models
 
@@ -862,6 +862,7 @@ In the first case we use a Beta(1,1) density as the proposal density. This is eq
 
 ```{r}
 # function for the mixture likelihood
+# note that since the prior is uniform it is not specified in f below (enters as a constant)
 f = function(x,y){
   prod(x*dnorm(y,7,0.5) + (1-x)*dnorm(y,10,0.5))
 }
@@ -877,6 +878,7 @@ g.sim = function(){
 }
 
 # Define MH ratio function given f and g, x is the proposal, xt is the current value from the chain
+# note that we specify g here just for completeness (it cancels out with the uniform prior as mentioned earlier)
 R = function(xt,x, f, g, y){
   f(x,y)*g(xt)/(f(xt,y)*g(x))
 }
@@ -1034,8 +1036,10 @@ inv.logit = function(u){
 
 # log likelihood for mixture model
 log.like = function(pi,y){
-  sum(log(pi*dnorm(y, 7, .5) + (1 - pi)*dnorm(y, 10, .5)))
+  sum(log(pi*dnorm(y, 7, .5) + (1 - pi)*dnorm(y, 10, .5))) 
 } 
+
+# notice that we do not specify the prior here or in the MH ratio below as it is uniform
 
 # draw epsilon for the random walk.  This is equivalent to drawing from h
 r.walk = function(){
@@ -1047,7 +1051,7 @@ g.sim = function(u){
   u + r.walk()
 } 
 
-# since g(u*|u^{(t)}) = h(u* -u^{(t)}) = U(-1,1), we know it is  symmetric, and therefore it eventually cancels out in the MR ratio.
+# since g(u*|u^{(t)}) = h(u* -u^{(t)}) = U(-1,1), we know it is  symmetric, and therefore it eventually cancels out in the MR ratio.  
 
 ```
 
@@ -1075,12 +1079,21 @@ for (i in 1:(M-1)) {
 	# now transform to get proposal in terms of pi
 	pi[i+1] = inv.logit(u[i+1])
 	
-	# calculate MH ratio on the **log scale**
-	# logR = (log.lik(pi*)  + g(logit(pi*) | logit(pi^{(t)})) + log(|J|))
-	#          - (log.lik(pi^{(t)})  + g(logit(pi^{(t)}) | logit(pi*)) + log(|J|))
-	# where |J| = exp(u), so log(|J|) = u.  Since pi = exp(u)/(1+exp(u)), dpi/du = exp(u).
-	# This follows eq 7.7 in the book (p. 208).  Alternatively, can use approach of eq 7.8
-  logR = (log.like(pi[i+1], y) + u[i]) - (log.like(pi[i], y) + u[i+1])
+	# calculate MH ratio on the log scale.  Two ways to do this:
+	
+	# 1) logR = ( log.lik(pi*)  + log(g(logit(pi^{(t)}) | logit(pi*))) + log(|J(pi^{(t)}|) )
+	#          - ( log.lik(pi^{(t)})  + log(g(logit(pi*) | logit(pi^{(t)}))) + log(|J(pi*)|) )
+	# where |J| = 1/(p(1-p)), since u = logit(p/(1-p)).  g's are uniform here/
+	# This follows eq 7.7 in the book (p. 208).  Alternatively, can use 
+	
+	# 2) logR = (log.lik(e^u*/1+e^u*)  + log(g(u^{(t)} | u*) + log(|J(u*)|)) )
+	#          - (log.lik(e^{u^{(t)}}/1+e^{u^{(t)}})  + log(g(u* | u^{(t)})) + log(|J(u^{(t)})|)
+	# where |J| = exp(u)/(1+exp(u))^2, since pi = exp(u)/(1+exp(u)). g's are uniform here.
+	# This follows eq 7.8 in the book (p. 208).  
+	
+	# Either way ends up being equivalent - we use 2) below
+	
+  logR = (log.like(exp(u[i+1])/(1+exp(u[i+1])), y) + u[i+1] - log((1 + exp(u[i+1]))^2) ) - ( log.like(exp(u[i])/(1+exp(u[i])), y) + u[i] - log((1 + exp(u[i]))^2) )
   
   # transform back from log scale
   R = exp(logR)
@@ -1137,13 +1150,21 @@ for (i in 1:(M-1)) {
 	# now transform to get proposal in terms of pi
 	pi[i+1] = inv.logit(u[i+1])
 	
-	# calculate MH ratio on the log scale
-	# logR = (log.lik(pi*)  + g(logit(pi*) | logit(pi^{(t)})) + log(|J|))
-	#          - (log.lik(pi^{(t)})  + g(logit(pi^{(t)}) | logit(pi*)) + log(|J|))
-	# where |J| = exp(u).  Since pi = exp(u)/(1+exp(u)), dpi/du = exp(u).
-	# This follows eq 7.7 in the book (p. 208).  Alternatively, can use approach of eq 7.8
+	# calculate MH ratio on the log scale.  Two ways to do this:
 	
-  logR = (log.like(pi[i+1], y) + u[i]) - (log.like(pi[i], y) + u[i+1])
+	# 1) logR = ( log.lik(pi*)  + log(g(logit(pi^{(t)}) | logit(pi*))) + log(|J(pi^{(t)}|) )
+	#          - ( log.lik(pi^{(t)})  + log(g(logit(pi*) | logit(pi^{(t)}))) + log(|J(pi*)|) )
+	# where |J| = 1/(p(1-p)), since u = logit(p/(1-p)).  g's are uniform here
+	# This follows eq 7.7 in the book (p. 208).  Alternatively, can use 
+	
+	# 2) logR = (log.lik(e^u*/1+e^u*)  + log(g(u^{(t)} | u*)) + log(|J(u*)|) )
+	#          - (log.lik(e^{u^{(t)}}/1+e^{u^{(t)}})  + log(g(u* | u^{(t)})) + log(|J(u^{(t)})|)
+	# where |J| = exp(u)/(1+exp(u))^2, since pi = exp(u)/(1+exp(u)). g's are uniform here. 
+	# This follows eq 7.8 in the book (p. 208).  
+	
+	# Either way ends up being equivalent - we use 2) below
+	
+  logR = (log.like(exp(u[i+1])/(1+exp(u[i+1])), y) + u[i+1] - log((1 + exp(u[i+1]))^2) ) - ( log.like(exp(u[i])/(1+exp(u[i])), y) + u[i] - log((1 + exp(u[i]))^2) )
   
   # transform back from log scale
   R = exp(logR)
@@ -1298,7 +1319,7 @@ f(x_i^* | \boldsymbol{x}_{-i}^{(t)}) \text{ if } \boldsymbol{X}^*_{-i} = \boldsy
 \end{cases}
 \end{align}
 
-That is, the proposal density here is exactly the conditional target density (which is known here).  It is easy to show that in this case the Metropolis–Hastings ratio equals 1, which means that the candidate is always accepted. 
+That is, the proposal density here is exactly the conditional target density (which is known here).  Therefore, the Metropolis–Hastings ratio equals 1 for this update, which means that the candidate is always accepted. We will see in the next lecture an example of Metropolis-within-gibbs, where none of the conditional densities are known and are approximated with separate metropolis steps instead. In that scenario the proposal density is not equal to the target density (since the conditional density not known in advance), and therefore the MH ratio will not always equal 1 as in the example above. 
 
 The Gibbs sampler should not be applied when the dimensionality of $\boldsymbol{X}$ changes (we will discuss methods for this situation in the next lecture).  Some tips regarding implementing the Gibbs sampler is given below. 
 
@@ -1472,7 +1493,7 @@ identically distributed sample with the same variance as the observed sample.
 To estimate the effective sample size, the first step is to compute the estimated
 autocorrelation time, a summary measure of the autocorrelation between realizations
 and their rate of decay. The autocorrelation time is given by $\tau = 1+ 2\sum_{k =1}^{\infty}\rho(k)$ where $\rho(k)$ is the autocorrelation at lag $k$ in the chain. A common approach is to truncate the summation when the observed autocorrelation at lag $k$ $\hat{\rho}(k) < 0.1$ rather than summing to $\infty$ . The effective sample size for an MCMC run with $L$ iterations
-after burn-in can be estimated using $L/\hat{\rho}(k)$ .
+after burn-in can be estimated using $L/\hat{\tau}$.
 
 Effective sample size can be used to compare the efficiency of competing
 MCMC samplers for a given problem. For a fixed number of iterations, an MCMC
@@ -1528,7 +1549,7 @@ conserve more iterations for inference.
 For easier implementation, various software packages have been developed to automate the development of MCMC algorithms
 and the related diagnostics. The most comprehensive software to date is the BUGS
 (Bayesian inference Using Gibbs Sampling) software family with developments for
-several platforms [610]. A popular application mode is to use BUGS within the R statistical
+several platforms. A popular application mode is to use BUGS within the R statistical
 package. Packages in R like CODA and BOA allow users to
 easily construct the relevant convergence diagnostics.
 

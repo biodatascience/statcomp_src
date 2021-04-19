@@ -8,7 +8,9 @@ output: html_document
 The last module of this course will be an overview of Machine Learning
 (ML), including machine learning essentials, and introduction to
 support vector machines (SVM), random forests (RF), and neural
-networks (NN). Here we begin with some conceptual and procedural
+networks (NN). 
+
+Here we begin with some conceptual and procedural
 frameworks that are essential for conducting analysis or research with
 machine learning tools. The most important considerations, which span
 across a variety of tools, are:
@@ -31,7 +33,9 @@ data used for fitting the model, the *training set*, or on new data,
 the *test set*. As statisticians, you should now be familiar with the
 idea that the performance on the model on the training set will
 exaggerate the models performance on new data, due to
-*overfitting*. While some methods are more prone to overfitting than
+*overfitting*. 
+
+While some methods are more prone to overfitting than
 others, it is an unavoidable property of model training, which we will
 discuss more in this note. In either case we can evaluate the
 prediction with various metrics. For continuous data, three common
@@ -44,7 +48,7 @@ evaluation metrics are:
 Two common definitions for predictive $R^2$ are the squared Pearson
 correlation of the true values with the predicted values (which cannot
 be negative) and 1 - sum of squared residuals / total sum of
-squares. 
+squares. Most the time these will match, but may not depending on the form of linear model (regrssing the true values on the predicted values) used to compute the sums of squares.
 
 For categorical data, there are also various evaluation metrics. If
 the outcome is binary, it is common to consider sensitivity,
@@ -65,7 +69,9 @@ In the machine learning notes, we will leverage an R package called
 of machine learning algorithms. *caret* stands for Classification And
 REgression Training, meaning that the package can be used for
 predicting categorical (classification) or continuous data
-(regression). While there may be reasons to use the individual
+(regression). 
+
+While there may be reasons to use the individual
 packages themselves, *caret* gives us control of many functions in
 separate R packages (the degree of control varies across package),
 while wrapping them up in a consistent way so that users are less
@@ -77,7 +83,9 @@ learning library in Python for construction of neural networks. While
 there is limited support for constructing Keras models via *caret*, it
 would make sense to instead use Keras in Python or using the R *keras*
 package rather than the *caret* package for building certain
-models. And as you go deeper into research in machine learning, and
+models. 
+
+And as you go deeper into research in machine learning, and
 development of new methods, you will likely switch to C or C++ for the
 algorithm itself. In this last module of the course, we will not cover
 developing new machine learning methods, but instead show how the
@@ -98,7 +106,9 @@ predictor variables (sometimes called features) `x` and the outcome
 (or target) `y` to a function called `train` and specify
 `method="lm"`. We can also pass additional arguments using the
 `trainControl` function which is provided to the `trControl`
-argument. `lm` is a kind of funny example, because it doesn't have any
+argument. 
+
+`lm` is a kind of funny example, because it doesn't have any
 *tuning parameters* whereas most of the other methods will have some
 number of parameters that control behavior of the model, for example
 limits or penalizations for model complexity. *caret* actually lists a
@@ -106,13 +116,12 @@ trivial parameter (`intercept=TRUE` or `FALSE`) for `lm`.
 
 We will create some random Normally distributed data to demonstrate
 the basic concept of overfitting. We can see that despite there being
-no relationship between the outcome and the predictors (`y` consists
+**no relationship** between the outcome and the predictors (`y` consists
 simply of 1,000 random Normal data points), we can obtain a strong
-correlation with the predicted values. This is one of the main
-concerns of machine learning methods: to find a way to combine
-information in the predictors that will *generalize* to new data,
-while not getting "tricked" into finding spurious patterns or
-associations.
+correlation with the predicted values. 
+
+This is one of the main concerns of machine learning methods: how to find a way to combine
+information in the predictors that will **generalize** to new data, while not getting "tricked" into finding **spurious** patterns or associations.
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(cache=TRUE)
@@ -122,11 +131,23 @@ knitr::opts_chunk$set(cache=TRUE)
 library(caret)
 n <- 1000 # observations
 p <- 500 # features
+
+# simulate x
 x <- matrix(rnorm(n*p),ncol=p,dimnames=list(seq_len(n),seq_len(p)))
+
+# simulate y
 y <- rnorm(n)
+
+# fit model
 fit <- train(x, y, method="lm", trControl=trainControl(method="none"))
+
+# print results
 fit$results
+
+# plot predicted values vs actual values
 plot(y, predict(fit))
+
+# print correlation
 cor(y, predict(fit))
 ```
 
@@ -135,26 +156,28 @@ not so many more observations than features, relatively.
 
 Above, `fit$results` provides no output because we specified in
 `trainControl` that we will not use a resampling method to evaluate
-performance. We can instead specify to use *cross-validation*, with 5
+performance. 
+
+We can instead specify to use *cross-validation*, with 5
 folds, and to save the predicted values. The default method for
 resampling in *caret* is bootstrap sampling, where samples may appear
 more than once in each split due to replacement, and therefore there
 are out-of-boot samples that can be used for prediction. 
 
 ```{r}
+# specify cross validation setup using trainControl
 trCtl <- trainControl(method="cv", number=5, savePredictions=TRUE)
+
+# fit model using trainControl specification
 fit <- train(x, y, method="lm", trControl=trCtl)
 ```
 
 In case you have not yet seen cross-validation, the procedure is to
 split the data into *k* roughly equally sized folds, and to then train
-*k* different models. Each of the *k* models are different because
-the input data to each model leaves out one of the folds. Each model
-is therefore trained on roughly $n - \frac{n}{k}$ data points. The *k*
-models can meanwhile be assessed by predicting the values of the
-held-out data points. We use cross-validation in this example, but
-note that other methods which involve repeated resampling help to
-produce accuracy metrics with smaller standard errors.
+*k* different models, each one trained on data with the $k$th fold held out. 
+
+Each of the *k* models are different because the input data to each model leaves out one of the folds. Each model is therefore trained on roughly $n - \frac{n}{k}$ data points. The *k*
+models can meanwhile be assessed by predicting the values of the held-out data points. We use cross-validation in this example, but note that other methods which involve repeated resampling help to produce accuracy metrics with smaller standard errors.
 
 There are many other methods for evaluation via resampling, which can
 be found in the help page for `?trainControl` under `method`.
@@ -165,6 +188,7 @@ out data in the cross-validation (CV) was nearly 0, indicating that
 the high correlation above was due to overfitting.
 
 ```{r}
+# print results
 fit$results
 head(fit$pred)
 ```
@@ -172,14 +196,15 @@ head(fit$pred)
 The `fit` object has a number of elements, which can be examined by
 looking at `names(fit)`. The `fit$pred` element is a data.frame with a
 column for the observed value of the outcome and a column for the
-predicted value. Note that the observations are ordered by fold, not
-by the original order in the dataset. 
+predicted value. **Note that the observations are ordered by fold, not
+by the original order in the dataset.** 
 
 What goes into the `fit$pred` table? If we had one or more tuning
 parameters, there would be multiple copies of predicted values, e.g.
 for each point in the tuning grid. We could pull out predictions in
-that case by specifying the value(s) of the tuning parameter(s). Here,
-as we did not have a tuning parameter, we only have a single copy of
+that case by specifying the value(s) of the tuning parameter(s). 
+
+Here,as we did not have a tuning parameter, we only have a single copy of
 each observation in the `fit$pred` table. Additionally, depending on
 the resampling `method` specified in `trainControl`, we could have
 multiple values per observation, per point in the tuning grid. For
@@ -192,6 +217,7 @@ reason to do this, except to convince oneself of what value is being
 presented in the table above).
 
 ```{r}
+# function calculates mean R^2 across folds
 getR2 <- function(pred) {
   r2s <- sapply(1:5, function(i) {
     idx <- pred[,"Resample"] == paste0("Fold",i)
@@ -218,21 +244,21 @@ Many of the methods in `caret` have built in *feature selection*
 properties, meaning that they pick out useful features and do not use
 features which are not helpful for predicting the outcome. This is in
 some sense wrapped up in the functions, although there are ways to
-control and extract the features that are selected. Before we proceed,
-I want to show one example of how things can go very wrong in machine
-learning, if feature selection occurs outside of the cross-validation
-or resampling loop that is used for parameter tuning and
-evaluation. One can be mislead into thinking that the predictions are
-much better than they actually are.
+control and extract the features that are selected. 
+
+Before we proceed, I want to show one example of how things can go very wrong in machine
+learning, if feature selection occurs before or outside of the cross-validation/resampling loop that is used for parameter tuning and evaluation. One can be mislead into thinking that the predictions are much better than they actually are.
 
 Below we assess the correlation of all of the features with the
-outcome `y`. We then look at the 80% quantile of the absolute value of
-the correlations and chose the 20% of features with correlation above
-this value to form a new set of predictors `x.filt`. Because the
-feature selection occurred outside of the cross-validation loop, we
+outcome `y`. To do a rudimentary form of feature selection, we then look at the 80% quantile of the absolute value of the correlations, and then keep the 20% of features with correlation above
+this value to form a new set of predictors `x.filt`. 
+
+Because the feature selection occurred outside of the cross-validation loop, we
 can expect to find exaggerated performance, even though the
 performance is assessed in a "held-out" set (the held-out set was not
-held out for assessing the correlations).
+held out for assessing the correlations).  
+
+One should not perform feature selection/screening on the entire dataset prior to or outside of cross validation!  
 
 ```{r}
 cors <- cor(x, y)[,1]
@@ -254,8 +280,10 @@ ggplot(fit$pred, aes(obs, pred, color=Resample)) + geom_point()
 
 To repeat, many of the methods we will use will perform their own
 feature selection using the outcome variable, but it will occur
-*within the loop*. In some cases, we will perform feature selection
-before running `train`, however we will not use the outcome variable
+*within the loop*. 
+
+In some cases, we will perform feature selection
+**before** running `train`, however we will **not use** the outcome variable
 in these cases; we can, for example, remove features that have 0
 variance, or perform dimension reduction and retain the top *N*
 principal components.
@@ -266,10 +294,10 @@ A convenient feature of *caret* is that it helps us to tune parameters
 within the `train` function. For demonstration purposes, we will load
 the `iris` dataset and show how `train` performs tuning for a
 classification problem, here classifying the label of two species
-based on the four numeric features. We add an additional set of 100
-non-informative predictors to demonstrate the benefit of
-regularization using the elastic net implementation in the *glmnet*
-package.
+based on the four numeric features. 
+
+We add an additional set of 100 non-informative predictors to demonstrate the benefit of
+regularization using the elastic net implementation in the *glmnet* package.
 
 ```{r}
 summary(iris)
@@ -311,8 +339,9 @@ fit$results[rownames(fit$bestTune),]
 Note that other schemes for choosing the best set of tuning parameters
 exist other than choosing the maximum performance. These are discussed
 in the 
-[choosing the final model](https://topepo.github.io/caret/model-training-and-tuning.html#choosing-the-final-model)
-section of the *caret* online book. For example, Breiman et al (1984)
+[choosing the final model](https://topepo.github.io/caret/model-training-and-tuning.html#choosing-the-final-model) section of the *caret* online book. 
+
+For example, Breiman et al (1984)
 suggests to pick the simplest model which is within one standard error
 of the optimal performance (where standard errors are estimated using
 resampling, as is available based on the resampling `method` we
@@ -329,15 +358,15 @@ performing model is likely explained by this quote from the book:
 So far we have discussed using either cross-validation or the
 out-of-boot samples for evaluation of model performance. This is
 useful, and helps as we saw earlier to avoid thinking we have a much
-higher predictive performance than we actually do. However, because we
-look at many models, and then choose the best performing one, it is
+higher predictive performance than we actually do. 
+
+However, because we look at many models, and then choose the best performing one, it is
 standard to use a wholly separate *test set* in order to evaluate the
 final model. The test set can be specified at the beginning, making
-sure to balance the labels equally across the split. More
-complex
+sure to balance the labels equally across the split. More complex
 [data splitting](https://topepo.github.io/caret/data-splitting.html) 
 procedures are also available. Typically, between 20%-30% of the
-dataset might be held-out for testing.
+dataset might be held-out for testing.  So, all model training, feature selection, tuning parameter selection, and cross validation will be performed on the **training set samples only**.
 
 The full training and testing setup would then involve, creating a
 training set index:
@@ -388,7 +417,9 @@ postResample(pred=pred, obs=test.y)
 
 *Bagging* and *boosting* are two important topics that come up across
 a number of machine learning methods, and so I want to introduce them
-during this introductory lecture note. *Bagging* is short for
+during this introductory lecture note. 
+
+*Bagging* is short for
 *bootstrap aggregating*, wherein the potentially high variance of a
 simple learning algorithm (or "learner") is mitigated by training it
 multiple times across bootstrap samples of the dataset. In addition,
@@ -398,8 +429,9 @@ they all used the same predictors. Bagging was proposed by Leo Breiman
 in a
 [technical report](https://www.stat.berkeley.edu/~breiman/bagging.pdf)
 in 1994, which was subsequently published in 
-[Machine Learning](https://doi.org/10.1007/BF00058655). The final
-bagged model is an average over the simple models learned on the
+[Machine Learning](https://doi.org/10.1007/BF00058655). 
+
+The final bagged model is an average over the simple models learned on the
 bootstrap samples (either outputting the average prediction for
 regression, or using a majority-rule vote for classification). Bagging
 is very often used with *decision trees* which will be covered in more
@@ -436,10 +468,19 @@ follows:
 ```{r}
 makeData <- function(n) {
   sd <- .5
+  
+  # simulate first predictor, half negative half positive
   x1 <- c(rnorm(.5*n,-.5,sd),rnorm(.5*n,.5,sd))
+  
+  # simulate second predictor, half negative half positive
   x2 <- c(rnorm(.5*n,-.5,sd),rnorm(.5*n,.5,sd))
+  
+  # pick a small random subset of samples and make as outliers
   idx <- sample(n, .025*n)
   x1[idx] <- -10 * x1[idx]
+  
+  # create class labels (1 or 2) with equal prevalence
+  # labels overlap with negative and positive mean values of x1 and x2
   y <- factor(rep(c(1,2),n*c(.5,.5)))
   data.frame(x1,x2,y)
 }
@@ -458,10 +499,14 @@ observations, and then performs LDA.
 ```{r}
 library(MASS)
 learner <- function(x,y) {
+  # get min and max of 1st col of x
   idx <- c(which.max(x[,1]), which.min(x[,1]))
   wt <- 10
+  # repeat these observations wt times in original data and add to x and y
   x <- rbind(x, do.call(rbind, lapply(seq_len(wt), function(i) x[idx,])))
   y <- c(y, rep(y[idx],wt))
+  
+  # run lda
   lda(x, y)
 }
 ```
@@ -661,180 +706,180 @@ plot(fit$finalModel, i.var=2)
 plot(fit$finalModel, i.var=1:2)
 ```
 
-# Complexity of a classifier
+<!-- # Complexity of a classifier -->
 
-The final section of this lecture note will cover a formal definition
-of complexity that is used in machine learning, and a useful theorem
-giving a probabilistic upper bound on how far the test error will be
-from the training error of a classifier.
+<!-- The final section of this lecture note will cover a formal definition -->
+<!-- of complexity that is used in machine learning, and a useful theorem -->
+<!-- giving a probabilistic upper bound on how far the test error will be -->
+<!-- from the training error of a classifier. -->
 
-First, we will define the concept of an algorithm *f* with parameters
-$\theta$ *shattering* a set of points. To shatter a set of points
-means that, for any labeling of the points, there exists a $\theta$
-such that *f* classifies all the points accurately. For the following
-examples, suppose we are working on binary classification, and for
-simplicity of notation, we will have the two class labels as
-$\{-1,+1\}$.
+<!-- First, we will define the concept of an algorithm *f* with parameters -->
+<!-- $\theta$ *shattering* a set of points. To shatter a set of points -->
+<!-- means that, for any labeling of the points, there exists a $\theta$ -->
+<!-- such that *f* classifies all the points accurately. For the following -->
+<!-- examples, suppose we are working on binary classification, and for -->
+<!-- simplicity of notation, we will have the two class labels as -->
+<!-- $\{-1,+1\}$. -->
 
-Suppose we consider algorithms *f* which are of the form:
+<!-- Suppose we consider algorithms *f* which are of the form: -->
 
-$$ \textrm{sign}(a x_1 + b x_2 + c) $$
+<!-- $$ \textrm{sign}(a x_1 + b x_2 + c) $$ -->
 
-with $a,b > 0$ (and a 0 will be given a positive label). We can
-visualize a particular instance of *a*, *b*, and *c*:
+<!-- with $a,b > 0$ (and a 0 will be given a positive label). We can -->
+<!-- visualize a particular instance of *a*, *b*, and *c*: -->
 
-```{r echo=FALSE, fig.width=6}
-a <- 3; b <- 1; c <- -2
-f <- function(x) factor(sign(a*x[,1]+b*x[,2]+c+1e-6))
-s <- seq(from=-4,to=4,length.out=200)
-grid <- expand.grid(x1=s,x2=s)
-grid$y <- f(grid)
-ggplot(grid, aes(x1,x2,fill=y)) + geom_raster(alpha=.2) +
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- a <- 3; b <- 1; c <- -2 -->
+<!-- f <- function(x) factor(sign(a*x[,1]+b*x[,2]+c+1e-6)) -->
+<!-- s <- seq(from=-4,to=4,length.out=200) -->
+<!-- grid <- expand.grid(x1=s,x2=s) -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(grid, aes(x1,x2,fill=y)) + geom_raster(alpha=.2) + -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-Now let's lay down a single point and ask if our algorithm *f* as defined
-above can shatter it. If we have a single positive point, we can
-simply move the line so that it is below the point:
+<!-- Now let's lay down a single point and ask if our algorithm *f* as defined -->
+<!-- above can shatter it. If we have a single positive point, we can -->
+<!-- simply move the line so that it is below the point: -->
 
-```{r echo=FALSE, fig.width=6}
-dat <- data.frame(x1=-1,x2=-1,y=factor(1,levels=c(-1,1)))
-a <- 1; b <- 2; c <- 4
-grid$y <- f(grid)
-ggplot(dat, aes(x1,x2,color=y)) +
-  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
-  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- dat <- data.frame(x1=-1,x2=-1,y=factor(1,levels=c(-1,1))) -->
+<!-- a <- 1; b <- 2; c <- 4 -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(dat, aes(x1,x2,color=y)) + -->
+<!--   geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) +  -->
+<!--   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) + -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-Likewise, with a negative point, we can move the line above it:
+<!-- Likewise, with a negative point, we can move the line above it: -->
 
-```{r echo=FALSE, fig.width=6}
-dat <- data.frame(x1=-1,x2=-1,y=factor(-1,levels=c(-1,1)))
-a <- 1; b <- 2; c <- 1
-grid$y <- f(grid)
-ggplot(dat, aes(x1,x2,color=y)) +
-  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
-  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- dat <- data.frame(x1=-1,x2=-1,y=factor(-1,levels=c(-1,1))) -->
+<!-- a <- 1; b <- 2; c <- 1 -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(dat, aes(x1,x2,color=y)) + -->
+<!--   geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) +  -->
+<!--   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) + -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-Intuitively, *f* as defined above can shatter a single point.
+<!-- Intuitively, *f* as defined above can shatter a single point. -->
 
-Now, suppose we have two points, with one in the upper right and one
-in the bottom left quadrant. We can correctly classify if the point
-toward the upper right quadrant is positive:
+<!-- Now, suppose we have two points, with one in the upper right and one -->
+<!-- in the bottom left quadrant. We can correctly classify if the point -->
+<!-- toward the upper right quadrant is positive: -->
 
-```{r echo=FALSE, fig.width=6}
-dat <- data.frame(x1=c(-1,1),x2=c(-1,1),y=factor(c(-1,1)))
-a <- 1; b <- 1; c <- 0
-grid$y <- f(grid)
-ggplot(dat, aes(x1,x2,color=y)) +
-  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
-  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- dat <- data.frame(x1=c(-1,1),x2=c(-1,1),y=factor(c(-1,1))) -->
+<!-- a <- 1; b <- 1; c <- 0 -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(dat, aes(x1,x2,color=y)) + -->
+<!--   geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) +  -->
+<!--   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) + -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-...however there is no $\theta$ that will be able to correctly
-classify both when the labels are reversed:
+<!-- ...however there is no $\theta$ that will be able to correctly -->
+<!-- classify both when the labels are reversed: -->
 
-```{r echo=FALSE, fig.width=6}
-dat <- data.frame(x1=c(-1,1),x2=c(-1,1),y=factor(c(1,-1)))
-a <- 10; b <- 1; c <- 20
-grid$y <- f(grid)
-ggplot(dat, aes(x1,x2,color=y)) +
-  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
-  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- dat <- data.frame(x1=c(-1,1),x2=c(-1,1),y=factor(c(1,-1))) -->
+<!-- a <- 10; b <- 1; c <- 20 -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(dat, aes(x1,x2,color=y)) + -->
+<!--   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) + -->
+<!--   geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) +  -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-Let's now consider another set of two points. If the upper left
-quadrant is negative, we can tilt the slope very steeply:
+<!-- Let's now consider another set of two points. If the upper left -->
+<!-- quadrant is negative, we can tilt the slope very steeply: -->
 
-```{r echo=FALSE, fig.width=6}
-dat <- data.frame(x1=c(-1,1),x2=c(1,-1),y=factor(c(-1,1)))
-a <- 5; b <- 1; c <- 0
-grid$y <- f(grid)
-ggplot(dat, aes(x1,x2,color=y)) +
-  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
-  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- dat <- data.frame(x1=c(-1,1),x2=c(1,-1),y=factor(c(-1,1))) -->
+<!-- a <- 5; b <- 1; c <- 0 -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(dat, aes(x1,x2,color=y)) + -->
+<!--   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) + -->
+<!--   geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) +  -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-And if the point in the upper left quadrant is positive, we can tilt
-the slope very shallowly:
+<!-- And if the point in the upper left quadrant is positive, we can tilt -->
+<!-- the slope very shallowly: -->
 
-```{r echo=FALSE, fig.width=6}
-dat <- data.frame(x1=c(-1,1),x2=c(1,-1),y=factor(c(1,-1)))
-a <- 1; b <- 5; c <- 0
-grid$y <- f(grid)
-ggplot(dat, aes(x1,x2,color=y)) +
-  geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) +
-  geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) + 
-  geom_hline(yintercept=0) + geom_vline(xintercept=0)
-```
+<!-- ```{r echo=FALSE, fig.width=6} -->
+<!-- dat <- data.frame(x1=c(-1,1),x2=c(1,-1),y=factor(c(1,-1))) -->
+<!-- a <- 1; b <- 5; c <- 0 -->
+<!-- grid$y <- f(grid) -->
+<!-- ggplot(dat, aes(x1,x2,color=y)) + -->
+<!--   geom_raster(data=grid, aes(x1,x2,fill=y), alpha=.2) + -->
+<!--   geom_point(shape=4,size=5,stroke=2, show.legend=FALSE) +  -->
+<!--   geom_hline(yintercept=0) + geom_vline(xintercept=0) -->
+<!-- ``` -->
 
-So while *f* as defined above could not shatter the first set of
-points (the ones on the NE-SW axis), *f* could shatter the second set
-of points (the ones on the NW-SE axis).
+<!-- So while *f* as defined above could not shatter the first set of -->
+<!-- points (the ones on the NE-SW axis), *f* could shatter the second set -->
+<!-- of points (the ones on the NW-SE axis). -->
 
-If we lift the positive-valued restriction on *a,b*, you can work out
-with examples how a real-valued version of *f* can shatter a set of
-three points as long as they do not lie on a straight line.
+<!-- If we lift the positive-valued restriction on *a,b*, you can work out -->
+<!-- with examples how a real-valued version of *f* can shatter a set of -->
+<!-- three points as long as they do not lie on a straight line. -->
 
-Finally, the definition: The *VC dimension* of a classification
-algorithm is the size of the largest set of points that the algorithm
-can possibly *shatter*. There only has to be one set of such points,
-and so the positive-valued version of *f* has VC dimension 2 (no set
-of 3 points can be shattered) while the real-valued version of *f* has
-VC dimension 3 (no set of 4 points can be shattered). As typical,
-finding a set of points which an algorithm can shatter is the easy
-part, while proving that no $\theta$ exists such that an algorithm can
-shatter so many points is more difficult. *VC* stands for
-Vapnik–Chervonenkis, who outlined the definition in a 1971 paper,
-"*On the Uniform Convergence of the Frequencies of Occurrence of
-Events to Their Probabilities*". 
+<!-- Finally, the definition: The *VC dimension* of a classification -->
+<!-- algorithm is the size of the largest set of points that the algorithm -->
+<!-- can possibly *shatter*. There only has to be one set of such points, -->
+<!-- and so the positive-valued version of *f* has VC dimension 2 (no set -->
+<!-- of 3 points can be shattered) while the real-valued version of *f* has -->
+<!-- VC dimension 3 (no set of 4 points can be shattered). As typical, -->
+<!-- finding a set of points which an algorithm can shatter is the easy -->
+<!-- part, while proving that no $\theta$ exists such that an algorithm can -->
+<!-- shatter so many points is more difficult. *VC* stands for -->
+<!-- Vapnik–Chervonenkis, who outlined the definition in a 1971 paper, -->
+<!-- "*On the Uniform Convergence of the Frequencies of Occurrence of -->
+<!-- Events to Their Probabilities*".  -->
 
-Our main interest is in knowing the degree to which our ability to 
-predict the labels of the training set will generalize to our ability
-to predict new data that arises from the same distribution. Here, when
-we talk about training set error, we do not refer to the
-cross-validated or out-of-bag error, but the error on the same
-observations that are used for finding, e.g. $\theta$ for *f*
-above.
+<!-- Our main interest is in knowing the degree to which our ability to  -->
+<!-- predict the labels of the training set will generalize to our ability -->
+<!-- to predict new data that arises from the same distribution. Here, when -->
+<!-- we talk about training set error, we do not refer to the -->
+<!-- cross-validated or out-of-bag error, but the error on the same -->
+<!-- observations that are used for finding, e.g. $\theta$ for *f* -->
+<!-- above. -->
 
-My preferred walk-through of the VC dimension, and its relation to the
-bound on generalization error is 
-[Andrew Ng's notes on Learning Theory](http://cs229.stanford.edu/notes/cs229-notes4.pdf). 
-I would recommend to walk through these. In particular, these notes
-show how the estimated error in the training set must be close to the
-generalization error (error on new data). For a finite set of fitted
-models (where a "fitted model" is a function that maps from the
-predictor space to the space of labels of the outcome), the
-generalization error can be bound to within $\gamma$ of the training
-error, for all of the fitted models, with probability:
+<!-- My preferred walk-through of the VC dimension, and its relation to the -->
+<!-- bound on generalization error is  -->
+<!-- [Andrew Ng's notes on Learning Theory](http://cs229.stanford.edu/notes/cs229-notes4.pdf).  -->
+<!-- I would recommend to walk through these. In particular, these notes -->
+<!-- show how the estimated error in the training set must be close to the -->
+<!-- generalization error (error on new data). For a finite set of fitted -->
+<!-- models (where a "fitted model" is a function that maps from the -->
+<!-- predictor space to the space of labels of the outcome), the -->
+<!-- generalization error can be bound to within $\gamma$ of the training -->
+<!-- error, for all of the fitted models, with probability: -->
 
-$$ P \ge 1 - 2k\exp(-2 \gamma^2 n)$$
+<!-- $$ P \ge 1 - 2k\exp(-2 \gamma^2 n)$$ -->
 
-where *k* is the number of models and *n* is the number of
-samples. This bound uses the union bound and the Hoeffding inequality
-in its derivation. Then using this probability bound, one can also
-bound the generalization error for the *best* fitted model (in terms
-of minimizing error on the training samples) among the *k*
-options. 
+<!-- where *k* is the number of models and *n* is the number of -->
+<!-- samples. This bound uses the union bound and the Hoeffding inequality -->
+<!-- in its derivation. Then using this probability bound, one can also -->
+<!-- bound the generalization error for the *best* fitted model (in terms -->
+<!-- of minimizing error on the training samples) among the *k* -->
+<!-- options.  -->
 
-However, we rarely work with finite sets of models, but instead work
-with infinite sets of models, such as the *f* we were describing
-above. Here, the VC dimension (if it is finite) becomes useful as way
-of describing the complexity of the set. For a classification
-algorithm with VC dimension *d*, with probability at least $1 -
-\delta$ the absolute difference between generalization error and the
-training error will be:
+<!-- However, we rarely work with finite sets of models, but instead work -->
+<!-- with infinite sets of models, such as the *f* we were describing -->
+<!-- above. Here, the VC dimension (if it is finite) becomes useful as way -->
+<!-- of describing the complexity of the set. For a classification -->
+<!-- algorithm with VC dimension *d*, with probability at least $1 - -->
+<!-- \delta$ the absolute difference between generalization error and the -->
+<!-- training error will be: -->
 
-$$ \le O\left( \sqrt{\frac{d}{n} \log \frac{n}{d} + \frac{1}{n} \log \frac{1}{\delta}} \right) $$
+<!-- $$ \le O\left( \sqrt{\frac{d}{n} \log \frac{n}{d} + \frac{1}{n} \log \frac{1}{\delta}} \right) $$ -->
 
-Thus for classification algorithms with finite VC dimension, large
-sample size will give us probabilistic guarantee on only small
-differences between training and generalization error. Again for a
-closer walk through of these bounds, I recommend consulting 
-[Andrew Ng's notes on Learning Theory](http://cs229.stanford.edu/notes/cs229-notes4.pdf).
+<!-- Thus for classification algorithms with finite VC dimension, large -->
+<!-- sample size will give us probabilistic guarantee on only small -->
+<!-- differences between training and generalization error. Again for a -->
+<!-- closer walk through of these bounds, I recommend consulting  -->
+<!-- [Andrew Ng's notes on Learning Theory](http://cs229.stanford.edu/notes/cs229-notes4.pdf). -->
