@@ -400,7 +400,8 @@ pixels.
 library(readr)
 library(tidyr)
 library(dplyr)
-
+memory.limit(size=56000)
+gc()
 # read in data
 mnist_raw <- read_csv("mnist_train.csv", col_names=FALSE)
 
@@ -425,6 +426,7 @@ pixels_gathered <- mnist_raw %>%
   mutate(pixel = pixel - 2,
          x = pixel %% 28,
          y = 28 - pixel %/% 28)
+gc()
 ```
 
 ```{r}
