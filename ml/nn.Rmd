@@ -125,9 +125,9 @@ x1 <- c(rnorm(n),rnorm(n,4))
 x2 <- c(rnorm(n),rnorm(n,4))
 x1 <- scale(x1)
 x2 <- scale(x2)
-x = cbind(x1,x2)
+x = cbind(x1, x2)
 y <- rep(0:1,each=n)
-dat <- data.frame(y=factor(y),x1,x2) 
+dat <- data.frame(y=factor(y),x1,x2)
 ```
 
 Here we encode the update rule, and run five iterations:
@@ -221,7 +221,7 @@ grid$h2 <- with(grid, ifelse(1*x1 - 1*x2 + 1 >= 0, 1, 0))
 grid$h3 <- with(grid, ifelse(-1*x1 + 1*x2 + 1 >= 0, 1, 0))
 # node 4, w = (-1,  -1), b = 1
 grid$h4 <- with(grid, ifelse(-1*x1 - 1*x2 + 1 >= 0, 1, 0))
-# final linear output node, taking input the 4 nodes from the hidden layer to predict y
+# final output node, taking input the 4 nodes from the hidden layer to predict y
 # w = (1, 1, 1, 1) here, taking the output from each hidden layer node and b = -3.5
 grid$y <- with(grid, 1*h1 + 1*h2 + 1*h3 + 1*h4 - 3.5)
 # plot
@@ -233,7 +233,7 @@ ggplot(grid, aes(x1,x2,z=y,fill=y)) +
 
 The hidden layer adds a round of intermediate transformations of the input variables.  The outputs from these nodes are then passed on to a final output layer for a final round of transformation.  By applying a series of simple linear transformations, one can achieve very complex decision boundaries.  
 
-In practice, the values for the weights and biases in each node are unknown, and are therefore learned with gradient descent.  More complex decision boundaries can be learned with adding additional nodes and hidden layers (the latter is where the "deep" in deep learning)
+In practice, the values for the weights and biases in each node are unknown, and are therefore learned with gradient descent.  More complex decision boundaries can be learned with adding additional nodes and hidden layers (the latter is where the "deep" in deep learning comes from).
 
 There is a much more elegant visualization from *Tensorflow* of how
 multiple layers of nodes/neurons can be used to learn complex
