@@ -125,6 +125,7 @@ x1 <- c(rnorm(n),rnorm(n,4))
 x2 <- c(rnorm(n),rnorm(n,4))
 x1 <- scale(x1)
 x2 <- scale(x2)
+x = cbind(x1,x2)
 y <- rep(0:1,each=n)
 dat <- data.frame(y=factor(y),x1,x2)
 ```
@@ -154,7 +155,7 @@ for (i in 1:6) {
   
   # update each w (two)
   for (j in 1:2) {
-    w[j] <- w[j] + lambda * sum((y.hat - y) * x1)
+    w[j] <- w[j] + lambda * sum((y.hat - y) * x[,j])
   }
   
   # update b
