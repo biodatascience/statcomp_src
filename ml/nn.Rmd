@@ -127,7 +127,7 @@ x1 <- scale(x1)
 x2 <- scale(x2)
 x = cbind(x1,x2)
 y <- rep(0:1,each=n)
-dat <- data.frame(y=factor(y),x1,x2)
+dat <- data.frame(y=factor(y),x1,x2) 
 ```
 
 Here we encode the update rule, and run five iterations:
