@@ -129,8 +129,7 @@ this online textbook by Colin Gillespie and Robin Lovelace:
 
 * [Efficient R Programming](https://csgillespie.github.io/efficientR/)
 
-We don't have time to sufficiently cover this in this note, but it's worth reading on your own.  Some of the topics in this book, for example usage of *Rcpp* and *data.table* will be covered in later lecture notes.
-
+We don't have time to sufficiently cover everything in this note, but it's worth reading on your own.  Some of the topics in this book, for example usage of *Rcpp* and *data.table* will be covered in later lecture notes.
 
 
 # Benchmarking R code
@@ -328,9 +327,11 @@ profvis({
 })
 ```
 
-![Image Title](profvis.png)
+After running the above example, we can see a new interactive html panel open where the top pane breaks up the code chunk by line and lists the memory usage and timing of each (in milliseconds).
 
-After running the above example, we can see a new interactive html panel open where the top pane breaks up the code chunk by line and lists the memory usage and timing of each (in milliseconds).  We can see that the matrix multiplication step is the most time consuming here, and would a place to focus our efforts if we would like to speed up the overall run time of this chunk.  The bottom pane is called a "flame graph" and lists the call stack on the vertical axis and time (in milliseconds) on the horizontal axis. We can see here that again the matrix multiplication step was the most time consuming.  Since we are using simple functions here the call stack is not that deep, but you can find more examples [here](https://rstudio.github.io/profvis/) on the package website.  
+![](profvis.png)
+
+We can see that the matrix multiplication step is the most time consuming here, and would a place to focus our efforts if we would like to speed up the overall run time of this chunk.  The bottom pane is called a "flame graph" and lists the call stack on the vertical axis and time (in milliseconds) on the horizontal axis. We can see here that again the matrix multiplication step was the most time consuming.  Since we are using simple functions here the call stack is not that deep, but you can find more examples [here](https://rstudio.github.io/profvis/) on the package website.  
 
 You can also run profiling on individual functions, such as the ones we defined earlier:
 
