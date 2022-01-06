@@ -250,7 +250,7 @@ From this point, an algorithm will **iteratively update** its guess for $\hat{\t
 
 Ideally, the value of $\hat{\theta} \rightarrow \theta^*$ as $t \rightarrow \infty$, where $t$ is the iteration number such that $t>0$ and $\theta^*$ is the "true" value of $\theta$ where the maximum of $f(\theta)$ is achieved.   That is, as the number of iterations increases, we hope that $\hat{\theta}$ will approach its true optimum $\theta^*$, or **converge** to $\theta^*$.
 
-However, given the iterative updating nature of these algorithms, $\hat{\theta}$ will never equal value of $\theta^*$ exactly, and will only approach $\theta^*$ as $t$ increases.  As a result, we need to define criteria or **stopping rules** indicating that the algorithm has **converged**, indicating that $\hat{\theta}$ is reasonably close to the prior value of $\theta^*$ within some **tolerance** or distance.  In some cases, the algorithm may converge to some value other than $\theta^*$, or may not converge at all.  We will discuss these situations later in this lecture.  
+However, given the iterative updating nature of these algorithms, $\hat{\theta}$ will never equal value of $\theta^*$ exactly, and will only approach $\theta^*$ as $t$ increases.  As a result, we need to define criteria or **stopping rules** indicating that the algorithm has **converged**, indicating that $\hat{\theta}$ is reasonably close to the prior estimate of $\hat{\theta}$ within some **tolerance** or distance.  In some cases, the algorithm may converge to some value other than $\theta^*$, or may not converge at all.  We will discuss these situations later in this lecture.  
 
 ### Graphical Illustration
 

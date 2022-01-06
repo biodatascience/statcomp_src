@@ -1236,7 +1236,7 @@ em_fit = nb.two.mix.reg.em(y = y,
                            trace = 1)   
 ```
 
-In this setting we do not see much benefit, despite the cheapness of the E-step update.  As mentioned before, this may be helpful in certain settings.  In my person experience, this is helpful when there the dimensionality of the missing data is larger, and when it takes much time/effort to perform an entire M-step update consisting of many conditional maximizations.  
+In this setting we do not see much benefit, despite the cheapness of the E-step update.  As mentioned before, this may be helpful in certain settings.  In my personal experience, this is helpful when the dimensionality of the missing data is larger, and when it takes much time/effort to perform an entire M-step update consisting of many conditional maximizations.  
 
 ## Monte Carlo EM (MCEM)
 

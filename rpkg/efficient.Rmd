@@ -1,6 +1,6 @@
 ---
 title: "Readable and efficient R code"
-author: "Michael Love"
+author: "Michael Love, modified by Naim Rashid"
 date: 10/19/2018
 output: 
   html_document:
@@ -75,6 +75,7 @@ similar across whatever language you use.
   `robust.est.var`. This is not so important, but try to be consistent
   within a project. 
 
+It is also important to maintain a consistent coding style, as this consistency throughout your code helps with readability.  I would recommend reading Hadley Wickham's [R style guide](http://adv-r.had.co.nz/Style.html) as a good place to start (there are others that exist).  This guide goes through naming conventions, syntax, indentation, and other items, some of which were already covered in the list above.  
 
 # Efficient code
 
@@ -128,14 +129,9 @@ this online textbook by Colin Gillespie and Robin Lovelace:
 
 * [Efficient R Programming](https://csgillespie.github.io/efficientR/)
 
-For example, they have a section on 
-[code profiling](https://csgillespie.github.io/efficientR/performance.html#performance-profvis),
-which is a really useful way to figure out what lines of code are
-causing the greatest bottlenecks in your package. We don't have time
-to sufficiently cover this in this note, but it's worth reading on
-your own, and using code profiling if you end up making a package
-where speed and memory usage are a critical factors.Some of the topics in this book, for example usage of *Rcpp* and
-*data.table* will be covered in later lecture notes.
+We don't have time to sufficiently cover this in this note, but it's worth reading on your own.  Some of the topics in this book, for example usage of *Rcpp* and *data.table* will be covered in later lecture notes.
+
+
 
 # Benchmarking R code
 
@@ -312,9 +308,43 @@ On linux and mac, one can alternatively ue the mcapply() and mclapply() function
 
 One important note when using parallelization on high performance computing clusters.  Such clusters consist of multiple compute nodes connected to a login node.  Typically jobs that are submitted to the cluster are handled from the login nodes and distributed to the compute nodes.  A single job may also request multiple cpu's to run operations within the job in parallel. However for the parallel package and most other parallelized routines in R, parallelization cannot go beyond a single node, and is therefore limited to the number of CPUs on that node.  For parallelization across a large number of CPUs, one needs to utilize Message Passing Interface (MPI) enabled versions of R, with accompanying MPI-enabled R packages (*Rmpi*) and cluster software (*openMPI*). 
 
-Additional detail can be found in Section 7.5 of the Efficient R Programming book. An up to date listing of other R packages that enable parallel computing can be [found here](https://cran.r-project.org/web/views/HighPerformanceComputing.html).  Examples include *Rmpi*, which is an R-wrapper for MPI, as well as *foreach*, which is an R package that allows for the execution of parallelized loops in R. 
+Additional detail can be found in Section 7.5 of the Efficient R Programming book. An up-to-date listing of other R packages that enable parallel computing can be [found here](https://cran.r-project.org/web/views/HighPerformanceComputing.html).  Examples include *Rmpi*, which is an R-wrapper for MPI, as well as *foreach*, which is an R package that allows for the execution of parallelized loops in R. 
 
-# Monte-Carlo integration 
+## Code Profiling
+
+[Code profiling](https://csgillespie.github.io/efficientR/performance.html#performance-profvis) is a really useful way to figure out what lines of code are
+causing the greatest bottlenecks in your package or script. I highly recommend using code profiling if you end up making a package where speed and memory usage are a critical factors.  A popular package used for this purpose is the *profvis* package via the profvis() function.  One way to use this function is to apply it directly to several lines of R code, which can be passed to the first argument of the function.  We demonstrate this with an example from earlier:
+
+
+```{r, eval = F}
+library("profvis")
+profvis({
+  n <- 500
+  m <- 1000
+  a <- matrix(rnorm(n*n),nrow=n)
+  x <- matrix(rnorm(n*m),nrow=n)
+  b <- a %*% x
+  xx <- solve(a, b[,1])
+})
+```
+
+![Image Title](profvis.png)
+
+After running the above example, we can see a new interactive html panel open where the top pane breaks up the code chunk by line and lists the memory usage and timing of each (in milliseconds).  We can see that the matrix multiplication step is the most time consuming here, and would a place to focus our efforts if we would like to speed up the overall run time of this chunk.  The bottom pane is called a "flame graph" and lists the call stack on the vertical axis and time (in milliseconds) on the horizontal axis. We can see here that again the matrix multiplication step was the most time consuming.  Since we are using simple functions here the call stack is not that deep, but you can find more examples [here](https://rstudio.github.io/profvis/) on the package website.  
+
+You can also run profiling on individual functions, such as the ones we defined earlier:
+
+```{r, eval = F}
+profvis(slow.solve(a, b))
+```
+
+Interpreting memory use in the top pane is a little more tricky, see the following quote from the *profvis* package page:
+
+> The code panel also shows memory allocation and deallocation. Interpreting this information can be a little tricky, because it does not necessarily reflect memory allocated and deallcated at that line of code. The sampling profiler records information about memory allocations that happen between the previous sample and the current one. This means that the allocation/deallocation values on that line may have actually occurred in a previous line of code.
+
+In general, code profiling allows one to focus your speed and memory optimization efforts on those parts that are *actually*  resource intensive in your code. 
+
+# Example: Monte-Carlo integration 
 
 Suppose we wish to estimate the integral
 \[
