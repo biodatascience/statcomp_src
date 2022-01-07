@@ -141,7 +141,7 @@ running `load_all()` would be to run `compileAttributes()`, then build and
 install the package.
 
 Running `load_all()` produces the following files (here, using version
-0.12.19 of *Rcpp*): 
+1.0.7 of *Rcpp*): 
 
 * `src/RcppExports.cpp`
 * `R/RcppExports.R`
@@ -157,6 +157,11 @@ be edited by hand):
 #include <Rcpp.h>
 
 using namespace Rcpp;
+
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
 
 // rcpp_hello_world
 List rcpp_hello_world();
