@@ -1,6 +1,6 @@
 ---
 title: "Building R packages"
-author: "Michael Love, modified by Naim Rashid"
+author: "Michael Love"
 date: 10/25/2018
 output: 
   html_document:
@@ -161,14 +161,14 @@ The `build` command prints out the following message and returns the
 location of the package tarball.
 
 ```
-√  checking for file 'C:\statcomp_src\foo/DESCRIPTION' (2.7s)
+√  checking for file 'C:\statcomp_src\foo/DESCRIPTION' (2.3s)
 -  preparing 'foo':
 √  checking DESCRIPTION meta-information
 -  checking for LF line-endings in source and make files and shell scripts
 -  checking for empty or unneeded directories
--  building 'foo_0.0.1.tar.gz'
+-  building 'foo_0.0.0.9000.tar.gz'
    
-[1] "C:/statcomp_src/foo_0.0.1.tar.gz"
+[1] "C:/statcomp_src/foo_0.0.0.9000.tar.gz"
 ```
 
 Now if we want to share our function `add` with a collaborator, we can
