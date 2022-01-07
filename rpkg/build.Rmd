@@ -1,6 +1,6 @@
 ---
 title: "Building R packages"
-author: "Michael Love"
+author: "Michael Love, modified by Naim Rashid"
 date: 10/25/2018
 output: 
   html_document:
