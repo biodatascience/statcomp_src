@@ -77,7 +77,7 @@ add <- function(x,y,negative=FALSE) {
 }
 ```
 
-We will assume that we are running the following code on the class virtual machine, which uses R version 4.0.3.  Let's say we will create an R package called *foo*. We can start with
+We will assume that we are running the following code on the class virtual machine, which uses R version 4.1.2.  Let's say we will create an R package called *foo*. We can start with
 the following:
 
 ```{r eval=FALSE}
@@ -85,11 +85,10 @@ library(usethis)
 create_package("foo", roxygen=FALSE)
 ```
 
-This will make a directory called `foo` in the current working
-directory, and will then change the working directory to `foo`.  For now, we set Roxygen equal to FALSE since we have not covered Roxygen yet.  This option allows for automatic exporting of functions to the namespace when FALSE.  If set to TRUE (default), the function assumes you will be using Roxygen to document functions and will export functions in accordance to your Roxygen documention, leaving the NAMESPACE file blank upon creation.   If you using an R version prior to R 4.0, you may not need to specify the Roxygen option.  
+This will make a directory called `foo` in you *current working
+directory*, and will then will open a new Rstudio instance where the working directory to `foo`.  For now, we set Roxygen equal to FALSE since we have not covered Roxygen yet.  This option allows for automatic exporting of functions to the namespace when FALSE.  If set to TRUE (default), the function assumes you will be using Roxygen to document functions and will export functions in accordance to your Roxygen documention, leaving the NAMESPACE file blank upon creation.   
 
-(This Rmarkdown however needs to point to the `foo` directory to look
-inside.)
+In your current working directory, we can print the contents of the foo directory
 
 ```{r}
 list.files("foo")
@@ -102,16 +101,12 @@ Package: foo
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
-           role = c("aut", "cre"),
-           email = "first.last@example.com",
+    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
 Encoding: UTF-8
-LazyData: true
 ```
 
 The DESCRIPTION file has a number of fields that we need to
@@ -125,7 +120,6 @@ Authors@R: person("Jane","Doe",email="jdoe@uni.edu",role=c("aut","cre"))
 Description: Contains amazing functions for doing amazing things.
 License: GPL-2
 Encoding: UTF-8
-LazyData: true
 ```
 
 There are a number of licenses that are possible and these are
@@ -167,17 +161,14 @@ The `build` command prints out the following message and returns the
 location of the package tarball.
 
 ```
-'/Users/love/bin/R/bin/R' --no-site-file --no-environ --no-save --no-restore --quiet CMD build  \
-  '/Users/love/teach/statcomp/statcomp_src/rpkg/foo' --no-resave-data --no-manual 
-
-* checking for file ‘/Users/love/teach/statcomp/statcomp_src/rpkg/foo/DESCRIPTION’ ... OK
-* preparing ‘foo’:
-* checking DESCRIPTION meta-information ... OK
-* checking for LF line-endings in source and make files and shell scripts
-* checking for empty or unneeded directories
-* building ‘foo_0.0.1.tar.gz’
-
-[1] "/Users/love/teach/statcomp/statcomp_src/rpkg/foo_0.0.1.tar.gz"
+√  checking for file 'C:\statcomp_src\foo/DESCRIPTION' (2.7s)
+-  preparing 'foo':
+√  checking DESCRIPTION meta-information
+-  checking for LF line-endings in source and make files and shell scripts
+-  checking for empty or unneeded directories
+-  building 'foo_0.0.1.tar.gz'
+   
+[1] "C:/statcomp_src/foo_0.0.1.tar.gz"
 ```
 
 Now if we want to share our function `add` with a collaborator, we can
