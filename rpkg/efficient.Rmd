@@ -118,6 +118,14 @@ languages.
   can be large. The *memoise* package helps with this in R.
 * *Parallelization:*  One can think of the standard for loop as a serial operation: the $(i+1)$th    iteration is always ran after the $(i)$th iteration has completed.  On machines with more than one CPU available, say with $P$ CPUs, parallelization of iterations may allow for the execution of up to $P$ iterations of the for loop at the same time. This is particularly helpful when there are a large number of loop iterations that are non-recursive, meaning the next iteration of the loop does not depend on the prior one (simulations for example).  One thing to note is that each parallel instance invoked in R requires additional memory, and therefore in memory-intensive operations this may quickly exhaust the available memory on your machine if you are not careful.    
 
+Two short notes on avoiding making copies, from Section 2.5 in [Advanced R](https://adv-r.hadley.nz/names-values.html):
+
+> For loops have a reputation for being slow in R, but often that slowness is caused by every iteration of the loop creating a copy. Consider the following code. It subtracts the median from each column of a large data frame:
+
+and
+
+> While it’s not hard to determine when a copy is made, it is hard to prevent it. If you find yourself resorting to exotic tricks to avoid copies, it may be time to rewrite your function in C++
+
 # Learning more about efficient code
 
 This course has many topics to cover, and so we can only cover some of
