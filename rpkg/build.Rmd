@@ -67,7 +67,7 @@ The bare minimum for an R package is a directory with the following:
 We can get started by using the `create_package()` function from the *usethis*
 package. Suppose we have an R script with the following function:
 
-```{r eval=FALSE}
+```{r}
 add <- function(x,y,negative=FALSE) {
   z <- x + y
   if (negative) {
@@ -277,7 +277,7 @@ afterward to load the package.
 We still haven't written any documentation, so when we try to load
 help we are told it is missing:
 
-```{r}
+```{r, eval = F}
 library(foo)
 help(topic="add", package="foo")
 ```
