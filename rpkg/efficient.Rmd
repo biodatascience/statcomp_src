@@ -87,7 +87,7 @@ languages.
 * *Use vectorized functions:* The most important thing to recognize
   about high-level programming languages is that they are built on top
   of fast routines written in Fortran, C, or C++ mostly. Iteration in
-  the high-level language will always be slower than the *vectorized*
+  the high-level language [will always be slower](https://www.noamross.net/archives/2014-04-16-vectorization-in-r-why/) than the *vectorized*
   function which iterates in the lower-level language. Use of row- or
   column-based operations over matrices, or matrix multiplication,
   that avoids iterating over rows or columns is one of the keys to
