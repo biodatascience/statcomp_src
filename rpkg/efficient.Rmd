@@ -359,7 +359,7 @@ Suppose we wish to estimate the integral
 \[
 \int_0^1 x^2 dx
 \]
-using a Monte-Carlo Integration We will learn more about this in Module 2, but for now, we focus on the programming aspect.
+using Monte-Carlo Integration. We will learn more about this in Module 2, but for now, we focus on the programming aspect.
 
 _Monte Carlo Integration Psuedocode_
 
