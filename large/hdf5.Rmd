@@ -141,7 +141,7 @@ This can be achieved by adding a Makevars or Makevars.win file to your package's
 
 # DelayedArray
 
-The [DelayedArray Bioconductor package](https://bioconductor.org/packages/3.12/bioc/html/DelayedArray.html) offers a similar but more R-friendly functionality (and option for hdf5 via HDF5Array) in terms of working with datasets too large to load into memory.  Additional packages such as [DelayedMatrixStats](https://bioconductor.org/packages/3.12/bioc/html/DelayedMatrixStats.html) can be used to perform operations on DelayedMatrix objects from the  DelayedArray package. 
+The [DelayedArray Bioconductor package](https://bioconductor.org/packages/3.12/bioc/html/DelayedArray.html) offers a an R-friendly way to work with datasets too large to load into memory, and can also leverage some of the advantages of the HDF5 format via the HDF5Array package.  Additional packages such as [DelayedMatrixStats](https://bioconductor.org/packages/3.12/bioc/html/DelayedMatrixStats.html) can be used to perform operations on DelayedMatrix objects from the  DelayedArray package. 
 
 
 
