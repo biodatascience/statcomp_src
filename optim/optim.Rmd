@@ -38,11 +38,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 A common task in statistics is maximizing (or minimizing) complex univariate or multivariate functions.  This is typically done in the context of maximizing likelihood functions with respect to a vector of unknown parameters, given the observed data.  
 
-The term "parameter estimation" may be one that you may have commonly heard in the past during discussions of fitting statistical models to data.  In doing so, one seeks to find a set of parameter values that "best fit"" or "explain" the data.  
+The term "parameter estimation" may be one that you may have commonly heard in the past during discussions of fitting statistical models to data.  More generally, this task pertains to an "optimization" problem, where we seek to finding a set of parameter values that minimizes or maximizes some pre-defined objective function.  When this objective function is a log likelihood function, this reduces to the problem of maximum likelihood estimation.  
 
-More generally, this task pertains to an "optimization" problem, where we seek to finding a set of parameter values that minimizes or maximizes some pre-defined objective function.  When this objective function is a log likelihood function, this reduces to the problem of maximum likelihood estimation.  
-
-As we will see in this lecture, there are many potential approaches to use for optimization in this context.  How best to optimize a function of interest depends on the nature of the function to be optimized, as well as practical concerns regarding the the procedure considered. As such, another goal of this lecture is to help indicate the pro's and con' of various approaches to help determine which approach best fits your problem.  
+As we will see in this lecture, there are many potential approaches to use for optimization in this context.  How best to optimize a function of interest depends on the nature of the function to be optimized, as well as practical concerns regarding  a candidate procedure to be used.  As such, another goal of this lecture is to explain the pros and cons of different approaches to help narrow down which approach may best for your particular problem.  
 
 Our discussion of optimization in this lecture will give a broad overview of existing approaches for unconstrained optimization, touching the many of the special cases that may have been covered in previous coursework. In a later lecture we will discuss the topic of "constrained" optimization, where the potential set of allowable solutions is no longer unrestricted. We focus on the class of problems where the function to be optimized is smooth, real valued, and is differentiable.
 
@@ -57,7 +55,7 @@ From introductory statistical courses, one may remember that an estimator for $\
 
 We can also re-express the original form of this problem as an intercept-only linear regression model:  $$y_i = \X_i\beta + \epsilon_i$$ where $\epsilon_i \sim N(0,\sigma^2)$, $\X_i = 1$, and $\beta = \mu$, a scalar parameter in this setting.  Again,  $\sigma^2$ is known in this case.   Given this, we can show that an estimate for $\beta$ ($\mu$) is also $\bar{\mathbf{y}}$. Based on the normal equations from the linear model framework, we have closed form solution $\hat{\beta} = (\X'\X)^{-1}\X'\y$,  which, plugging in $\X$ and $\y$ from this situation, also yields $\bar{\y}$.  
 
-Regardless of the approach used here, we can show that we can obtain $\hat{\mu}$ analytically via optimizing some function of the data with respect to the parameters of interest $\mu$.  In the linear regression case, we are minimizing the residual sum of squares of the model with respect to $\beta$ ($\mu$), and in the latter, we are maximizing the likelihood function assumed for the data with respect to $\mu$.  
+Regardless of the approach used here, we can show that we can obtain $\hat{\mu}$ analytically via optimizing some function of the data with respect to the parameter of interest $\mu$.  In the linear regression case, we are minimizing the residual sum of squares of the model with respect to $\beta$ ($\mu$), and in the latter, we are maximizing the likelihood function assumed for the data with respect to $\mu$.  
 
 ### Writing out the likelihood
 The likelihood function $L(\boldsymbol{\theta})$, given the assumptions we made, for this sample can be written as 
@@ -74,7 +72,7 @@ Why does this matter? This implies that the maximum of one function will be the 
 
 In the current problem, the MLE for $\mu$, $\hat{\mu} = \bar{\y}$, is then obtained  by setting the 1st derivative of the log-likelihood (also known as the "score function") equal to 0 and then solving for $\mu$ (can you show this?).  In other words, we find the root of the score function with respect to $\mu$.  For the regression based approach, we are simply minimizing the residual sum of squares (RSS), defined as $\sum_{i = 1}^{100} (y_i - \mu)^2$.
 
-In previous courses you may have found that this log transformation often facilitates the taking of derivatives when solving for $\mu$.  This approach of using another function as a proxy of the original function to simplify maximization can be found in several examples of optimization we will cover this semester. 
+In previous courses you may have found that this log transformation often facilitates the calculation of derivatives when analytically solving for $\mu$.  This approach of using another function as a proxy of the original function to simplify maximization can be found in several examples of optimization we will cover this semester. 
 
 
 ### Visualizing the optimization problem for $\mu$
@@ -99,7 +97,7 @@ print(lm(y ~ 1)$coef)
 
 ```
 
-Now, lets write some functions that will help generate some figures in the next code chunk. These will help plot the likelihood, log likelihood, and RSS with respect to $\mu$ based on the setup above.  
+Now, lets write some functions to help generate some figures in the next code chunk. These functions will help plot the likelihood, log likelihood, and RSS with respect to $\mu$ based on the setup above.  
 
 ```{r, echo=TRUE}
 ## returns a vector of likelihood values over a given range of mu values
