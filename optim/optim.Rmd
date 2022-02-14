@@ -1173,9 +1173,10 @@ In this iterative fashion, the vertices in the simplex slowly start to move towa
 
 The details of this updating procedure is given in GH 2.2.4, however we illustrate this graphically in the video below pertaining to the optimization of a 2D model (containing two parameters).
 
-<iframe width="420" height="315" src="https://www.youtube.com/embed/HUqLxHfxWqU"></iframe>
-
-
+```{r, echo = F}
+library(vembedr)
+embed_url("https://www.youtube.com/watch?v=HUqLxHfxWqU")
+```
 ### Convergence
 
 Relative or absolute convergence criteria may be based upon the objective function values at each iteration of the algorithm or based on the volume of the simplex at the given set of vertices.  
