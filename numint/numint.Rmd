@@ -173,7 +173,7 @@ The length of the intervals in addition to the spacing of the nodes in each inte
 For this general class of methods, the main differentiator between approximation is the choice of $A_{ij}$.  
 
 ## Newton-Cotes Quadrature
-This class of methods is characterized by having nodes equally spaced in $[x_k,x_{k+1}]$ with the name number of nodes used across all subintervals. In a general sense, the function to be integrated in each subinterval is replaced with a polynomial approximation that is easier to intergrade. Three methods in this class include Riemann, trapezoidal, and Simpson's rules.  The main difference in these rules is the order of the polynomial approximation of $f(x)$ in the interval, ranging from 0 (constant, 1 node), 1 (linear, 2 nodes), to 2 (quadratic, 3 nodes), respectively.  This is illustrated in the figure below
+This class of methods is characterized by having nodes equally spaced in $[x_k,x_{k+1}]$ with the name number of nodes used across all subintervals. In a general sense, the function to be integrated in each subinterval is replaced with a polynomial approximation that is easier to integrate. Three methods in this class include Riemann, trapezoidal, and Simpson's rules.  The main difference in these rules is the order of the polynomial approximation of $f(x)$ in the interval, ranging from 0 (constant, 1 node), 1 (linear, 2 nodes), to 2 (quadratic, 3 nodes), respectively.  This is illustrated in the figure below
 
 ![Illustrations of the approximations based upon  Riemann, trapezoidal, and Simpson's rules in a given subinterval for some function f(x).](chap6figrules.jpg){width=65%}
 
@@ -621,7 +621,7 @@ f_v = function(v, yi, xi = cbind(rep(1,5), 1:5),beta, s2gamma){
     for(i in 1:length(val)){
       
       # calculate lambda
-      lambda = exp(xi %*% beta + + sqrt(2*s2gamma)*v[i])
+      lambda = exp(xi %*% beta + sqrt(2*s2gamma)*v[i])
       
       # calculate numerator
       val0 = dpois(x = yi, lambda = lambda)
@@ -689,7 +689,7 @@ There are some limitations to this approach, which we address later on during th
 
 ### Great, but now how do I perform optimization?
 
-As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to maximize the likelihood or loglihood via NR, BFGS, abd etc..  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
+As mentioned earlier, now that we have a means to integrate the likelihood, we also have the ability to maximize the likelihood or loglihood via NR, BFGS, and etc..  The only difference here is that we will also have to approximate the integral in all subsequent derivatives.  We leave this exercise for a homework problem.  
 
 # Monte-Carlo Integration
 
@@ -719,7 +719,7 @@ As you can imagine, this variation would generally be larger with smaller values
 
 If we define $\hat{\mu}_{MC}$ such that $$\hat{\mu}_{MC} = \frac{1}{M}\sum_{k = 1}^M h(\boldsymbol{X}_k),$$  assume that $\hat{\mu}_{MC} \rightarrow \mu = \int h(\boldsymbol{x})f(\boldsymbol{x})dx$ as $M \rightarrow \infty$, and $v(\boldsymbol{x}) = (h(\boldsymbol{x}) - \mu)^2$, then using results from BIOS 760 we know that the sampling variance for $\hat{\mu}_{MC}$  is given by $E[v(\boldsymbol{X})/M]  = \sigma^2/M$.  Here $\mu$ is the expectation of $h(\boldsymbol{X})$, where $\boldsymbol{X}$ is a random variable with density $f$.
 
-We can calculate the estimate for $\sigma^2$ using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{\sigma}^2 = \hat{var}(\hat{\mu}_{MC}) =\frac{1}{M-1} \sum_{k = 1}^M [h(\boldsymbol{X}_k) - \hat{\mu}_{MC}]^2$$.
+We can calculate the estimate for $\sigma^2$ using the following expression, which is similar to the form of the sample variance that you have seen in your other classes: $$\hat{\sigma}^2 = \hat{var}(\hat{\mu}_{MC}) =\frac{1}{M-1} \sum_{k = 1}^M [h(\boldsymbol{X}_k) - \hat{\mu}_{MC}]^2.$$
 
 If we assume that $\sigma^2$ exists, then we know that the asymptotic distribution for $\hat{\mu}_{MC}$ is approximately normal, so we can derive approximate confidence bounds for $\mu$ and perform statistical inference later. 
 
@@ -999,7 +999,7 @@ where the nodes $x_k$ and associated weights $A_k$, $k = 1\ldots M$, are calcula
 
 $$\int f(t)\phi(t; \mu, \sigma^2)dt\approx \sum_{k = 1}^M A^*_kf(t_k)$$
 
-where $\phi(\mu, \sigma^2) \sim N(\mu, \sigma^2)$,  $t=\mu + \sqrt{2\sigma^2}x_k$, and $A^*_k = A_k/\sqrt{\pi}$.  You might notice that we performed a change of variable here similar in nature to what was done earlier.  Now, we choose $\mu$ and $\sigma^2$ so that the new quadrature nodes $t_1,\ldots,t_M$ are essentially a recentered and rescaled version of the original ones $x_1,\ldots,x_M$, and will be placed in regions of highest mass of the original integrand, called say $g(t)$.  Here, we can choose $\hat{\mu}$ to correspond to the mode of the integrand $g(t)$, which we can do through standard optimization routines from our first lecture.  For $\hat{\sigma}^2$, we can calculate $$\hat{\sigma}^2 = \left(-\frac{\partial^2}{\partial t^2}\log(g(t))\rvert_{t=\hat{\mu}}\right)^{-1},$$ that is, the inverse second derivative of the integrand evaluated at the posterior mode.  
+where $\phi(\mu, \sigma^2) \sim N(\mu, \sigma^2)$,  $t=\mu + \sqrt{2\sigma^2}x_k$, and $A^*_k = A_k/\sqrt{\pi}$.  You might notice that we performed a change of variable here similar in nature to what was done earlier.  Now, we choose $\mu$ and $\sigma^2$ so that the new quadrature nodes $t_1,\ldots,t_M$ are essentially a recentered and rescaled version of the original ones $x_1,\ldots,x_M$, and will be placed in regions of highest mass of the original integrand, called say $g(t)$.  Here, we can choose $\hat{\mu}$ to correspond to the mode of the integrand $g(t)$, which we can do through standard optimization routines from our first lecture.  For $\hat{\sigma}^2$, we can calculate $$\hat{\sigma}^2 = \left(-\frac{\partial^2}{\partial t^2}\log(g(t))\rvert_{t=\hat{\mu}}\right)^{-1},$$ that is, the inverse of the second derivative of the integrand evaluated at the posterior mode.  
 
 Then, we can write the integral of $g(t)$ in the following form:
 
@@ -1210,7 +1210,7 @@ We can see that this probability is small, as expected.  We can also use MCI to 
   print(var(y > 4) / M)
 ```
 
-So, the variance is still quite large, despite using 10,000 samples.  To illustrate this variability, just rerurn the code above a couple of times and see how the estimate varies around its true value.  
+So, the variance is still quite large relative to the mean, despite using 10,000 samples.  To illustrate this variability, just rerurn the code above a couple of times and see how the estimate varies around its true value.  
 
 We can also increase $M$  to 1,000,000 and see if that helps
 
@@ -1228,7 +1228,7 @@ We can also increase $M$  to 1,000,000 and see if that helps
   print(var(y > 4) / M)
 ```
 
-It does imrpove, however at the cost of many more samples.  So, how do we improve the efficiency of this approach?  Similarly, how do we reduce the variance of the MC estimator?
+It does improve, however at the cost of many more samples.  So, how do we improve the efficiency of this approach?  Similarly, how do we reduce the variance of the MC estimator?
 
 ## Importance sampling basics
 
@@ -1269,7 +1269,7 @@ An example of this is the one given earlier, where we are trying to estimate the
 
 So, we are able to achieve relatively good accuracy relative to the original approach with the same number of samples. 
 
-One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))},$$ where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to sampling $\hat{M}(g, f)$ samples from $f(\boldsymbol{x})$ under the original scheme. This is one way to measure the loss in precision in approximating $f$ with $g$, and is a useful measure for comparing different importance functions.  Here we have
+One way to measure the quality of a choice of $g(\boldsymbol{x})$ is by computing what is called the "effective sample size", defined as $$\hat{M}(g, f) = \frac{M}{1+\hat{var}(w^*(X))},$$ where $w^*(X)$ is the vector of unstandardized important weights. One way to interpret this is that  $M$ weighted samples drawn from $g(\boldsymbol{x})$ via importance sampling is equivalent to $\hat{M}(g, f)$ samples unweighted iid samples from $f(\boldsymbol{x})$ under the original scheme. This is one way to measure the loss in precision in approximating $f$ with $g$, and is a useful measure for comparing different importance functions.  Here we have
 
 ```{r}
 # if we drew M samples from g, this would be the equivalent number of samples under directly sampling f
