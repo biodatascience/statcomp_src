@@ -855,7 +855,7 @@ which is similar to $\pi(0.5)^2 = 0.78539$.  The area of the circle here is simp
        zy[subset],
        asp = 1,
        xlim = c(-r, r),
-       col = col)
+       col = col[subset])
 
 ```
 
