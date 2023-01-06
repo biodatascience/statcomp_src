@@ -1216,6 +1216,7 @@ X_2^{(t+1)} &| \cdot  ∼ f(x_2 | x_1^{(t+1)},x_3^{(t)},\ldots,x_p^{(t)}),\\
 X_p^{(t+1)} &| \cdot  ∼ f(x_p | x_1^{(t+1)},\ldots,x_{p-1}^{(t+1)}),
 \end{align}
 where $|\cdot$ denotes conditioning on the most recent updates to $\boldsymbol{X}$. 
+
 3. Set $t = t+1$ and go to step 2.
 
 One run through all of the components of $\boldsymbol{X}$ in step 2 is called a cycle. Let’s illustrate this with an example from the book (GH Example 7.5, 7.6).
@@ -1224,7 +1225,7 @@ Below, we will often refer to the term $\boldsymbol{x}_{-i} = (x_1^{(t+1)},\ldot
 
 ### Example:  Seal Pup Capture-Recapture
 
-The Gibbs sampler is particularly helpful for Bayesian applications when $\boldsymbol{\theta}$ is multidimensional.  In the prior example,  $\boldsymbol{\theta}$ had some prior distribution  $p(\boldsymbol{\theta})$ and likelihood function $L(\boldsymbol{\theta}|\boldsymbol{y})$ and  $\boldsymbol{\theta}$ was unidimensional. Bayesian inference is based upon the posterior of $\boldsymbol{\theta}$, $p(\boldsymbol{\theta}|\boldsymbol{y}) = c L(\boldsymbol{\theta}|\boldsymbol{y})p(\boldsymbol{\theta})$, where $c$ is an unknown constant. The Gibbs sampler can be applied when the conditional posteriors are known and easily sampled from, and does not require evaluation of the constant $c$.  That is, at the $i$th step of a given Gibbs cycle, we sample from the univariate conditional posterior of $\theta_i$ given the remaining parameters and the data: $$\theta_i^{(t+1)} | (\theta_{-i}^{(t)}, \boldsymbol{y}) \sim p(\theta_i|\theta_{-i}^{(t)}, \boldsymbol{y})$$.
+The Gibbs sampler is particularly helpful for Bayesian applications when $\boldsymbol{\theta}$ is multidimensional.  In the prior example,  $\boldsymbol{\theta}$ had some prior distribution  $p(\boldsymbol{\theta})$ and likelihood function $L(\boldsymbol{\theta}|\boldsymbol{y})$ and  $\boldsymbol{\theta}$ was unidimensional. Bayesian inference is based upon the posterior of $\boldsymbol{\theta}$, $p(\boldsymbol{\theta}|\boldsymbol{y}) = c L(\boldsymbol{\theta}|\boldsymbol{y})p(\boldsymbol{\theta})$, where $c$ is an unknown constant. The Gibbs sampler can be applied when the conditional posteriors are known and easily sampled from, and does not require evaluation of the constant $c$.  That is, at the $i$th step of a given Gibbs cycle, we sample from the univariate conditional posterior of $\theta_i$ given the remaining parameters and the data: $$\theta_i^{(t+1)} | (\theta_{-i}^{(t)}, \boldsymbol{y}) \sim p(\theta_i|\theta_{-i}^{(t)}, \boldsymbol{y}).$$
 
 We illustrate this with an example (GH 7.5).  Here, the goal of the study is to estimate the number of pups in a fur seal colony using a capture–
 recapture approach.  Seals that were tagged in a prior census are considered recaptures, and the total population size of the colony can be estimated on the basis of the history of capture and recapture data. That is, high recapture rates suggest that the true population size does not greatly exceed the total number of unique individuals ever captured.
