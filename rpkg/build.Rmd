@@ -86,7 +86,7 @@ create_package("foo", roxygen=FALSE)
 ```
 
 This will make a directory called `foo` in you *current working
-directory*, and will then will open a new Rstudio instance where the working directory to `foo`.  For now, we set Roxygen equal to FALSE since we have not covered Roxygen yet.  This option allows for automatic exporting of functions to the namespace when FALSE.  If set to TRUE (default), the function assumes you will be using Roxygen to document functions and will export functions in accordance to your Roxygen documention, leaving the NAMESPACE file blank upon creation.   
+directory*, and will then will open a new Rstudio instance where the working directory to `foo`.  For now, we set Roxygen equal to FALSE since we have not covered Roxygen yet.  This option allows for automatic exporting of functions to the namespace when FALSE.  If set to TRUE (default), the function assumes you will be using Roxygen to document functions and will export functions in accordance to your Roxygen documentation, leaving the NAMESPACE file blank upon creation.   
 
 In your current working directory, we can print the contents of the foo directory
 
