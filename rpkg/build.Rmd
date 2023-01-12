@@ -90,7 +90,7 @@ directory*, and will then will open a new Rstudio instance where the working dir
 
 In your current working directory, we can print the contents of the foo directory
 
-```{r. eval = F}
+```{r, eval = F}
 list.files("foo")
 ```
 
