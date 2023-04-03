@@ -38,7 +38,7 @@ Feel free to reuse/modify the lecture code to do this.   However, you can implem
   maxit = 100
   iter = 0
   eps = 10000
-  qfunction = rep(-10000,maxit) # using Qfunction for convergence
+  qfunction = -10000 # using Qfunction for convergence
   
 # starting values, taken from rejection sampling example
   beta = c(1.804, 0.165) 
